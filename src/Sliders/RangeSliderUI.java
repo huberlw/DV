@@ -42,7 +42,8 @@ class RangeSliderUI extends BasicSliderUI {
      * Constructs a RangeSliderUI for the specified slider component.
      * @param rs RangeSlider
      */
-    public RangeSliderUI(RangeSlider rs, Color track, Color left, Color right) {
+    public RangeSliderUI(RangeSlider rs, Color track, Color left, Color right)
+    {
         super(rs);
         trackColor = track;
         leftThumbColor = left;
@@ -53,7 +54,8 @@ class RangeSliderUI extends BasicSliderUI {
      * Installs this UI delegate on the specified component.
      */
     @Override
-    public void installUI(JComponent c) {
+    public void installUI(JComponent c)
+    {
         upperThumbRect = new Rectangle();
         super.installUI(c);
     }
@@ -62,7 +64,8 @@ class RangeSliderUI extends BasicSliderUI {
      * Creates a listener to handle track events in the specified slider.
      */
     @Override
-    protected TrackListener createTrackListener(JSlider slider) {
+    protected TrackListener createTrackListener(JSlider slider)
+    {
         return new RangeTrackListener();
     }
 
@@ -70,7 +73,8 @@ class RangeSliderUI extends BasicSliderUI {
      * Creates a listener to handle change events in the specified slider.
      */
     @Override
-    protected ChangeListener createChangeListener(JSlider slider) {
+    protected ChangeListener createChangeListener(JSlider slider)
+    {
         return new ChangeHandler();
     }
 
@@ -78,7 +82,8 @@ class RangeSliderUI extends BasicSliderUI {
      * Updates the dimensions for both thumbs.
      */
     @Override
-    protected void calculateThumbSize() {
+    protected void calculateThumbSize()
+    {
         // Call superclass method for lower thumb size.
         super.calculateThumbSize();
 
@@ -90,33 +95,41 @@ class RangeSliderUI extends BasicSliderUI {
      * Updates the locations for both thumbs.
      */
     @Override
-    protected void calculateThumbLocation() {
+    protected void calculateThumbLocation()
+    {
         // Call superclass method for lower thumb location.
         super.calculateThumbLocation();
 
-        // Adjust upper value to snap to ticks if necessary.
-        if (slider.getSnapToTicks()) {
+        // Adjust upper value to snap to tick if necessary.
+        if (slider.getSnapToTicks())
+        {
             int upperValue = slider.getValue() + slider.getExtent();
             int snappedValue = upperValue;
             int majorTickSpacing = slider.getMajorTickSpacing();
             int minorTickSpacing = slider.getMinorTickSpacing();
             int tickSpacing = 0;
 
-            if (minorTickSpacing > 0) {
+            if (minorTickSpacing > 0)
+            {
                 tickSpacing = minorTickSpacing;
-            } else if (majorTickSpacing > 0) {
+            }
+            else if (majorTickSpacing > 0)
+            {
                 tickSpacing = majorTickSpacing;
             }
 
-            if (tickSpacing != 0) {
+            if (tickSpacing != 0)
+            {
                 // If it's not on a tick, change the value
-                if ((upperValue - slider.getMinimum()) % tickSpacing != 0) {
+                if ((upperValue - slider.getMinimum()) % tickSpacing != 0)
+                {
                     float temp = (float)(upperValue - slider.getMinimum()) / (float)tickSpacing;
                     int whichTick = Math.round(temp);
                     snappedValue = slider.getMinimum() + (whichTick * tickSpacing);
                 }
 
-                if (snappedValue != upperValue) {
+                if (snappedValue != upperValue)
+                {
                     slider.setExtent(snappedValue - slider.getValue());
                 }
             }
@@ -124,12 +137,15 @@ class RangeSliderUI extends BasicSliderUI {
 
         // Calculate upper thumb location.  The thumb is centered over its
         // value on the track.
-        if (slider.getOrientation() == JSlider.HORIZONTAL) {
+        if (slider.getOrientation() == JSlider.HORIZONTAL)
+        {
             int upperPosition = xPositionForValue(slider.getValue() + slider.getExtent());
             upperThumbRect.x = upperPosition - (upperThumbRect.width / 2);
             upperThumbRect.y = trackRect.y;
 
-        } else {
+        }
+        else
+        {
             int upperPosition = yPositionForValue(slider.getValue() + slider.getExtent());
             upperThumbRect.x = trackRect.x;
             upperThumbRect.y = upperPosition - (upperThumbRect.height / 2);
@@ -140,7 +156,8 @@ class RangeSliderUI extends BasicSliderUI {
      * Returns the size of a thumb.
      */
     @Override
-    protected Dimension getThumbSize() {
+    protected Dimension getThumbSize()
+    {
         return new Dimension(12, 12);
     }
 
@@ -149,25 +166,32 @@ class RangeSliderUI extends BasicSliderUI {
      * other thumb.
      */
     @Override
-    public void paint(Graphics g, JComponent c) {
+    public void paint(Graphics g, JComponent c)
+    {
         super.paint(g, c);
 
         Rectangle clipRect = g.getClipBounds();
         if (upperThumbSelected) {
             // Paint lower thumb first, then upper thumb.
-            if (clipRect.intersects(thumbRect)) {
+            if (clipRect.intersects(thumbRect))
+            {
                 paintLowerThumb(g);
             }
-            if (clipRect.intersects(upperThumbRect)) {
+            if (clipRect.intersects(upperThumbRect))
+            {
                 paintUpperThumb(g);
             }
 
-        } else {
+        }
+        else
+        {
             // Paint upper thumb first, then lower thumb.
-            if (clipRect.intersects(upperThumbRect)) {
+            if (clipRect.intersects(upperThumbRect))
+            {
                 paintUpperThumb(g);
             }
-            if (clipRect.intersects(thumbRect)) {
+            if (clipRect.intersects(thumbRect))
+            {
                 paintLowerThumb(g);
             }
         }
@@ -177,13 +201,15 @@ class RangeSliderUI extends BasicSliderUI {
      * Paints the track.
      */
     @Override
-    public void paintTrack(Graphics g) {
+    public void paintTrack(Graphics g)
+    {
         // Draw track.
         super.paintTrack(g);
 
         Rectangle trackBounds = trackRect;
 
-        if (slider.getOrientation() == JSlider.HORIZONTAL) {
+        if (slider.getOrientation() == JSlider.HORIZONTAL)
+        {
             // Determine position of selected range by moving from the middle
             // of one thumb to the other.
             int lowerX = thumbRect.x + (thumbRect.width / 2);
@@ -198,7 +224,8 @@ class RangeSliderUI extends BasicSliderUI {
 
             // Draw selected range.
             g.setColor(trackColor);
-            for (int y = 0; y <= 3; y++) {
+            for (int y = 0; y <= 3; y++)
+            {
                 g.drawLine(lowerX - trackBounds.x, y, upperX - trackBounds.x, y);
             }
 
@@ -206,7 +233,9 @@ class RangeSliderUI extends BasicSliderUI {
             g.translate(-trackBounds.x, -(trackBounds.y + cy));
             g.setColor(oldColor);
 
-        } else {
+        }
+        else
+        {
             // Determine position of selected range by moving from the middle
             // of one thumb to the other.
             int lowerY = thumbRect.x + (thumbRect.width / 2);
@@ -221,7 +250,8 @@ class RangeSliderUI extends BasicSliderUI {
 
             // Draw selected range.
             g.setColor(trackColor);
-            for (int x = 0; x <= 3; x++) {
+            for (int x = 0; x <= 3; x++)
+            {
                 g.drawLine(x, lowerY - trackBounds.y, x, upperY - trackBounds.y);
             }
 
@@ -236,14 +266,16 @@ class RangeSliderUI extends BasicSliderUI {
      * within the <code>paint()</code> method.
      */
     @Override
-    public void paintThumb(Graphics g) {
+    public void paintThumb(Graphics g)
+    {
         // Do nothing.
     }
 
     /**
      * Paints the thumb for the lower value using the specified graphics object.
      */
-    private void paintLowerThumb(Graphics g) {
+    private void paintLowerThumb(Graphics g)
+    {
         Rectangle knobBounds = thumbRect;
         int w = knobBounds.width;
         int h = knobBounds.height;
@@ -259,10 +291,10 @@ class RangeSliderUI extends BasicSliderUI {
                 RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.translate(knobBounds.x, knobBounds.y);
 
-        g2d.setColor(Color.CYAN);
+        g2d.setColor(leftThumbColor);
         g2d.fill(thumbShape);
 
-        g2d.setColor(Color.BLUE);
+        g2d.setColor(leftThumbColor);
         g2d.draw(thumbShape);
 
         // Dispose graphics.
@@ -272,7 +304,8 @@ class RangeSliderUI extends BasicSliderUI {
     /**
      * Paints the thumb for the upper value using the specified graphics object.
      */
-    private void paintUpperThumb(Graphics g) {
+    private void paintUpperThumb(Graphics g)
+    {
         Rectangle knobBounds = upperThumbRect;
         int w = knobBounds.width;
         int h = knobBounds.height;
@@ -288,10 +321,10 @@ class RangeSliderUI extends BasicSliderUI {
                 RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.translate(knobBounds.x, knobBounds.y);
 
-        g2d.setColor(Color.PINK);
+        g2d.setColor(rightThumbColor);
         g2d.fill(thumbShape);
 
-        g2d.setColor(Color.RED);
+        g2d.setColor(rightThumbColor);
         g2d.draw(thumbShape);
 
         // Dispose graphics.
@@ -301,10 +334,10 @@ class RangeSliderUI extends BasicSliderUI {
     /**
      * Returns a Shape representing a thumb.
      */
-    private Shape createThumbShape(int width, int height) {
+    private Shape createThumbShape(int width, int height)
+    {
         // Use circular shape.
-        Ellipse2D shape = new Ellipse2D.Double(0, 0, width, height);
-        return shape;
+        return new Ellipse2D.Double(0, 0, width, height);
     }
 
     /**
@@ -327,18 +360,23 @@ class RangeSliderUI extends BasicSliderUI {
      * Moves the selected thumb in the specified direction by a block increment.
      * This method is called when the user presses the Page Up or Down keys.
      */
-    public void scrollByBlock(int direction) {
-        synchronized (slider) {
+    public void scrollByBlock(int direction)
+    {
+        synchronized (slider)
+        {
             int blockIncrement = (slider.getMaximum() - slider.getMinimum()) / 10;
-            if (blockIncrement <= 0 && slider.getMaximum() > slider.getMinimum()) {
+            if (blockIncrement <= 0 && slider.getMaximum() > slider.getMinimum())
+            {
                 blockIncrement = 1;
             }
             int delta = blockIncrement * ((direction > 0) ? POSITIVE_SCROLL : NEGATIVE_SCROLL);
 
-            if (upperThumbSelected) {
+            if (upperThumbSelected)
+            {
                 int oldValue = ((RangeSlider) slider).getUpperValue();
                 ((RangeSlider) slider).setUpperValue(oldValue + delta);
-            } else {
+            } else
+            {
                 int oldValue = slider.getValue();
                 slider.setValue(oldValue + delta);
             }
@@ -349,14 +387,19 @@ class RangeSliderUI extends BasicSliderUI {
      * Moves the selected thumb in the specified direction by a unit increment.
      * This method is called when the user presses one of the arrow keys.
      */
-    public void scrollByUnit(int direction) {
-        synchronized (slider) {
-            int delta = 1 * ((direction > 0) ? POSITIVE_SCROLL : NEGATIVE_SCROLL);
+    public void scrollByUnit(int direction)
+    {
+        synchronized (slider)
+        {
+            int delta = ((direction > 0) ? POSITIVE_SCROLL : NEGATIVE_SCROLL);
 
-            if (upperThumbSelected) {
+            if (upperThumbSelected)
+            {
                 int oldValue = ((RangeSlider) slider).getUpperValue();
                 ((RangeSlider) slider).setUpperValue(oldValue + delta);
-            } else {
+            }
+            else
+            {
                 int oldValue = slider.getValue();
                 slider.setValue(oldValue + delta);
             }
@@ -368,9 +411,12 @@ class RangeSliderUI extends BasicSliderUI {
      * locations and repaints the slider if the value change is not caused by
      * dragging a thumb.
      */
-    public class ChangeHandler implements ChangeListener {
-        public void stateChanged(ChangeEvent arg0) {
-            if (!lowerDragging && !upperDragging) {
+    public class ChangeHandler implements ChangeListener
+    {
+        public void stateChanged(ChangeEvent arg0)
+        {
+            if (!lowerDragging && !upperDragging)
+            {
                 calculateThumbLocation();
                 slider.repaint();
             }
@@ -380,18 +426,22 @@ class RangeSliderUI extends BasicSliderUI {
     /**
      * Listener to handle mouse movements in the slider track.
      */
-    public class RangeTrackListener extends TrackListener {
+    public class RangeTrackListener extends TrackListener
+    {
 
         @Override
-        public void mousePressed(MouseEvent e) {
-            if (!slider.isEnabled()) {
+        public void mousePressed(MouseEvent e)
+        {
+            if (!slider.isEnabled())
+            {
                 return;
             }
 
             currentMouseX = e.getX();
             currentMouseY = e.getY();
 
-            if (slider.isRequestFocusEnabled()) {
+            if (slider.isRequestFocusEnabled())
+            {
                 slider.requestFocus();
             }
 
@@ -400,29 +450,34 @@ class RangeSliderUI extends BasicSliderUI {
             // otherwise check the position of the lower thumb first.
             boolean lowerPressed = false;
             boolean upperPressed = false;
-            if (upperThumbSelected || slider.getMinimum() == slider.getValue()) {
-                if (upperThumbRect.contains(currentMouseX, currentMouseY)) {
+            if (upperThumbSelected || slider.getMinimum() == slider.getValue())
+            {
+                if (upperThumbRect.contains(currentMouseX, currentMouseY))
+                {
                     upperPressed = true;
-                } else if (thumbRect.contains(currentMouseX, currentMouseY)) {
+                } else if (thumbRect.contains(currentMouseX, currentMouseY))
+                {
                     lowerPressed = true;
                 }
-            } else {
-                if (thumbRect.contains(currentMouseX, currentMouseY)) {
+            }
+            else
+            {
+                if (thumbRect.contains(currentMouseX, currentMouseY))
+                {
                     lowerPressed = true;
-                } else if (upperThumbRect.contains(currentMouseX, currentMouseY)) {
+                } else if (upperThumbRect.contains(currentMouseX, currentMouseY))
+                {
                     upperPressed = true;
                 }
             }
 
             // Handle lower thumb pressed.
-            if (lowerPressed) {
-                switch (slider.getOrientation()) {
-                    case JSlider.VERTICAL:
-                        offset = currentMouseY - thumbRect.y;
-                        break;
-                    case JSlider.HORIZONTAL:
-                        offset = currentMouseX - thumbRect.x;
-                        break;
+            if (lowerPressed)
+            {
+                switch (slider.getOrientation())
+                {
+                    case JSlider.VERTICAL -> offset = currentMouseY - thumbRect.y;
+                    case JSlider.HORIZONTAL -> offset = currentMouseX - thumbRect.x;
                 }
                 upperThumbSelected = false;
                 lowerDragging = true;
@@ -431,14 +486,12 @@ class RangeSliderUI extends BasicSliderUI {
             lowerDragging = false;
 
             // Handle upper thumb pressed.
-            if (upperPressed) {
-                switch (slider.getOrientation()) {
-                    case JSlider.VERTICAL:
-                        offset = currentMouseY - upperThumbRect.y;
-                        break;
-                    case JSlider.HORIZONTAL:
-                        offset = currentMouseX - upperThumbRect.x;
-                        break;
+            if (upperPressed)
+            {
+                switch (slider.getOrientation())
+                {
+                    case JSlider.VERTICAL -> offset = currentMouseY - upperThumbRect.y;
+                    case JSlider.HORIZONTAL -> offset = currentMouseX - upperThumbRect.x;
                 }
                 upperThumbSelected = true;
                 upperDragging = true;
@@ -448,7 +501,8 @@ class RangeSliderUI extends BasicSliderUI {
         }
 
         @Override
-        public void mouseReleased(MouseEvent e) {
+        public void mouseReleased(MouseEvent e)
+        {
             lowerDragging = false;
             upperDragging = false;
             slider.setValueIsAdjusting(false);
@@ -456,26 +510,32 @@ class RangeSliderUI extends BasicSliderUI {
         }
 
         @Override
-        public void mouseDragged(MouseEvent e) {
-            if (!slider.isEnabled()) {
+        public void mouseDragged(MouseEvent e)
+        {
+            if (!slider.isEnabled())
+            {
                 return;
             }
 
             currentMouseX = e.getX();
             currentMouseY = e.getY();
 
-            if (lowerDragging) {
+            if (lowerDragging)
+            {
                 slider.setValueIsAdjusting(true);
                 moveLowerThumb();
 
-            } else if (upperDragging) {
+            }
+            else if (upperDragging)
+            {
                 slider.setValueIsAdjusting(true);
                 moveUpperThumb();
             }
         }
 
         @Override
-        public boolean shouldScroll(int direction) {
+        public boolean shouldScroll(int direction)
+        {
             return false;
         }
 
@@ -483,11 +543,12 @@ class RangeSliderUI extends BasicSliderUI {
          * Moves the location of the lower thumb, and sets its corresponding
          * value in the slider.
          */
-        private void moveLowerThumb() {
-            int thumbMiddle = 0;
+        private void moveLowerThumb()
+        {
+            int thumbMiddle;
 
             switch (slider.getOrientation()) {
-                case JSlider.VERTICAL:
+                case JSlider.VERTICAL -> {
                     int halfThumbHeight = thumbRect.height / 2;
                     int thumbTop = currentMouseY - offset;
                     int trackTop = trackRect.y;
@@ -502,15 +563,13 @@ class RangeSliderUI extends BasicSliderUI {
                     }
                     thumbTop = Math.max(thumbTop, trackTop - halfThumbHeight);
                     thumbTop = Math.min(thumbTop, trackBottom - halfThumbHeight);
-
                     setThumbLocation(thumbRect.x, thumbTop);
 
                     // Update slider value.
                     thumbMiddle = thumbTop + halfThumbHeight;
                     slider.setValue(valueForYPosition(thumbMiddle));
-                    break;
-
-                case JSlider.HORIZONTAL:
+                }
+                case JSlider.HORIZONTAL -> {
                     int halfThumbWidth = thumbRect.width / 2;
                     int thumbLeft = currentMouseX - offset;
                     int trackLeft = trackRect.x;
@@ -525,16 +584,12 @@ class RangeSliderUI extends BasicSliderUI {
                     }
                     thumbLeft = Math.max(thumbLeft, trackLeft - halfThumbWidth);
                     thumbLeft = Math.min(thumbLeft, trackRight - halfThumbWidth);
-
                     setThumbLocation(thumbLeft, thumbRect.y);
 
                     // Update slider value.
                     thumbMiddle = thumbLeft + halfThumbWidth;
                     slider.setValue(valueForXPosition(thumbMiddle));
-                    break;
-
-                default:
-                    return;
+                }
             }
         }
 
@@ -542,11 +597,12 @@ class RangeSliderUI extends BasicSliderUI {
          * Moves the location of the upper thumb, and sets its corresponding
          * value in the slider.
          */
-        private void moveUpperThumb() {
-            int thumbMiddle = 0;
+        private void moveUpperThumb()
+        {
+            int thumbMiddle;
 
             switch (slider.getOrientation()) {
-                case JSlider.VERTICAL:
+                case JSlider.VERTICAL -> {
                     int halfThumbHeight = thumbRect.height / 2;
                     int thumbTop = currentMouseY - offset;
                     int trackTop = trackRect.y;
@@ -561,15 +617,13 @@ class RangeSliderUI extends BasicSliderUI {
                     }
                     thumbTop = Math.max(thumbTop, trackTop - halfThumbHeight);
                     thumbTop = Math.min(thumbTop, trackBottom - halfThumbHeight);
-
                     setUpperThumbLocation(thumbRect.x, thumbTop);
 
                     // Update slider extent.
                     thumbMiddle = thumbTop + halfThumbHeight;
                     slider.setExtent(valueForYPosition(thumbMiddle) - slider.getValue());
-                    break;
-
-                case JSlider.HORIZONTAL:
+                }
+                case JSlider.HORIZONTAL -> {
                     int halfThumbWidth = thumbRect.width / 2;
                     int thumbLeft = currentMouseX - offset;
                     int trackLeft = trackRect.x;
@@ -584,16 +638,12 @@ class RangeSliderUI extends BasicSliderUI {
                     }
                     thumbLeft = Math.max(thumbLeft, trackLeft - halfThumbWidth);
                     thumbLeft = Math.min(thumbLeft, trackRight - halfThumbWidth);
-
                     setUpperThumbLocation(thumbLeft, thumbRect.y);
 
                     // Update slider extent.
                     thumbMiddle = thumbLeft + halfThumbWidth;
                     slider.setExtent(valueForXPosition(thumbMiddle) - slider.getValue());
-                    break;
-
-                default:
-                    return;
+                }
             }
         }
     }

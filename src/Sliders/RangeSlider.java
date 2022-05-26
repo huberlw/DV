@@ -12,7 +12,8 @@ import java.awt.*;
  * supports an inner range defined by a value and an extent.  The upper value
  * returned by RangeSlider is simply the lower value plus the extent.</p>
  */
-public class RangeSlider extends JSlider {
+public class RangeSlider extends JSlider
+{
     private final Color trackColor;
     private final Color leftThumbColor;
     private final Color rightThumbColor;
@@ -21,7 +22,8 @@ public class RangeSlider extends JSlider {
      * Constructs a RangeSlider with default minimum and maximum values of 0
      * and 100 and a specified color.
      */
-    public RangeSlider(Color track, Color left, Color right) {
+    public RangeSlider(Color track, Color left, Color right)
+    {
         this.trackColor = track;
         this.leftThumbColor = left;
         this.rightThumbColor = right;
@@ -31,7 +33,8 @@ public class RangeSlider extends JSlider {
     /**
      * Initializes the slider by setting default properties.
      */
-    private void initSlider() {
+    private void initSlider()
+    {
         setOrientation(HORIZONTAL);
     }
 
@@ -40,7 +43,8 @@ public class RangeSlider extends JSlider {
      * thumbs.
      */
     @Override
-    public void updateUI() {
+    public void updateUI()
+    {
         setUI(new RangeSliderUI(this, trackColor, leftThumbColor, rightThumbColor));
         updateLabelUIs();
     }
@@ -49,7 +53,8 @@ public class RangeSlider extends JSlider {
      * Returns the lower value in the range.
      */
     @Override
-    public int getValue() {
+    public int getValue()
+    {
         return super.getValue();
     }
 
@@ -57,7 +62,8 @@ public class RangeSlider extends JSlider {
      * Sets the lower value in the range.
      */
     @Override
-    public void setValue(int value) {
+    public void setValue(int value)
+    {
         getModel().setRangeProperties(value, getUpperValue() - value, getMinimum(),
                 getMaximum(), getValueIsAdjusting());
     }
@@ -65,14 +71,16 @@ public class RangeSlider extends JSlider {
     /**
      * Returns the upper value in the range.
      */
-    public int getUpperValue() {
+    public int getUpperValue()
+    {
         return getValue() + getExtent();
     }
 
     /**
      * Sets the upper value in the range.
      */
-    public void setUpperValue(int value) {
+    public void setUpperValue(int value)
+    {
         // Compute new extent.
         int lowerValue = getValue();
         int newExtent = value - lowerValue;

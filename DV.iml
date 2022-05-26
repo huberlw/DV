@@ -15,5 +15,6 @@
     <orderEntry type="library" name="Python 3.9 (DVProject) interpreter library" level="application" />
     <orderEntry type="library" name="jfreechart-1.0.19" level="project" />
     <orderEntry type="library" name="jcommon-1.0.23" level="project" />
+    <orderEntry type="library" name="smile-core-1.2.2-sources" level="project" />
   </component>
 </module>
