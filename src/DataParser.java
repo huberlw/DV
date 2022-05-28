@@ -72,6 +72,8 @@ public class DataParser
             // LinkedHashSet preserves order and does not allow duplicates
             LinkedHashSet<String> unique = new LinkedHashSet<>();
 
+            DV.allClasses = new ArrayList<>();
+
             // add all classes to unique and allClasses
             for (int i = 1; i < stringData.length; i++)
             {

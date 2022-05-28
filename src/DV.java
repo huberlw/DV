@@ -28,21 +28,21 @@ public class DV extends JFrame
     static JSlider thresholdSlider;
 
     // panels
-    static JPanel sliderPanel = new JPanel();
-    static JPanel confusionMatrixPanel = new JPanel();
-    static JPanel graphPanel = new JPanel();
-    static JPanel graphDomainPanel = new JPanel();
+    static JPanel sliderPanel;
+    static JPanel confusionMatrixPanel;
+    static JPanel graphPanel;
+    static JPanel graphDomainPanel;
 
     // confusion matrices
-    static JTextArea allDataCM = new JTextArea(10, 40);
-    static JTextArea dataWithoutOverlapCM = new JTextArea(10, 40);
-    static JTextArea overlapCM = new JTextArea(10, 40);
-    static JTextArea worstCaseCM = new JTextArea(10, 40);
+    static JTextArea allDataCM;
+    static JTextArea dataWithoutOverlapCM;
+    static JTextArea overlapCM;
+    static JTextArea worstCaseCM;
 
     // scroll areas
-    JScrollPane graphPane = new JScrollPane();
-    JScrollPane anglesPane = new JScrollPane();
-    JScrollPane confusionMatrixPane = new JScrollPane();
+    JScrollPane graphPane;
+    JScrollPane anglesPane;
+    JScrollPane confusionMatrixPane;
 
     // main frame for DV
     static JFrame mainFrame;
@@ -113,16 +113,16 @@ public class DV extends JFrame
     public static double[] initialAngles; // ASK KOVALERCHUK ABOUT CHANGING TO LDA ANGLES
 
     // normalized and original data
-    static ArrayList<DataObject> data = new ArrayList<>();
-    static ArrayList<DataObject> originalData = new ArrayList<>();
+    static ArrayList<DataObject> data;
+    static ArrayList<DataObject> originalData;
 
     // classes for data
-    static ArrayList<String> allClasses = new ArrayList<>();
-    static ArrayList<String> uniqueClasses = new ArrayList<>();
+    static ArrayList<String> allClasses;
+    static ArrayList<String> uniqueClasses;
     static int classNumber;
 
     // fieldnames and length
-    static ArrayList<String> fieldNames = new ArrayList<>();
+    static ArrayList<String> fieldNames;
     static int fieldLength;
 
 
@@ -166,46 +166,54 @@ public class DV extends JFrame
         mainFrame.setJMenuBar(menuBar);
 
         // file menu
+        // keyboard shortcut: alt + f
         JMenu fileMenu = new JMenu("File");
         fileMenu.setMnemonic(KeyEvent.VK_F);
         menuBar.add(fileMenu);
 
         // file menu item: create new project
+        // keyboard shortcut: alt + n
         JMenuItem newProjItem = new JMenuItem("Create New Project");
         newProjItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.ALT_DOWN_MASK));
         newProjItem.addActionListener(e -> createNewProject());
         fileMenu.add(newProjItem);
 
         // file menu item: open saved project
+        // keyboard shortcut: alt + o
         JMenuItem openSavedItem = new JMenuItem("Open Saved Project");
         openSavedItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.ALT_DOWN_MASK));
         openSavedItem.addActionListener(e -> openSavedProject());
         fileMenu.add(openSavedItem);
 
         // file menu item: save project
+        // keyboard shortcut: alt + s
         JMenuItem saveProjItem = new JMenuItem("Save Project");
         saveProjItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.ALT_DOWN_MASK));
         saveProjItem.addActionListener(e -> saveProject());
         fileMenu.add(saveProjItem);
 
         // file menu item: save project as
+        // keyboard shortcut: alt + a
         JMenuItem saveProjAsItem = new JMenuItem("Save Project As");
         saveProjAsItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.ALT_DOWN_MASK));
         saveProjAsItem.addActionListener(e -> saveProjectAs());
         fileMenu.add(saveProjAsItem);
 
         // file menu item: import data
+        // keyboard shortcut: alt + i
         JMenuItem importDataItem = new JMenuItem("Import Data");
         importDataItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.ALT_DOWN_MASK));
         importDataItem.addActionListener(e -> importData());
         fileMenu.add(importDataItem);
 
         // help menu
+        // keyboard shortcut: alt + h
         JMenu helpMenu = new JMenu("Help");
         helpMenu.setMnemonic(KeyEvent.VK_H);
         menuBar.add(helpMenu);
 
         // help menu item: open manual
+        // keyboard shortcut: alt + m
         JMenuItem manualItem = new JMenuItem("User Manual");
         manualItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.ALT_DOWN_MASK));
         manualItem.addActionListener(e ->
@@ -228,6 +236,7 @@ public class DV extends JFrame
         helpMenu.add(manualItem);
 
         // help manu item: normalization info
+        // keyboard shortcut: alt + u
         JMenuItem normalizationInfoItem = new JMenuItem("Normalization Info");
         normalizationInfoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.ALT_DOWN_MASK));
         normalizationInfoItem.addActionListener(e -> normalizationInfoPopup());
@@ -235,44 +244,51 @@ public class DV extends JFrame
 
 
     /**
+     * Creates toolbar for DV Program
      *
      */
     private void createToolBar()
     {
         // create toolbar
-        JToolBar toolBar = new JToolBar("Tool Palette");
+        JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setRollover(true);
 
-        // add colors options
+        // colors options
         JButton colorOptionsBtn = new JButton("Color Options");
         colorOptionsBtn.setToolTipText("Open the color options menu");
         colorOptionsBtn.addActionListener(e -> new ColorOptionsMenu(MouseInfo.getPointerInfo().getLocation()));
+        toolBar.addSeparator();
         toolBar.add(colorOptionsBtn);
+        toolBar.addSeparator();
 
-        // add visualization options
+        // visualization options
         JButton visOptionsBtn = new JButton("Visualization Options");
         visOptionsBtn.setToolTipText("Open the visualization options menu");
         visOptionsBtn.addActionListener(e -> new VisOptionsMenu(MouseInfo.getPointerInfo().getLocation()));
         toolBar.add(visOptionsBtn);
+        toolBar.addSeparator();
 
-        // result screen
+        // resets screen
         JButton resetScreenBtn = new JButton("Reset Screen");
         resetScreenBtn.setToolTipText("Resets rendered zoom area");
         resetScreenBtn.addActionListener(e -> DataVisualization.drawGraphs(0));
         toolBar.add(resetScreenBtn);
+        toolBar.addSeparator();
 
         // optimize visualization
         JButton optimizeBtn = new JButton("Optimize Visualization");
         optimizeBtn.setToolTipText("Attempts to optimize angles and threshold");
         optimizeBtn.addActionListener(e -> DataVisualization.optimizeVisualization());
         toolBar.add(optimizeBtn);
+        toolBar.addSeparator();
 
         // undo optimization
         JButton undoOptimizeBtn = new JButton("Undo Optimization");
         undoOptimizeBtn.setToolTipText("Reverses previous optimization operation");
         undoOptimizeBtn.addActionListener(e -> DataVisualization.undoOptimization());
         toolBar.add(undoOptimizeBtn);
+        toolBar.addSeparator();
 
         // toggle bar-line
         JButton barLineBtn = new JButton("Toggle Bar-line");
@@ -283,13 +299,14 @@ public class DV extends JFrame
             DataVisualization.drawGraphs(0);
         });
         toolBar.add(barLineBtn);
+        toolBar.addSeparator();
 
         // set toolbar north
         JPanel toolBarPanel = new JPanel(new BorderLayout());
         toolBarPanel.setVisible(true);
         toolBarPanel.add(toolBar, BorderLayout.NORTH);
 
-        // add uiPanel
+        // add uiPanel to toolbar
         toolBarPanel.add(uiPanel());
 
         // add toolbar to mainFrame
@@ -325,17 +342,19 @@ public class DV extends JFrame
         ChartPanel chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new Dimension(Resolutions.chartPanel[0], Resolutions.chartPanel[1]));
 
+        // set layout
+        graphPanel = new JPanel();
         graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.Y_AXIS));
         graphPanel.add(chartPanel);
 
         graphPane = new JScrollPane(graphPanel);
 
+        // center graph
         graphPane.setAlignmentX(Component.CENTER_ALIGNMENT);
         graphPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        constraints.weightx = 0.7;
-        constraints.gridx = 0;
-        constraints.gridy = 0;
 
+        // set layout and size
+        graphDomainPanel = new JPanel();
         graphDomainPanel.setLayout(new BoxLayout(graphDomainPanel, BoxLayout.Y_AXIS));
         graphDomainPanel.setPreferredSize(new Dimension(Resolutions.graphDomainPanel[0], Resolutions.graphDomainPanel[1]));
 
@@ -567,6 +586,9 @@ public class DV extends JFrame
         graphDomainPanel.add(thresholdSliderLabel);
 
         // finalize domain panel
+        constraints.weightx = 0.7;
+        constraints.gridx = 0;
+        constraints.gridy = 0;
         mainPanel.add(graphDomainPanel, constraints);
 
         // create angles scroll pane
@@ -574,14 +596,20 @@ public class DV extends JFrame
         sliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], Resolutions.sliderPanel[1]));
         anglesPane = new JScrollPane(sliderPanel);
         anglesPane.setPreferredSize(new Dimension(Resolutions.anglesPane[0], Resolutions.anglesPane[1]));
+
         constraints.weightx = 0.3;
         constraints.gridx = 1;
         constraints.gridy = 0;
-
         mainPanel.add(anglesPane, constraints);
 
+        // create confusion matrices
+        allDataCM = new JTextArea(10, 40);
+        dataWithoutOverlapCM = new JTextArea(10, 40);
+        overlapCM = new JTextArea(10, 40);
+        worstCaseCM = new JTextArea(10, 40);
+
         // create confusion matrix panel
-        confusionMatrixPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        confusionMatrixPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         confusionMatrixPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
         confusionMatrixPanel.add(allDataCM);
         confusionMatrixPanel.add(dataWithoutOverlapCM);
@@ -592,6 +620,7 @@ public class DV extends JFrame
         confusionMatrixPane = new JScrollPane(confusionMatrixPanel);
         confusionMatrixPane.setPreferredSize(new Dimension(Resolutions.confusionMatrixPane[0], Resolutions.confusionMatrixPane[1]));
         confusionMatrixPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
         constraints.weightx = 1;
         constraints.gridx = 0;
         constraints.gridy = 1;
