@@ -276,7 +276,12 @@ public class DV extends JFrame
         // resets screen
         JButton resetScreenBtn = new JButton("Reset Screen");
         resetScreenBtn.setToolTipText("Resets rendered zoom area");
-        resetScreenBtn.addActionListener(e -> DataVisualization.drawGraphs(0));
+        resetScreenBtn.addActionListener(e ->
+        {
+            DataVisualization.drawGraphs(0);
+            repaint();
+            revalidate();
+        });
         toolBar.add(resetScreenBtn);
         toolBar.addSeparator();
 
@@ -691,7 +696,8 @@ public class DV extends JFrame
     /**
      * Asks user questions about data then creates project
      */
-    private void createNewProject() {
+    private void createNewProject()
+    {
         // check for ID column
         int choice = JOptionPane.showConfirmDialog(
                 mainFrame,
@@ -783,8 +789,7 @@ public class DV extends JFrame
                     JOptionPane.ERROR_MESSAGE);
         }
 
-        // update angles then redraw
-        DataVisualization.updateAngles();
+        // repaint and revalidate DV
         repaint();
         revalidate();
     }
@@ -854,7 +859,7 @@ public class DV extends JFrame
         graphPanel.removeAll();
 
         // reset accuracies
-        prevAccuracies.clear();
+        prevAccuracies = new ArrayList<>();
 
         // reset graphs
         drawOverlap = false;

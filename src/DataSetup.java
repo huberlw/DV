@@ -55,12 +55,15 @@ public class DataSetup
             // get normalized numerical data if not null
             if (numericalData != null)
             {
+                // save original data
+                double[][] originalNumericalData = Arrays.copyOf(numericalData, numericalData.length);
+
                 // normalize data
                 double[][] normalizedNumericalData = normalizeData(numericalData);
 
                 // separate by class
                 ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData);
-                ArrayList<double[][]> originalByClass = separateByClass(numericalData);
+                ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData);
 
                 // transform classes into data objects
                 DV.data = createDataObjects(splitByClass);
@@ -249,7 +252,7 @@ public class DataSetup
 
                     // remove invalid from allClasses
                     String invalidData = DV.allClasses.get(i - invalids);
-                    DV.allClasses.remove(i - invalids++);
+                    DV.allClasses.remove(i - invalids);
 
                     // check if class still exists
                     for (int k = 0; k < DV.allClasses.size(); k++)
@@ -264,7 +267,8 @@ public class DataSetup
                     }
 
                     // remove invalid ArrayList from numerical data
-                    numericalData.remove(i);
+                    numericalData.remove(i - invalids);
+                    invalids++;
                     break;
                 }
             }

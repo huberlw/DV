@@ -7,7 +7,7 @@ public class Resolutions
     public static int[] anglesPane = new int[]{190, 650};
     public static int[] domainSlider = new int[]{950, 20};
     public static int[] confusionMatrixPane = new int[]{1200, 150};
-    public static int[] tempPanel = new int[]{950, 270};
+    public static int[] singleChartPanel = new int[]{950, 270};
 
     public static void setResolution(int resolution) {
         // 1920x1080
@@ -20,7 +20,7 @@ public class Resolutions
             anglesPane = new int[]{300, 750};
             domainSlider = new int[]{1480, 20};
             confusionMatrixPane = new int[]{1870, 180};
-            tempPanel = new int[]{1480, 320};
+            singleChartPanel = new int[]{1480, 320};
         }
         // 1280x720
         else if(resolution == 1)
@@ -32,7 +32,7 @@ public class Resolutions
             anglesPane = new int[]{200, 510};
             domainSlider = new int[]{990, 15};
             confusionMatrixPane = new int[]{1250, 120};
-            tempPanel = new int[]{990, 215};
+            singleChartPanel = new int[]{990, 215};
         }
     }
 }
