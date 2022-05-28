@@ -5,14 +5,14 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
-public class DataParser
+public class DataSetup
 {
     /**
-     * Parses data from dataFile into class
-     * separated DataObjects
+     * Sets up DV with data from datafile
      * @param dataFile .csv file holding data
+     * @return whether parseData was successful
      */
-    public static void parseData(File dataFile)
+    public static boolean setupWithData(File dataFile)
     {
         // data string[][] representation of dataFile (csv)
         String[][] stringData = getStringFromCSV(dataFile);
@@ -33,12 +33,21 @@ public class DataParser
                 stringData = purgeID(stringData);
 
             // set class visualization -> all classes except the first go on the lower graph
+            DV.upperClass = 0;
+            DV.lowerClasses = new ArrayList<>(List.of(false));
+
             for (int i = 1; i < DV.classNumber; i++)
                 DV.lowerClasses.add(true);
 
             // get fieldNames and fieldLength
             DV.fieldNames = getFieldNames(stringData);
             DV.fieldLength = DV.fieldNames.size();
+
+            // initializes angles to 45 degrees
+            DV.angles = new double[DV.fieldLength];
+
+            for (int i = 0; i < DV.fieldLength; i++)
+                DV.angles[i] = 45;
 
             // get numerical data from string data
             double[][] numericalData = stringToNumerical(stringData);
@@ -56,8 +65,14 @@ public class DataParser
                 // transform classes into data objects
                 DV.data = createDataObjects(splitByClass);
                 DV.originalData = createDataObjects(originalByClass);
+
+                return true;
             }
+            else
+                return false;
         }
+        else
+            return false;
     }
 
 

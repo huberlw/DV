@@ -21,7 +21,7 @@ import javax.swing.plaf.basic.BasicSliderUI;
  * UI delegate for the RangeSlider component.  RangeSliderUI paints two thumbs,
  * one for the lower value and one for the upper value.
  */
-class RangeSliderUI extends BasicSliderUI {
+public class RangeSliderUI extends BasicSliderUI {
 
     /** Colors for track and thumbs. */
     private final Color trackColor;

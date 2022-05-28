@@ -3,6 +3,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import Sliders.CustomSliderUI;
 import Sliders.RangeSlider;
+import Sliders.RangeSliderUI;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -28,7 +29,7 @@ public class DV extends JFrame
     static JSlider thresholdSlider;
 
     // panels
-    static JPanel sliderPanel;
+    static JPanel angleSliderPanel;
     static JPanel confusionMatrixPanel;
     static JPanel graphPanel;
     static JPanel graphDomainPanel;
@@ -79,6 +80,9 @@ public class DV extends JFrame
     static int upperClass = 0;
     static ArrayList<Boolean> lowerClasses = new ArrayList<>(List.of(false));
 
+    // warn user about scaling
+    static boolean showPopup;
+
     /**************************************************
      * FOR CONFUSION MATRICES
      *************************************************/
@@ -89,7 +93,7 @@ public class DV extends JFrame
     static double threshold;
 
     // lesser class (lower mean)
-    static int lowerRange = 0;
+    static int lowerRange;
 
     // current and previous accuracies (only applicable to 3+ class datasets)
     static double accuracy;
@@ -324,28 +328,12 @@ public class DV extends JFrame
         JPanel mainPanel = new JPanel(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
 
-        // initial graph
-        XYSeriesCollection data = new XYSeriesCollection();
-        JFreeChart chart = ChartFactory.createXYLineChart("", "", "", data);
-        XYPlot plot = (XYPlot) chart.getPlot();
-        plot.setDrawingSupplier(new DefaultDrawingSupplier(
-                new Paint[] { Color.RED },
-                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
-        plot.getRangeAxis().setVisible(false);
-        plot.getDomainAxis().setVisible(false);
-        plot.setRangeGridlinesVisible(false);
-        chart.removeLegend();
-        chart.setBorderVisible(false);
-        ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new Dimension(Resolutions.chartPanel[0], Resolutions.chartPanel[1]));
-
         // set layout
         graphPanel = new JPanel();
         graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.Y_AXIS));
-        graphPanel.add(chartPanel);
+
+        // add blank graph
+        graphPanel.add(blankGraph());
 
         graphPane = new JScrollPane(graphPanel);
 
@@ -364,7 +352,15 @@ public class DV extends JFrame
         JPanel domainSliderPanel = new JPanel();
 
         // set colors minimum and maximum of slider
-        domainSlider = new RangeSlider(Color.ORANGE, Color.LIGHT_GRAY, Color.DARK_GRAY);
+        domainSlider = new RangeSlider()
+        {
+            @Override
+            public void updateUI()
+            {
+                setUI(new RangeSliderUI(this, Color.BLACK, Color.LIGHT_GRAY, Color.DARK_GRAY));
+                updateLabelUIs();
+            }
+        };
         domainSlider.setMinimum(0);
         domainSlider.setMaximum(400);
         domainSlider.setMajorTickSpacing(1);
@@ -378,13 +374,16 @@ public class DV extends JFrame
             @Override
             public void mouseDragged(MouseEvent e)
             {
-                RangeSlider slider = (RangeSlider) e.getSource();
-                domainArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
-                domainArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
+                if (data != null)
+                {
+                    RangeSlider slider = (RangeSlider) e.getSource();
+                    domainArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
+                    domainArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
 
-                DataVisualization.drawGraphs(2);
-                repaint();
-                revalidate();
+                    DataVisualization.drawGraphs(2);
+                    repaint();
+                    revalidate();
+                }
             }
 
             @Override
@@ -396,9 +395,12 @@ public class DV extends JFrame
             @Override
             public void mouseClicked(MouseEvent e)
             {
-                DataVisualization.drawGraphs(2);
-                repaint();
-                revalidate();
+                if (data != null)
+                {
+                    DataVisualization.drawGraphs(2);
+                    repaint();
+                    revalidate();
+                }
             }
 
             @Override
@@ -407,9 +409,12 @@ public class DV extends JFrame
             @Override
             public void mouseReleased(MouseEvent e)
             {
-                DataVisualization.drawGraphs(0);
-                repaint();
-                revalidate();
+                if (data != null)
+                {
+                    DataVisualization.drawGraphs(0);
+                    repaint();
+                    revalidate();
+                }
             }
 
             @Override
@@ -437,7 +442,15 @@ public class DV extends JFrame
         JPanel overlapSliderPanel = new JPanel();
 
         // set colors and minimum and maximum of slider
-        overlapSlider = new RangeSlider(Color.ORANGE, Color.LIGHT_GRAY, Color.DARK_GRAY);
+        overlapSlider = new RangeSlider()
+        {
+            @Override
+            public void updateUI()
+            {
+                setUI(new RangeSliderUI(this, Color.ORANGE, Color.LIGHT_GRAY, Color.DARK_GRAY));
+                updateLabelUIs();
+            }
+        };
         overlapSlider.setMinimum(0);
         overlapSlider.setMaximum(400);
         overlapSlider.setMajorTickSpacing(1);
@@ -451,13 +464,16 @@ public class DV extends JFrame
             @Override
             public void mouseDragged(MouseEvent e)
             {
-                RangeSlider slider = (RangeSlider) e.getSource();
-                overlapArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
-                overlapArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
+                if (data != null)
+                {
+                    RangeSlider slider = (RangeSlider) e.getSource();
+                    overlapArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
+                    overlapArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
 
-                DataVisualization.drawGraphs(3);
-                repaint();
-                revalidate();
+                    DataVisualization.drawGraphs(3);
+                    repaint();
+                    revalidate();
+                }
             }
 
             @Override
@@ -469,9 +485,12 @@ public class DV extends JFrame
             @Override
             public void mouseClicked(MouseEvent e)
             {
-                DataVisualization.drawGraphs(3);
-                repaint();
-                revalidate();
+                if (data != null)
+                {
+                    DataVisualization.drawGraphs(3);
+                    repaint();
+                    revalidate();
+                }
             }
 
             @Override
@@ -480,9 +499,12 @@ public class DV extends JFrame
             @Override
             public void mouseReleased(MouseEvent e)
             {
-                DataVisualization.drawGraphs(0);
-                repaint();
-                revalidate();
+                if (data != null)
+                {
+                    DataVisualization.drawGraphs(0);
+                    repaint();
+                    revalidate();
+                }
 
             }
 
@@ -530,13 +552,16 @@ public class DV extends JFrame
         {
             @Override
             public void mouseDragged(MouseEvent e) {
-                JSlider slider = (JSlider) e.getSource();
+                if (data != null)
+                {
+                    JSlider slider = (JSlider) e.getSource();
 
-                threshold = (slider.getValue() - 200) * fieldLength / 200.0;
+                    threshold = (slider.getValue() - 200) * fieldLength / 200.0;
 
-                DataVisualization.drawGraphs(1);
-                repaint();
-                revalidate();
+                    DataVisualization.drawGraphs(1);
+                    repaint();
+                    revalidate();
+                }
             }
 
             @Override
@@ -548,9 +573,12 @@ public class DV extends JFrame
             @Override
             public void mouseClicked(MouseEvent e)
             {
-                DataVisualization.drawGraphs(1);
-                repaint();
-                revalidate();
+                if (data != null)
+                {
+                    DataVisualization.drawGraphs(1);
+                    repaint();
+                    revalidate();
+                }
             }
 
             @Override
@@ -559,9 +587,12 @@ public class DV extends JFrame
             @Override
             public void mouseReleased(MouseEvent e)
             {
-                DataVisualization.drawGraphs(0);
-                repaint();
-                revalidate();
+                if (data != null)
+                {
+                    DataVisualization.drawGraphs(0);
+                    repaint();
+                    revalidate();
+                }
             }
 
             @Override
@@ -592,9 +623,9 @@ public class DV extends JFrame
         mainPanel.add(graphDomainPanel, constraints);
 
         // create angles scroll pane
-        sliderPanel = new JPanel(new GridLayout(1, 0));
-        sliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], Resolutions.sliderPanel[1]));
-        anglesPane = new JScrollPane(sliderPanel);
+        angleSliderPanel = new JPanel(new GridLayout(1, 0));
+        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], Resolutions.sliderPanel[1]));
+        anglesPane = new JScrollPane(angleSliderPanel);
         anglesPane.setPreferredSize(new Dimension(Resolutions.anglesPane[0], Resolutions.anglesPane[1]));
 
         constraints.weightx = 0.3;
@@ -630,6 +661,32 @@ public class DV extends JFrame
         return mainPanel;
     }
 
+    /**
+     * Creates blank graph
+     */
+    private ChartPanel blankGraph()
+    {
+        // create blank graph
+        XYSeriesCollection data = new XYSeriesCollection();
+        JFreeChart chart = ChartFactory.createXYLineChart("", "", "", data);
+        XYPlot plot = (XYPlot) chart.getPlot();
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { Color.RED },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(false);
+        plot.getDomainAxis().setVisible(false);
+        plot.setRangeGridlinesVisible(false);
+        chart.removeLegend();
+        chart.setBorderVisible(false);
+        ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setPreferredSize(new Dimension(Resolutions.chartPanel[0], Resolutions.chartPanel[1]));
+
+        return chartPanel;
+    }
+
 
     /**
      * Asks user questions about data then creates project
@@ -663,7 +720,7 @@ public class DV extends JFrame
         while (notChosen)
         {
             choice = JOptionPane.showOptionDialog(mainFrame,
-                    "Choose a normalization Style or click " +
+                    "Choose a normalization style or click " +
                             "\"Help\" for more information on normalization styles.",
                     "Normalization Style",
                     JOptionPane.YES_NO_CANCEL_OPTION,
@@ -694,16 +751,28 @@ public class DV extends JFrame
         {
             File dataFile = fileDialog.getSelectedFile();
 
-            // reset DV project
+            // reset program
             resetProgram();
 
             // parse data from file into classes
-            DataParser.parseData(dataFile);
+            boolean success = DataSetup.setupWithData(dataFile);
 
-            DataVisualization.optimizeSetup();
-            sliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
+            // create graphs
+            if (success)
+            {
+                DataVisualization.optimizeSetup();
+                angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
 
-            DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs(0);
+            }
+            else
+            {
+                // reset program
+                resetProgram();
+
+                // add blank graph
+                graphPanel.add(blankGraph());
+            }
         }
         else
         {
@@ -780,14 +849,17 @@ public class DV extends JFrame
      */
     private void resetProgram()
     {
-        // reset data
-        data.clear();
-        originalData.clear();
-        allClasses.clear();
-        uniqueClasses.clear();
-
         // reset panels
-        sliderPanel.removeAll();
+        angleSliderPanel.removeAll();
         graphPanel.removeAll();
+
+        // reset accuracies
+        prevAccuracies.clear();
+
+        // reset graphs
+        drawOverlap = false;
+
+        // reset popup
+        showPopup = true;
     }
 }

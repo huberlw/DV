@@ -14,19 +14,12 @@ import java.awt.*;
  */
 public class RangeSlider extends JSlider
 {
-    private final Color trackColor;
-    private final Color leftThumbColor;
-    private final Color rightThumbColor;
-
     /**
      * Constructs a RangeSlider with default minimum and maximum values of 0
      * and 100 and a specified color.
      */
-    public RangeSlider(Color track, Color left, Color right)
+    public RangeSlider()
     {
-        this.trackColor = track;
-        this.leftThumbColor = left;
-        this.rightThumbColor = right;
         initSlider();
     }
 
@@ -38,16 +31,6 @@ public class RangeSlider extends JSlider
         setOrientation(HORIZONTAL);
     }
 
-    /**
-     * Overrides the superclass method to install the UI delegate to draw two
-     * thumbs.
-     */
-    @Override
-    public void updateUI()
-    {
-        setUI(new RangeSliderUI(this, trackColor, leftThumbColor, rightThumbColor));
-        updateLabelUIs();
-    }
 
     /**
      * Returns the lower value in the range.

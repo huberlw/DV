@@ -13,6 +13,7 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleInsets;
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,55 +34,61 @@ public class DataVisualization
     {
         DV.graphPanel.removeAll();
 
-        for (int i = 0; i < 2; i++)
+        // check for scaling
+        boolean upperScaling = false;
+        boolean lowerScaling = false;
+
+        // graph upper class
+        upperScaling = addGraph(new ArrayList<>(List.of(DV.data.get(DV.upperClass))), 0, active);
+
+        // graph lower classes
+        if (DV.classNumber > 1)
         {
-            // graph upper class then all lower classes
-            if (i == 0)
-                addGraph(new ArrayList<>(List.of(DV.data.get(DV.upperClass))), i, active);
-            else
+            // store all lower classes
+            ArrayList<DataObject> dataObjects = new ArrayList<>();
+
+            for (int j = 0; j < DV.classNumber; j++)
             {
-                ArrayList<DataObject> dataObjects = new ArrayList<>();
-
-                for (int j = 0; j < DV.classNumber; j++)
-                {
-                    if (DV.lowerClasses.get(j))
-                        dataObjects.add(DV.data.get(j));
-                }
-
-                addGraph(dataObjects, i, active);
+                if (DV.lowerClasses.get(j))
+                    dataObjects.add(DV.data.get(j));
             }
+
+            lowerScaling = addGraph(dataObjects, 1, active);
         }
 
-        DV.graphPanel.revalidate();
+        // regenerate confusion matrices
         DV.allDataCM.removeAll();
         DV.dataWithoutOverlapCM.removeAll();
         DV.overlapCM.removeAll();
         DV.worstCaseCM.removeAll();
         ConfusionMatrices.generateConfusionMatrices();
 
+        // revalidate graphs and confusion matrices
+        DV.graphPanel.revalidate();
         DV.confusionMatrixPanel.revalidate();
 
-        /*if (showPopup == 1)
+        // warn user if graphs are scaled
+        if (DV.showPopup && (upperScaling || lowerScaling))
         {
-            JOptionPane.showMessageDialog(frame,
+            JOptionPane.showMessageDialog(DV.mainFrame,
                     """
                             Because of the size, the graphs have been scaled.
-                            All functionality remains, but differences in threshold or domain line positions may be noticeable.
+                            All functionality remains, but differences in threshold, overlap, or domain line positions may be noticeable.
                             These positions are analytically the same, just not visually.
                             """,
                     "Zoom Warning", JOptionPane.INFORMATION_MESSAGE);
-            showPopup++;
-        }*/
+            DV.showPopup = false;
+        }
     }
 
 
     /**
      * Draw graph with specified parameters
      * @param dataObjects classes to draw
-     * @param upperOrLower draw up or down
+     * @param upperOrLower draw up, else draw down
      * @param activate domain, overlap, or threshold line that is actively changing
      */
-    public static void addGraph(ArrayList<DataObject> dataObjects, int upperOrLower, int activate)
+    public static boolean addGraph(ArrayList<DataObject> dataObjects, int upperOrLower, int activate)
     {
         for (DataObject dataObject : dataObjects)
             dataObject.updateCoordinates(DV.angles);
@@ -347,8 +354,9 @@ public class DataVisualization
             double oldInterval = -DV.fieldLength;
 
             // add series to collection
-
         }
+
+        return bound > DV.fieldLength;
     }
 
 
