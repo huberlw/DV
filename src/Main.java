@@ -10,7 +10,7 @@ public class Main
      */
     public static void main(String[] args) throws Exception
     {
-        // set look and feel
+        // set look and feel to current system
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 

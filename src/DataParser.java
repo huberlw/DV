@@ -19,17 +19,22 @@ public class DataParser
 
         if (stringData != null)
         {
-            // get classes and class number
-            if (DV.hasClasses) getClasses(stringData);
-            else DV.classNumber = 1;
+            // get classes and class number then removes classes dataset
+            if (DV.hasClasses)
+            {
+                getClasses(stringData);
+                stringData = purgeClasses(stringData);
+            }
+            else
+                DV.classNumber = 1;
+
+            // remove ID
+            if (DV.hasID)
+                stringData = purgeID(stringData);
 
             // set class visualization -> all classes except the first go on the lower graph
             for (int i = 1; i < DV.classNumber; i++)
                 DV.lowerClasses.add(true);
-
-            // remove ID and class columns
-            if (DV.hasID) stringData = purgeID(stringData);
-            if (DV.hasClasses) stringData = purgeClasses(stringData);
 
             // get fieldNames and fieldLength
             DV.fieldNames = getFieldNames(stringData);
@@ -64,13 +69,19 @@ public class DataParser
     {
         if (stringData != null)
         {
-            // add all classes to uniqueClasses and allClasses
-            // uniqueClasses is a LinkedHashSet and does not allow duplicates
+            // LinkedHashSet preserves order and does not allow duplicates
+            LinkedHashSet<String> unique = new LinkedHashSet<>();
+
+            // add all classes to unique and allClasses
             for (int i = 1; i < stringData.length; i++)
             {
-                DV.uniqueClasses.add(stringData[i][stringData[0].length - 1]);
+                unique.add(stringData[i][stringData[0].length - 1]);
                 DV.allClasses.add(stringData[i][stringData[0].length - 1]);
             }
+
+            // store unique classes and class number
+            DV.uniqueClasses = new ArrayList<>(unique);
+            DV.classNumber = unique.size();
         }
     }
 
@@ -143,7 +154,7 @@ public class DataParser
 
 
     /**
-     *
+     * Stores first row of dataset as field names
      * @param stringData String[][] representation of input data
      * @return ArrayList with field names
      */
@@ -161,7 +172,10 @@ public class DataParser
     private static double[][] stringToNumerical(String[][] stringData)
     {
         // ArrayList to store numerical data
-        ArrayList<ArrayList<Double>> numericalData = new ArrayList<>(stringData.length - 1);
+        ArrayList<ArrayList<Double>> numericalData = new ArrayList<>();
+
+        for (int i = 0; i < stringData.length - 1; i++)
+            numericalData.add(new ArrayList<>());
 
         // true if asked to keep invalid data
         boolean askedToKeep = false;
@@ -178,7 +192,7 @@ public class DataParser
                 // if value cannot become double then quit or remove row
                 try
                 {
-                    numericalData.get(i).add(Double.parseDouble(stringData[i+1][j]));
+                    numericalData.get(i-invalids).add(Double.parseDouble(stringData[i+1][j]));
                 }
                 catch (NumberFormatException nfe)
                 {
@@ -313,7 +327,7 @@ public class DataParser
                 for (int j = 1; j < data.length; j++)
                 {
                     // z-Score of value
-                    double tmpValue = (data[i][j] - mean[i]) / sd[i];
+                    double tmpValue = (data[j][i] - mean[i]) / sd[i];
 
                     // check for better max or min
                     if (tmpValue > maxValues[i])
@@ -335,10 +349,10 @@ public class DataParser
                 for (int j = 1; j < data.length; j++)
                 {
                     // check for better max or min
-                    if (data[i][j] > maxValues[i])
-                        maxValues[i] = data[i][j];
-                    else if (data[i][j] < minValues[i])
-                        minValues[i] = data[i][j];
+                    if (data[j][i] > maxValues[i])
+                        maxValues[i] = data[j][i];
+                    else if (data[j][i] < minValues[i])
+                        minValues[i] = data[j][i];
                 }
             }
         }
@@ -384,13 +398,10 @@ public class DataParser
     private static ArrayList<double[][]> separateByClass(double[][] data)
     {
         // output ArrayList
-        ArrayList<double[][]> separatedClasses = new ArrayList<>(DV.classNumber);
-
-        // arraylist of unique classes
-        ArrayList<String> unique = new ArrayList<>(DV.uniqueClasses);
+        ArrayList<double[][]> separatedClasses = new ArrayList<>();
 
         // holds arraylists holding data-points for each class
-        ArrayList<ArrayList<double[]>> divider = new ArrayList<>(DV.classNumber);
+        ArrayList<ArrayList<double[]>> divider = new ArrayList<>();
 
         for (int i = 0; i < DV.classNumber; i++)
             divider.add(new ArrayList<>());
@@ -399,11 +410,11 @@ public class DataParser
         for (int i = 0; i < DV.allClasses.size(); i ++)
         {
             // find matching class
-            for (String str : unique)
+            for (String str : DV.uniqueClasses)
             {
                 if (str.equals(DV.allClasses.get(i)))
                 {
-                    divider.get(unique.indexOf(str)).add(data[i]);
+                    divider.get(DV.uniqueClasses.indexOf(str)).add(data[i]);
                     break;
                 }
             }
@@ -425,12 +436,11 @@ public class DataParser
     private static ArrayList<DataObject> createDataObjects(ArrayList<double[][]> separateClasses)
     {
         // get classes and output arraylist
-        ArrayList<String> classes = new ArrayList<>(DV.uniqueClasses);
         ArrayList<DataObject> dataObjects = new ArrayList<>();
 
         // creates DataObject with class name and data
         for (int i = 0; i < separateClasses.size(); i++)
-            dataObjects.add(new DataObject(classes.get(i), separateClasses.get(i)));
+            dataObjects.add(new DataObject(DV.uniqueClasses.get(i), separateClasses.get(i)));
 
         return dataObjects;
     }
@@ -456,6 +466,7 @@ public class DataParser
                 options,
                 null);
 
+        // choice == manual entry
         if (choice == 0)
         {
             // popup asking for min and max input

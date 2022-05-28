@@ -15,28 +15,23 @@ import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-
 
 public class DV extends JFrame
 {
+    /**************************************************
+     * FOR GUI
+     *************************************************/
     // sliders
     static RangeSlider domainSlider;
     static RangeSlider overlapSlider;
     static JSlider thresholdSlider;
 
-    // angles
-    public static double[] angles;
-    public static double[] initialAngles;
-
-    // sliders
-    JPanel sliderPanel = new JPanel();
+    // panels
+    static JPanel sliderPanel = new JPanel();
     static JPanel confusionMatrixPanel = new JPanel();
-
-    // graphs
     static JPanel graphPanel = new JPanel();
-    JPanel graphDomainPanel = new JPanel();
+    static JPanel graphDomainPanel = new JPanel();
 
     // confusion matrices
     static JTextArea allDataCM = new JTextArea(10, 40);
@@ -49,6 +44,12 @@ public class DV extends JFrame
     JScrollPane anglesPane = new JScrollPane();
     JScrollPane confusionMatrixPane = new JScrollPane();
 
+    // main frame for DV
+    static JFrame mainFrame;
+
+    /**************************************************
+     * FOR GRAPHS
+     *************************************************/
     // line colors
     static Color domainLines = Color.BLACK;
     static Color overlapLines = Color.ORANGE;
@@ -56,8 +57,8 @@ public class DV extends JFrame
 
     // graph colors
     static Color[] graphColors = new Color[] {
-            new Color(102, 34, 139), // upper graph (purple)
-            new Color(84, 133, 145)  // lower graph (dark cyan)
+            new Color(102, 34, 139),   // upper graph (purple)
+            new Color(84, 133, 145)    // lower graph (dark cyan)
     };
 
     // show bars instead of endpoints for graphs
@@ -67,21 +68,36 @@ public class DV extends JFrame
     // draw only overlap
     static boolean drawOverlap = false;
 
-    // domain area
-    static double[] domainArea;
-
     // domain active
     static boolean domainActive = true;
 
+    // domain area
+    static double[] domainArea;
+
+    // upper class is visualized on the upper graph
+    // lower classes are visualized on the lower graph
+    static int upperClass = 0;
+    static ArrayList<Boolean> lowerClasses = new ArrayList<>(List.of(false));
+
+    /**************************************************
+     * FOR CONFUSION MATRICES
+     *************************************************/
     // overlap area
     static double[] overlapArea;
 
     // threshold point
     static double threshold;
 
-    // main frame for DV
-    static JFrame mainFrame;
+    // lesser class (lower mean)
+    static int lowerRange = 0;
 
+    // current and previous accuracies (only applicable to 3+ class datasets)
+    static double accuracy;
+    static ArrayList<Double> prevAccuracies;
+
+    /************************************************
+     * FOR INPUT DATA
+     ***********************************************/
     // input data info
     static boolean hasID = false;
     static boolean hasClasses = false;
@@ -89,26 +105,26 @@ public class DV extends JFrame
     // min-max or zScore min-max normalization
     static boolean zScoreMinMax = false;
 
-    // visualization info
-    // upper class is visualized on the upper graph
-    // lower classes are visualized on the lower graph
-    static int upperClass = 0;
-    static ArrayList<Boolean> lowerClasses = new ArrayList<>(List.of(false));
+    /************************************************
+     * FOR DATA
+     ***********************************************/
+    // angles and initial angles (store angles before optimizing)
+    public static double[] angles;
+    public static double[] initialAngles; // ASK KOVALERCHUK ABOUT CHANGING TO LDA ANGLES
 
-    static int lowerRange = 0;
+    // normalized and original data
+    static ArrayList<DataObject> data = new ArrayList<>();
+    static ArrayList<DataObject> originalData = new ArrayList<>();
 
-    // class data
-    static ArrayList<DataObject> data;
-    static ArrayList<DataObject> originalData;
-    static ArrayList<String> fieldNames;
-    static int fieldLength;
-
-    static final ArrayList<String> allClasses = new ArrayList<>();
-    static final LinkedHashSet<String> uniqueClasses = new LinkedHashSet<>();
+    // classes for data
+    static ArrayList<String> allClasses = new ArrayList<>();
+    static ArrayList<String> uniqueClasses = new ArrayList<>();
     static int classNumber;
 
-    static double accuracy;
-    static ArrayList<Double> prevAccuracies;
+    // fieldnames and length
+    static ArrayList<String> fieldNames = new ArrayList<>();
+    static int fieldLength;
+
 
     /**
      * Main handler for UI
@@ -128,6 +144,7 @@ public class DV extends JFrame
         // set mainFrame to DV
         mainFrame = this;
 
+        // create option bars
         createMenuBar();
         createToolBar();
 
