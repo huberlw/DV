@@ -127,9 +127,6 @@ public class DataVisualization
      */
     private static void LDA()
     {
-        // create file for python process
-        createCSVFile();
-
         // create LDA (python) process
         ProcessBuilder lda = new ProcessBuilder("venv\\Scripts\\python",
                 System.getProperty("user.dir") + "\\src\\LDA\\LinearDiscriminantAnalysis.py",
@@ -138,6 +135,9 @@ public class DataVisualization
 
         try
         {
+            // create file for python process
+            createCSVFile();
+
             // run python (LDA) process
             Process process = lda.start();
 
@@ -158,7 +158,7 @@ public class DataVisualization
                 {
                     // update angles and create angle slider
                     DV.angles[cnt] = Double.parseDouble(output);
-                    AngleSliders.createSliderPanel(DV.fieldNames.get(cnt), (int) DV.angles[cnt] * 100, cnt);
+                    AngleSliders.createSliderPanel(DV.fieldNames.get(cnt), (int) (DV.angles[cnt] * 100), cnt);
                     cnt++;
                 }
                 else
@@ -168,6 +168,10 @@ public class DataVisualization
                     DV.thresholdSlider.setValue((int) (Double.parseDouble(output) / DV.fieldLength * 200) + 200);
                 }
             }
+
+            // delete created file
+            File fileToDelete = new File("src\\LDA\\DV_data.csv");
+            Files.deleteIfExists(fileToDelete.toPath());
         }
         catch (IOException e)
         {
@@ -269,7 +273,7 @@ public class DataVisualization
             getAccuracy();
 
             // update current bests if accuracy improved
-            if (DV.accuracy >= currentBestAccuracy)
+            if (DV.accuracy > currentBestAccuracy)
             {
                 foundBetter = true;
 
@@ -288,12 +292,6 @@ public class DataVisualization
         // inform user if optimization was successful or now
         if (foundBetter)
         {
-            JOptionPane.showMessageDialog(
-                    DV.mainFrame,
-                    "Visualization has been optimized!",
-                    "Optimization Complete",
-                    JOptionPane.INFORMATION_MESSAGE);
-
             // update threshold
             DV.threshold = currentBestThreshold;
             DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
@@ -302,17 +300,23 @@ public class DataVisualization
             for (int i = 0; i < DV.fieldLength; i++)
             {
                 DV.angles[i] = currentBestAngles[i];
-                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) DV.angles[i] * 100, i);
+                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
             }
+
+            // redraw graphs
+            drawGraphs(0);
+            DV.mainFrame.repaint();
+            DV.mainFrame.revalidate();
+
+            // inform user
+            JOptionPane.showMessageDialog(
+                    DV.mainFrame,
+                    "Visualization has been optimized!",
+                    "Optimization Complete",
+                    JOptionPane.INFORMATION_MESSAGE);
         }
         else
         {
-            JOptionPane.showMessageDialog(
-                    DV.mainFrame,
-                    "Was unable to optimize visualization.\nVisualization is already optimal or near optimal.",
-                    "Unable to Optimize",
-                    JOptionPane.INFORMATION_MESSAGE);
-
             // update threshold
             DV.threshold = DV.prevThreshold;
             DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
@@ -321,8 +325,20 @@ public class DataVisualization
             for (int i = 0; i < DV.fieldLength; i++)
             {
                 DV.angles[i] = DV.prevAngles[i];
-                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) DV.angles[i] * 100, i);
+                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
             }
+
+            // redraw graphs
+            drawGraphs(0);
+            DV.mainFrame.repaint();
+            DV.mainFrame.revalidate();
+
+            // inform user
+            JOptionPane.showMessageDialog(
+                    DV.mainFrame,
+                    "Was unable to optimize visualization.\nVisualization is already optimal or near optimal.",
+                    "Unable to Optimize",
+                    JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
@@ -344,11 +360,13 @@ public class DataVisualization
         for (int i = 0; i < DV.fieldLength; i++)
         {
             DV.angles[i] = DV.prevAngles[i];
-            AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) DV.angles[i] * 100, i);
+            AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
         }
 
         // redraw graphs
         drawGraphs(0);
+        DV.mainFrame.repaint();
+        DV.mainFrame.revalidate();
     }
 
 
@@ -390,16 +408,16 @@ public class DataVisualization
                     if (DV.upperIsLower)
                     {
                         if (endpoint <= DV.threshold)
-                            pointClassification[i][0]++;
+                            pointClassification[0][0]++;
                         else
-                            pointClassification[i][1]++;
+                            pointClassification[0][1]++;
                     }
                     else
                     {
                         if (endpoint >= DV.threshold)
-                            pointClassification[i][0]++;
+                            pointClassification[0][0]++;
                         else
-                            pointClassification[i][1]++;
+                            pointClassification[0][1]++;
                     }
                 }
             }
@@ -414,16 +432,16 @@ public class DataVisualization
                     if (DV.upperIsLower)
                     {
                         if (endpoint >= DV.threshold)
-                            pointClassification[i][1]++;
+                            pointClassification[1][1]++;
                         else
-                            pointClassification[i][0]++;
+                            pointClassification[1][0]++;
                     }
                     else
                     {
                         if (endpoint <= DV.threshold)
-                            pointClassification[i][1]++;
+                            pointClassification[1][1]++;
                         else
-                            pointClassification[i][0]++;
+                            pointClassification[1][0]++;
                     }
                 }
             }
@@ -855,6 +873,8 @@ public class DataVisualization
         plot.setOutlinePaint(null);
         plot.setOutlineVisible(false);
         plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
 
         // set domain and range of graph
         double bound = graphScaler * DV.fieldLength;
@@ -896,7 +916,7 @@ public class DataVisualization
                 // translate endpoint to slider ticks
                 // increment bar which endpoint lands
                 for (int i = 0; i < dataObj.data.length; i++)
-                    barRanges[(int) Math.round((dataObj.coordinates[i][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200)]++;
+                    barRanges[(int) (Math.round((dataObj.coordinates[i][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200))]++;
             }
 
             // get interval and bounds
@@ -1033,8 +1053,9 @@ public class DataVisualization
 
         // create the graph panel and add it to the main panel
         ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setMouseWheelEnabled(true);
         chartPanel.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1]));
+        chartPanel.setMouseZoomable(false);
+        chartPanel.setMouseZoomable(false);
 
         chartPanel.addChartMouseListener(new ChartMouseListener()
         {

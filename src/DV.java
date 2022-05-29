@@ -1,7 +1,7 @@
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import Sliders.CustomSliderUI;
+import Sliders.ThresholdSliderUI;
 import Sliders.RangeSlider;
 import Sliders.RangeSliderUI;
 import org.jfree.chart.ChartFactory;
@@ -544,7 +544,7 @@ public class DV extends JFrame
             @Override
             public void updateUI()
             {
-                setUI(new CustomSliderUI(this));
+                setUI(new ThresholdSliderUI(this));
             }
         };
 
@@ -687,6 +687,8 @@ public class DV extends JFrame
         plot.getRangeAxis().setVisible(false);
         plot.getDomainAxis().setVisible(false);
         plot.setRangeGridlinesVisible(false);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
         chart.removeLegend();
         chart.setBorderVisible(false);
         ChartPanel chartPanel = new ChartPanel(chart);

@@ -49,6 +49,7 @@ if os.path.exists(path):
     weightedMeanSum1 = sum(weightedMeans[0])
     weightedMeanSum2 = sum(weightedMeans[1])
 
+
     # add weighted class sums then divide by 2 to get threshold
     threshold = (weightedMeanSum1 + weightedMeanSum2) / 2
 

@@ -5,11 +5,11 @@ import javax.swing.plaf.basic.BasicSliderUI;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 
-public class CustomSliderUI extends BasicSliderUI
+public class ThresholdSliderUI extends BasicSliderUI
 {
     private final RoundRectangle2D.Float trackShape = new RoundRectangle2D.Float();
 
-    public CustomSliderUI(final JSlider b)
+    public ThresholdSliderUI(final JSlider b)
     {
         super(b);
     }
@@ -54,7 +54,7 @@ public class CustomSliderUI extends BasicSliderUI
         Shape clip = g2.getClip();
 
         // Paint track grey
-        g2.setColor(new Color(170, 170 ,170));
+        g2.setColor(new Color(200, 200 ,200));
         g2.fill(trackShape);
 
         // Paint selected track green
@@ -73,7 +73,4 @@ public class CustomSliderUI extends BasicSliderUI
         g.setColor(Color.GREEN);
         g.fillOval(thumbRect.x, thumbRect.y, thumbRect.width, thumbRect.height);
     }
-
-    @Override
-    public void paintFocus(final Graphics g) {}
 }

@@ -14,6 +14,7 @@ public class Main
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
+        // set size
         if(screenSize.getWidth() >= 1280)
         {
             if(screenSize.getWidth() >= 1920)

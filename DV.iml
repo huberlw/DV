@@ -2,7 +2,7 @@
 <module type="JAVA_MODULE" version="4">
   <component name="FacetManager">
     <facet type="Python" name="Python">
-      <configuration sdkName="Python 3.9 (DVProject)" />
+      <configuration sdkName="Python 3.9 (DV)" />
     </facet>
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
@@ -13,9 +13,9 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Python 3.9 (DVProject) interpreter library" level="application" />
     <orderEntry type="library" name="jfreechart-1.0.19" level="project" />
     <orderEntry type="library" name="jcommon-1.0.23" level="project" />
     <orderEntry type="library" name="smile-core-1.2.2-sources" level="project" />
+    <orderEntry type="library" name="Python 3.9 (DV) interpreter library" level="application" />
   </component>
 </module>
