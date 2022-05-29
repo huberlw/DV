@@ -1,4 +1,5 @@
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.metrics import confusion_matrix, accuracy_score
 import pandas as pd
 import numpy as np
 import math
@@ -7,9 +8,13 @@ import os
 
 # get data file and dimensions
 path = sys.argv[1]
-dims = int(sys.argv[2])
+
+# get printing
+printing = bool(sys.argv[3])
+
 
 if os.path.exists(path):
+    print("HELLO")
     # create dataframe from file
     dataframe = pd.read_csv(path)
 
@@ -35,8 +40,9 @@ if os.path.exists(path):
         angles[i] = math.degrees(angles[i])
 
     # inform DV program of angles
-    for i in range(len(angles)):
-        print(angles[i])
+    if printing:
+        for i in range(len(angles)):
+            print(angles[i])
 
     # normalize weights
     weights = lda.coef_[0].copy()
@@ -50,4 +56,9 @@ if os.path.exists(path):
     weightedMeanSum2 = sum(weightedMeans[1])
 
     # add weighted class sums then divide by 2 to get threshold
-    print((weightedMeanSum1 + weightedMeanSum2) / 2)
+    if printing:
+        print((weightedMeanSum1 + weightedMeanSum2) / 2)
+
+    # get confusion matrix
+    #print(pd.DataFrame(confusion_matrix(labels, lda.predict(data))))
+

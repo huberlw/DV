@@ -21,7 +21,7 @@ if os.path.exists(path):
     lda = LinearDiscriminantAnalysis(n_components=1)
 
     # train
-    lda.fit(data, labels)
+    lda.fit(data, labels.ravel())
 
     # get weights
     angles = lda.coef_[0].copy()
@@ -49,9 +49,5 @@ if os.path.exists(path):
     weightedMeanSum1 = sum(weightedMeans[0])
     weightedMeanSum2 = sum(weightedMeans[1])
 
-
     # add weighted class sums then divide by 2 to get threshold
-    threshold = (weightedMeanSum1 + weightedMeanSum2) / 2
-
-    # inform DV program of threshold
-    print(threshold)
+    print((weightedMeanSum1 + weightedMeanSum2) / 2)
