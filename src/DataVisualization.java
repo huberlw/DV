@@ -19,61 +19,612 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
+import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 public class DataVisualization
 {
     /**
-     * Uses Linear Discriminant Analysis (LDA)
-     * to find the optimal angles and threshold
+     * Gets optimal angles and threshold
+     * then gets overlap and domain
+     * areas
      */
     public static void optimizeSetup()
     {
-        DV.domainArea = new double[] {-9, 9};
+        // get optimal angles and threshold
+        LDA();
 
-        DV.overlapArea = new double[] {-2, 2};
+        // optimize threshold
+        optimizeThreshold(0);
 
-        DV.threshold = 200;
+        // try again with upperIsLower false
+        double upperIsLowerAccuracy = DV.accuracy;
+        DV.upperIsLower = false;
+
+        optimizeThreshold(0);
+
+        // see whether upper is actually lower
+        if (DV.accuracy < upperIsLowerAccuracy)
+        {
+            DV.upperIsLower = true;
+            optimizeThreshold(0);
+        }
+
+        // get overlap area
+        getOverlap();
+
+        // set domain are to max length
+        DV.domainArea = new double[] { -DV.fieldLength, DV.fieldLength };
+    }
+
+
+    /**
+     * Create CSV file representing the upper graph
+     * as class 1 and the lower graph as class 2
+     */
+    private static void createCSVFile()
+    {
+        try
+        {
+            // create csv file
+            File csv = new File("src\\LDA\\DV_data.csv");
+            Files.deleteIfExists(csv.toPath());
+
+            // write to csv file
+            PrintWriter out = new PrintWriter(csv);
+
+            // create header for file
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                if (i != DV.fieldLength - 1)
+                    out.print("feature,");
+                else
+                    out.print("feature,class\n");
+            }
+
+            // check all classes
+            for (int i = 0; i < DV.data.size(); i++)
+            {
+                // get class or skip
+                String curClass;
+                if (i == DV.upperClass)
+                    curClass = "1";
+                else if (DV.lowerClasses.get(i))
+                    curClass = "2";
+                else
+                    continue;
+
+                // get all data for class
+                for (int j = 0; j < DV.data.get(i).data.length; j++)
+                {
+                    for (int k = 0; k < DV.fieldLength; k++)
+                    {
+                        if (k != DV.fieldLength - 1)
+                            out.printf("%f,", DV.data.get(i).data[j][k]);
+                        else
+                            out.printf("%f," + curClass + "\n", DV.data.get(i).data[j][k]);
+                    }
+                }
+            }
+
+            // close file
+            out.close();
+        }
+        catch (IOException ioe)
+        {
+            ioe.printStackTrace();
+        }
     }
 
 
     /**
      * Linear Discriminant Analysis (LDA)
-     * @return optimal angles and threshold
+     * Gets optimal angles and threshold
      */
-    private double[][] LDA()
+    private static void LDA()
     {
+        // create file for python process
+        createCSVFile();
 
+        // create LDA (python) process
+        ProcessBuilder lda = new ProcessBuilder("venv\\Scripts\\python",
+                System.getProperty("user.dir") + "\\src\\LDA\\LinearDiscriminantAnalysis.py",
+                System.getProperty("user.dir") + "\\src\\LDA\\DV_data.csv",
+                String.valueOf(DV.fieldLength));
 
-        return new double[0][];
-    }
+        try
+        {
+            // run python (LDA) process
+            Process process = lda.start();
 
+            // read python outputs
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String output;
 
-    public static void optimizeVisualization()
-    {
+            // if process is running continue
+            DV.angleSliderPanel.removeAll();
+            DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
 
-    }
+            int cnt = 0;
 
-    public static void undoOptimization()
-    {
-
-    }
-
-
-    public static void getAccuracy()
-    {
-
-    }
-
-    public static void getOverlap()
-    {
-
+            while ((output = reader.readLine()) != null)
+            {
+                // get angles then threshold
+                if (cnt < DV.fieldLength)
+                {
+                    // update angles and create angle slider
+                    DV.angles[cnt] = Double.parseDouble(output);
+                    AngleSliders.createSliderPanel(DV.fieldNames.get(cnt), (int) DV.angles[cnt] * 100, cnt);
+                    cnt++;
+                }
+                else
+                {
+                    // get threshold
+                    DV.threshold = Double.parseDouble(output);
+                    DV.thresholdSlider.setValue((int) (Double.parseDouble(output) / DV.fieldLength * 200) + 200);
+                }
+            }
+        }
+        catch (IOException e)
+        {
+            JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Linear Discriminant Analysis", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 
     /**
-     * Draws graphs for specified visualization
+     * Searches for the best accuracy by
+     * adjusting the threshold location
+     * @param accuracy initial accuracy
+     */
+    public static void optimizeThreshold(double accuracy)
+    {
+        // store current best threshold
+        double best = DV.threshold;
+
+        // increment equals 2 slider ticks
+        double increment = 2 * DV.fieldLength / 200.0;
+        DV.threshold -= 15 * increment;
+
+        // search for best threshold
+        // search range is 15% of total range
+        for (int i = 0; i < 30; i++)
+        {
+            // calculate accuracy with trial threshold
+            getAccuracy();
+
+            // update the best threshold and accuracy
+            if (DV.accuracy >= accuracy)
+            {
+                accuracy = DV.accuracy;
+                best = DV.threshold;
+            }
+
+            // new trial threshold
+            DV.threshold += increment;
+        }
+
+        // use best threshold
+        DV.threshold = best;
+
+        // set slider to best
+        DV.thresholdSlider.setValue((int) (best / DV.fieldLength * 200) + 200);
+    }
+
+
+    /**
+     * Uses random gradient search
+     * to attempt optimizing angles.
+     * Uses optimizeThreshold() to
+     * optimize threshold.
+     */
+    public static void optimizeVisualization()
+     {
+        // store previous angles and threshold
+        DV.prevAngles = Arrays.copyOf(DV.angles, DV.fieldLength);
+        DV.prevThreshold = DV.threshold;
+
+        // store current best angles, threshold, and accuracy
+        double[] currentBestAngles = Arrays.copyOf(DV.angles, DV.fieldLength);
+        double currentBestThreshold = DV.threshold;
+        double currentBestAccuracy = DV.accuracy;
+
+        // get random
+        Random rand = new Random(System.currentTimeMillis());
+
+        // get count and foundBetter
+        int cnt = 0;
+        boolean foundBetter = false;
+
+        // try optimizing 200 times
+        while (cnt < 200)
+        {
+            // remove angle sliders and set layout
+            DV.angleSliderPanel.removeAll();
+            DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
+
+            // get random angles
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                int gradient = (rand.nextInt(11) - 5) * 100;
+                int fieldAngle = (int) (currentBestAngles[i] * 100) + gradient;
+
+                if (fieldAngle < 0)
+                    fieldAngle = 0;
+                else if (fieldAngle > 18000)
+                    fieldAngle = 18000;
+
+                DV.angles[i] = fieldAngle / 100.0;
+                AngleSliders.createSliderPanel(DV.fieldNames.get(i), fieldAngle, i);
+            }
+
+            // optimize threshold for new angles
+            optimizeThreshold(currentBestAccuracy);
+
+            // get accuracy for new setup
+            getAccuracy();
+
+            // update current bests if accuracy improved
+            if (DV.accuracy >= currentBestAccuracy)
+            {
+                foundBetter = true;
+
+                currentBestAngles= Arrays.copyOf(DV.angles, DV.fieldLength);
+                currentBestThreshold = DV.threshold;
+                currentBestAccuracy = DV.accuracy;
+            }
+
+            cnt++;
+        }
+
+        // remove angle sliders and set layout
+        DV.angleSliderPanel.removeAll();
+        DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
+
+        // inform user if optimization was successful or now
+        if (foundBetter)
+        {
+            JOptionPane.showMessageDialog(
+                    DV.mainFrame,
+                    "Visualization has been optimized!",
+                    "Optimization Complete",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            // update threshold
+            DV.threshold = currentBestThreshold;
+            DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
+
+            // update angles
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                DV.angles[i] = currentBestAngles[i];
+                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) DV.angles[i] * 100, i);
+            }
+        }
+        else
+        {
+            JOptionPane.showMessageDialog(
+                    DV.mainFrame,
+                    "Was unable to optimize visualization.\nVisualization is already optimal or near optimal.",
+                    "Unable to Optimize",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            // update threshold
+            DV.threshold = DV.prevThreshold;
+            DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
+
+            // update angles
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                DV.angles[i] = DV.prevAngles[i];
+                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) DV.angles[i] * 100, i);
+            }
+        }
+    }
+
+
+    /**
+     * Undoes last optimizations
+     */
+    public static void undoOptimization()
+    {
+        // threshold
+        DV.angles = Arrays.copyOf(DV.prevAngles, DV.fieldLength);
+
+        // update sliders
+        DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
+        DV.angleSliderPanel.removeAll();
+        DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
+
+        // restore angles
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            DV.angles[i] = DV.prevAngles[i];
+            AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) DV.angles[i] * 100, i);
+        }
+
+        // redraw graphs
+        drawGraphs(0);
+    }
+
+
+    /**
+     * Gets current accuracy of visualization
+     */
+    public static void getAccuracy()
+    {
+        // total number of points and correctly classified points
+        double totalPoints = 0;
+        double correctPoints = 0;
+
+        // update points and add to total
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            // check if class is visualized
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
+            {
+                DV.data.get(i).updateCoordinates();
+                totalPoints += DV.data.get(i).coordinates.length;
+            }
+        }
+
+        // stores how points were classified
+        double[][] pointClassification = new double[2][2];
+
+        // check every class
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            // if class is visualized check points
+            if (i == DV.upperClass)
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    // get endpoint
+                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength - 1][0];
+
+                    // get classification
+                    if (DV.upperIsLower)
+                    {
+                        if (endpoint <= DV.threshold)
+                            pointClassification[i][0]++;
+                        else
+                            pointClassification[i][1]++;
+                    }
+                    else
+                    {
+                        if (endpoint >= DV.threshold)
+                            pointClassification[i][0]++;
+                        else
+                            pointClassification[i][1]++;
+                    }
+                }
+            }
+            else if (DV.lowerClasses.get(i))
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    // get endpoint
+                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength - 1][0];
+
+                    // get classification
+                    if (DV.upperIsLower)
+                    {
+                        if (endpoint >= DV.threshold)
+                            pointClassification[i][1]++;
+                        else
+                            pointClassification[i][0]++;
+                    }
+                    else
+                    {
+                        if (endpoint <= DV.threshold)
+                            pointClassification[i][1]++;
+                        else
+                            pointClassification[i][0]++;
+                    }
+                }
+            }
+        }
+
+        // get diagonals
+        correctPoints += pointClassification[0][0];
+        correctPoints += pointClassification[1][1];
+
+        // get accuracy
+        DV.accuracy = (correctPoints / totalPoints) * 100;
+    }
+
+
+    /**
+     * Gets overlap area of visualization
+     */
+    public static void getOverlap()
+    {
+        // get current points
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
+                DV.data.get(i).updateCoordinates();
+        }
+
+        // overlap area, previous overlap are, and total area
+        DV.overlapArea = new double[] { DV.fieldLength, -DV.fieldLength };
+        double[] prevOverlap = { DV.fieldLength, -DV.fieldLength };
+        double[] totalArea = { DV.fieldLength, -DV.fieldLength };
+
+        // check if graph has misclassified a point
+        boolean[] misclassified = { false, false };
+
+        // check if previous overlap exists
+        boolean[] isPrevious = { false, false };
+
+        // find overlap for all classes
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            if (i == DV.upperClass)
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+
+                    // get classification
+                    if (DV.upperIsLower)
+                    {
+                        // check if endpoint expands total area
+                        if (endpoint < totalArea[0])
+                            totalArea[0] = endpoint;
+
+                        // check if endpoint is misclassified
+                        if (endpoint > DV.threshold)
+                        {
+                            // check if endpoint expands overlap area
+                            if (endpoint > DV.overlapArea[1])
+                            {
+                                prevOverlap[1] = DV.overlapArea[1];
+                                DV.overlapArea[1] = endpoint;
+
+                                if (misclassified[1])
+                                    isPrevious[1] = true;
+
+                                misclassified[1] = true;
+                            }
+                            else if (endpoint > prevOverlap[1]) // get largest previous overlap point
+                            {
+                                prevOverlap[1] = endpoint;
+                                isPrevious[1] = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // check if endpoint expands total area
+                        if (endpoint > totalArea[1])
+                            totalArea[1] = endpoint;
+
+                        // check if endpoint is misclassified
+                        if (endpoint < DV.threshold)
+                        {
+                            // check if endpoint expands overlap area
+                            if (endpoint > DV.overlapArea[0])
+                            {
+                                prevOverlap[0] = DV.overlapArea[0];
+                                DV.overlapArea[0] = endpoint;
+
+                                if (misclassified[0])
+                                    isPrevious[0] = true;
+
+                                misclassified[0] = true;
+                            }
+                            else if (endpoint > prevOverlap[0]) // get largest previous overlap point
+                            {
+                                prevOverlap[0] = endpoint;
+                                isPrevious[0] = true;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (DV.lowerClasses.get(i))
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+
+                    // get classification
+                    if (DV.upperIsLower)
+                    {
+                        // check if endpoint expands total area
+                        if (endpoint > totalArea[1])
+                            totalArea[1] = endpoint;
+
+                        // check if endpoint is misclassified
+                        if (endpoint < DV.threshold)
+                        {
+                            // check if endpoint expands overlap are
+                            if (endpoint < DV.overlapArea[1])
+                            {
+                                prevOverlap[1] = DV.overlapArea[1];
+                                DV.overlapArea[1] = endpoint;
+
+                                if (misclassified[1])
+                                    isPrevious[1] = true;
+
+                                misclassified[1] = true;
+                            }
+                            else if (endpoint > prevOverlap[1]) // get largest previous overlap point
+                            {
+                                prevOverlap[1] = endpoint;
+                                isPrevious[1] = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // check if endpoint expands total area
+                        if (endpoint < totalArea[0])
+                            totalArea[0] = endpoint;
+
+                        // check if endpoint is misclassified
+                        if (endpoint > DV.threshold)
+                        {
+                            // check if endpoint expands overlap area
+                            if (endpoint > DV.overlapArea[0])
+                            {
+                                prevOverlap[0] = DV.overlapArea[0];
+                                DV.overlapArea[0] = endpoint;
+
+                                if (misclassified[0])
+                                    isPrevious[0] = true;
+
+                                misclassified[0] = true;
+                            }
+                            else if (endpoint > prevOverlap[0]) // get largest previous overlap point
+                            {
+                                prevOverlap[0] = endpoint;
+                                isPrevious[0] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // if overlap area exceeds 90% or total area, set overlap point to previous overlap point or threshold
+        if ((DV.overlapArea[0] + DV.overlapArea[1]) / (totalArea[0] + totalArea[1]) > 0.9)
+        {
+            double high = Math.abs(totalArea[1]) - Math.abs(DV.overlapArea[1]);
+
+            double low = Math.abs(DV.overlapArea[0]) - Math.abs(totalArea[0]);
+
+            if (high >= low)
+            {
+                if (isPrevious[1])
+                    DV.overlapArea[1] = prevOverlap[1];
+                else
+                    DV.overlapArea[1] = DV.threshold;
+            }
+            else
+            {
+                if (isPrevious[0])
+                    DV.overlapArea[0] = prevOverlap[0];
+                else
+                    DV.overlapArea[0] = DV.threshold;
+            }
+        }
+
+        // if a class was never misclassified set overlap point to the threshold
+        if (misclassified[0] && !misclassified[1])
+            DV.overlapArea[1] = DV.threshold;
+        else if (!misclassified[0] && misclassified[1])
+            DV.overlapArea[0] = DV.threshold;
+    }
+
+
+    /**
+     * Draws graphs for specified visualization*
      * @param active domain, overlap, or threshold line that is actively changing
      */
     public static void drawGraphs(int active)
@@ -85,7 +636,7 @@ public class DataVisualization
         boolean lowerScaling = false;
 
         // graph lower classes
-        if (DV.classNumber > 1)
+        if (DV.hasClasses)
         {
             // store all lower classes
             ArrayList<DataObject> dataObjects = new ArrayList<>();
@@ -135,7 +686,7 @@ public class DataVisualization
     {
         // get coordinates
         for (DataObject dataObject : dataObjects)
-            dataObject.updateCoordinates(DV.angles);
+            dataObject.updateCoordinates();
 
         // create main renderer and dataset
         XYLineAndShapeRenderer lineRenderer = new XYLineAndShapeRenderer(true, false);
@@ -199,34 +750,18 @@ public class DataVisualization
         overlap.addSeries(overlapMinLine);
 
         // get threshold line height
-        double thresholdLineHeight = DV.fieldLength / 12.0;
+        double thresholdLineHeight = DV.fieldLength / 13.0;
 
         // get threshold line
         if (upperOrLower == 1)
         {
-            if (DV.lowerRange == 0)
-            {
-                thresholdLine.add(DV.overlapArea[0], 0);
-                thresholdLine.add(DV.overlapArea[0], -thresholdLineHeight);
-            }
-            else
-            {
-                thresholdLine.add(DV.overlapArea[1], 0);
-                thresholdLine.add(DV.overlapArea[1], -thresholdLineHeight);
-            }
+            thresholdLine.add(DV.threshold, 0);
+            thresholdLine.add(DV.threshold, -thresholdLineHeight);
         }
         else
         {
-            if (DV.lowerRange == 0)
-            {
-                thresholdLine.add(DV.overlapArea[0], 0);
-                thresholdLine.add(DV.overlapArea[0], thresholdLineHeight);
-            }
-            else
-            {
-                thresholdLine.add(DV.overlapArea[1], 0);
-                thresholdLine.add(DV.overlapArea[1], thresholdLineHeight);
-            }
+            thresholdLine.add(DV.threshold, 0);
+            thresholdLine.add(DV.threshold, thresholdLineHeight);
         }
 
         // add threshold series to collection
@@ -263,14 +798,16 @@ public class DataVisualization
                     {
                         lines.get(lineCnt).add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
 
-                        if ((j > 0 && j < DV.fieldLength - 1) && (DV.angles[j] == DV.angles[j+1]))
+                        if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1] &&
+                                (j > 0 && j < DV.fieldLength - 1) && (DV.angles[j] == DV.angles[j+1]))
                             midpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
                     }
                     else
                     {
                         lines.get(lineCnt).add(data.coordinates[i][j][0], data.coordinates[i][j][1]);
 
-                        if ((j > 0 && j < DV.fieldLength - 1) && (DV.angles[j] == DV.angles[j+1]))
+                        if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1] &&
+                                (j > 0 && j < DV.fieldLength - 1) && (DV.angles[j] == DV.angles[j+1]))
                             midpointSeries.add(data.coordinates[i][j][0], data.coordinates[i][j][1]);
                     }
 
@@ -279,7 +816,8 @@ public class DataVisualization
                     {
                         endpoint = data.coordinates[i][j][0];
 
-                        if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) {
+                        if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
+                        {
                             if (upperOrLower == 1)
                                 endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
                             else
@@ -425,18 +963,22 @@ public class DataVisualization
                         BasicStroke inactiveOverlapStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
                         BasicStroke inactiveDomainStroke = new BasicStroke(1.5f);
 
-                        thresholdRenderer.setBaseStroke(activeStroke);
-                        domainRenderer.setBaseStroke(inactiveDomainStroke);
-                        overlapRenderer.setBaseStroke(inactiveOverlapStroke);
+                        thresholdRenderer.setSeriesStroke(0, activeStroke);
+                        domainRenderer.setSeriesStroke(0, inactiveDomainStroke);
+                        domainRenderer.setSeriesStroke(1, inactiveDomainStroke);
+                        overlapRenderer.setSeriesStroke(0, inactiveOverlapStroke);
+                        overlapRenderer.setSeriesStroke(1, inactiveOverlapStroke);
                     }
             case 2 -> // domain lines are active
                     {
                         BasicStroke inactiveStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
                         BasicStroke activeStroke = new BasicStroke(3f);
 
-                        thresholdRenderer.setBaseStroke(inactiveStroke);
-                        domainRenderer.setBaseStroke(activeStroke);
-                        overlapRenderer.setBaseStroke(inactiveStroke);
+                        thresholdRenderer.setSeriesStroke(0, inactiveStroke);
+                        domainRenderer.setSeriesStroke(0, activeStroke);
+                        domainRenderer.setSeriesStroke(1, activeStroke);
+                        overlapRenderer.setSeriesStroke(0, inactiveStroke);
+                        overlapRenderer.setSeriesStroke(1, inactiveStroke);
                     }
             case 3 -> // overlap lines are active
                     {
@@ -444,18 +986,22 @@ public class DataVisualization
                         BasicStroke inactiveThresholdStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
                         BasicStroke inactiveDomainStroke = new BasicStroke(1.5f);
 
-                        thresholdRenderer.setBaseStroke(inactiveThresholdStroke);
-                        domainRenderer.setBaseStroke(inactiveDomainStroke);
-                        overlapRenderer.setBaseStroke(activeStroke);
+                        thresholdRenderer.setSeriesStroke(0, inactiveThresholdStroke);
+                        domainRenderer.setSeriesStroke(0, inactiveDomainStroke);
+                        domainRenderer.setSeriesStroke(1, inactiveDomainStroke);
+                        overlapRenderer.setSeriesStroke(0, activeStroke);
+                        overlapRenderer.setSeriesStroke(1, activeStroke);
                     }
             default -> // nothing is active
                     {
                         BasicStroke thresholdOverlapStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {4f}, 0.0f);
                         BasicStroke domainStroke = new BasicStroke(1.5f);
 
-                        thresholdRenderer.setBaseStroke(thresholdOverlapStroke);
-                        domainRenderer.setBaseStroke(domainStroke);
-                        overlapRenderer.setBaseStroke(thresholdOverlapStroke);
+                        thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
+                        domainRenderer.setSeriesStroke(0, domainStroke);
+                        domainRenderer.setSeriesStroke(1, domainStroke);
+                        overlapRenderer.setSeriesStroke(0, thresholdOverlapStroke);
+                        overlapRenderer.setSeriesStroke(1, thresholdOverlapStroke);
                     }
         }
 
@@ -605,8 +1151,10 @@ public class DataVisualization
             public void chartMouseMoved(ChartMouseEvent chartMouseEvent) {}
         });
 
+        // add graph to graph panel
         DV.graphPanel.add(chartPanel);
 
+        // return true is graph is scaled
         return bound > DV.fieldLength;
     }
 }

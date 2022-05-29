@@ -92,8 +92,11 @@ public class DV extends JFrame
     // threshold point
     static double threshold;
 
-    // lesser class (lower mean)
-    static int lowerRange;
+    // threshold before optimizing
+    public static double prevThreshold;
+
+    // true if upper class has lower mean
+    static boolean upperIsLower = true;
 
     // current and previous accuracies (only applicable to 3+ class datasets)
     static double accuracy;
@@ -114,7 +117,7 @@ public class DV extends JFrame
      ***********************************************/
     // angles and initial angles (store angles before optimizing)
     public static double[] angles;
-    public static double[] initialAngles; // ASK KOVALERCHUK ABOUT CHANGING TO LDA ANGLES
+    public static double[] prevAngles; // ASK KOVALERCHUK ABOUT CHANGING TO LDA ANGLES
 
     // normalized and original data
     static ArrayList<DataObject> data;
@@ -784,7 +787,7 @@ public class DV extends JFrame
         {
             JOptionPane.showMessageDialog(
                     mainFrame,
-                    "Could not open file.\n Please ensure view the \"Help\" tab for additional information.",
+                    "Could not open file.\n Please ensure the file is properly formatted.\nView the \"Help\" tab for additional information.",
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
         }

@@ -5,26 +5,23 @@ import math
 import sys
 import os
 
-# get file and dimensions
+# get data file and dimensions
 path = sys.argv[1]
 dims = int(sys.argv[2])
 
 if os.path.exists(path):
-    # inform DV program that LDA is running
-    print("$")
+    # create dataframe from file
+    dataframe = pd.read_csv(path)
 
-    # get data
-    data = pd.read_csv(path)
+    # get data and labels
+    labels = dataframe['class'].values.reshape(-1, 1)
+    data = dataframe.drop(['class'], axis=1)
 
     # get LDA
     lda = LinearDiscriminantAnalysis(n_components=1)
 
-    # create training dataset and training labels
-    y = data['class'].values.reshape(-1, 1)
-    x = data.drop(['class'], axis=1)
-
     # train
-    lda.fit(x, y.ravel())
+    lda.fit(data, labels)
 
     # get weights
     angles = lda.coef_[0].copy()
@@ -53,13 +50,7 @@ if os.path.exists(path):
     weightedMeanSum2 = sum(weightedMeans[1])
 
     # add weighted class sums then divide by 2 to get threshold
-    c = (weightedMeanSum1 + weightedMeanSum2) / 2
-
-    # threshold value to slider ticks
-    c = round((c / dims) * 200) + 200
+    threshold = (weightedMeanSum1 + weightedMeanSum2) / 2
 
     # inform DV program of threshold
-    print(c)
-else:
-    # inform DV of failure
-    print("&")
+    print(threshold)

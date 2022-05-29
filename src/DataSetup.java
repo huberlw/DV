@@ -56,7 +56,10 @@ public class DataSetup
             if (numericalData != null)
             {
                 // save original data
-                double[][] originalNumericalData = Arrays.copyOf(numericalData, numericalData.length);
+                double[][] originalNumericalData = new double[numericalData.length][];
+
+                for (int i = 0; i < numericalData.length; i++)
+                    originalNumericalData[i] = Arrays.copyOf(numericalData[i], DV.fieldLength);
 
                 // normalize data
                 double[][] normalizedNumericalData = normalizeData(numericalData);

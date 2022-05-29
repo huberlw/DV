@@ -23,33 +23,31 @@ public class DataObject
 
     /**
      * Updates the coordinates for each datapoint in a DataObject
-     * @param angles direction of each value in datapoint
      */
-    public void updateCoordinates(double[] angles)
+    public void updateCoordinates()
     {
         // generate coordinates for every datapoint
         for (int i = 0; i < data.length; i++)
-            coordinates[i] = generateCoordinates(data[i], angles);
+            coordinates[i] = generateCoordinates(data[i]);
     }
 
 
     /**
      * Generates coordinates for a datapoint
      * @param dataPoint datapoint in DataObject
-     * @param angles direction of each value in datapoint
      * @return coordinates for datapoint
      */
-    private double[][] generateCoordinates(double[] dataPoint, double[] angles)
+    private double[][] generateCoordinates(double[] dataPoint)
     {
         // output points
         double[][] xyPoints = new double[dataPoint.length][2];
 
         // get xyPoints
-        xyPoints[0] = getXYPoint(dataPoint[0], angles[0]);
+        xyPoints[0] = getXYPoint(dataPoint[0], DV.angles[0]);
 
         for (int i = 1; i < dataPoint.length; i++)
         {
-            xyPoints[i] = getXYPoint(dataPoint[i], angles[i]);
+            xyPoints[i] = getXYPoint(dataPoint[i], DV.angles[i]);
 
             // add previous points to current points
             xyPoints[i][0] += xyPoints[i-1][0];
