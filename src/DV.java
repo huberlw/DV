@@ -307,7 +307,7 @@ public class DV extends JFrame
         barLineBtn.setToolTipText("Toggle graph showing bar-line of endpoint placement");
         barLineBtn.addActionListener(e ->
         {
-            showBars = true;
+            showBars = !showBars;
             DataVisualization.drawGraphs(0);
         });
         toolBar.add(barLineBtn);

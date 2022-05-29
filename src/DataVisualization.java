@@ -508,7 +508,7 @@ public class DataVisualization
                         if (endpoint < DV.threshold)
                         {
                             // check if endpoint expands overlap area
-                            if (endpoint > DV.overlapArea[0])
+                            if (endpoint < DV.overlapArea[0])
                             {
                                 prevOverlap[0] = DV.overlapArea[0];
                                 DV.overlapArea[0] = endpoint;
@@ -518,7 +518,7 @@ public class DataVisualization
 
                                 misclassified[0] = true;
                             }
-                            else if (endpoint > prevOverlap[0]) // get largest previous overlap point
+                            else if (endpoint < prevOverlap[0]) // get largest previous overlap point
                             {
                                 prevOverlap[0] = endpoint;
                                 isPrevious[0] = true;
@@ -544,20 +544,20 @@ public class DataVisualization
                         if (endpoint < DV.threshold)
                         {
                             // check if endpoint expands overlap are
-                            if (endpoint < DV.overlapArea[1])
+                            if (endpoint < DV.overlapArea[0])
                             {
-                                prevOverlap[1] = DV.overlapArea[1];
-                                DV.overlapArea[1] = endpoint;
+                                prevOverlap[0] = DV.overlapArea[0];
+                                DV.overlapArea[0] = endpoint;
 
-                                if (misclassified[1])
-                                    isPrevious[1] = true;
+                                if (misclassified[0])
+                                    isPrevious[0] = true;
 
-                                misclassified[1] = true;
+                                misclassified[0] = true;
                             }
-                            else if (endpoint > prevOverlap[1]) // get largest previous overlap point
+                            else if (endpoint < prevOverlap[0]) // get largest previous overlap point
                             {
-                                prevOverlap[1] = endpoint;
-                                isPrevious[1] = true;
+                                prevOverlap[0] = endpoint;
+                                isPrevious[0] = true;
                             }
                         }
                     }
@@ -571,20 +571,20 @@ public class DataVisualization
                         if (endpoint > DV.threshold)
                         {
                             // check if endpoint expands overlap area
-                            if (endpoint > DV.overlapArea[0])
+                            if (endpoint > DV.overlapArea[1])
                             {
-                                prevOverlap[0] = DV.overlapArea[0];
-                                DV.overlapArea[0] = endpoint;
+                                prevOverlap[1] = DV.overlapArea[1];
+                                DV.overlapArea[1] = endpoint;
 
-                                if (misclassified[0])
-                                    isPrevious[0] = true;
+                                if (misclassified[1])
+                                    isPrevious[1] = true;
 
-                                misclassified[0] = true;
+                                misclassified[1] = true;
                             }
-                            else if (endpoint > prevOverlap[0]) // get largest previous overlap point
+                            else if (endpoint > prevOverlap[1]) // get largest previous overlap point
                             {
-                                prevOverlap[0] = endpoint;
-                                isPrevious[0] = true;
+                                prevOverlap[1] = endpoint;
+                                isPrevious[1] = true;
                             }
                         }
                     }
@@ -620,6 +620,10 @@ public class DataVisualization
             DV.overlapArea[1] = DV.threshold;
         else if (!misclassified[0] && misclassified[1])
             DV.overlapArea[0] = DV.threshold;
+
+        // set slider
+        DV.overlapSlider.setValue((int) (DV.overlapArea[0] / DV.fieldLength * 200) + 200);
+        DV.overlapSlider.setUpperValue((int) (DV.overlapArea[1] / DV.fieldLength * 200) + 200);
     }
 
 
@@ -684,9 +688,18 @@ public class DataVisualization
      */
     public static boolean addGraph(ArrayList<DataObject> dataObjects, int upperOrLower, int active)
     {
+        // used to scale graph
+        double graphScaler = 1;
+
         // get coordinates
         for (DataObject dataObject : dataObjects)
-            dataObject.updateCoordinates();
+        {
+            double tmpScale = dataObject.updateCoordinates();
+
+            // check for greater scaler
+            if (tmpScale > graphScaler)
+                graphScaler = tmpScale;
+        }
 
         // create main renderer and dataset
         XYLineAndShapeRenderer lineRenderer = new XYLineAndShapeRenderer(true, false);
@@ -711,39 +724,22 @@ public class DataVisualization
 
         // set domain lines
         if (upperOrLower == 1)
-        {
-            domainMaxLine.add(DV.domainArea[0], 0);
-            domainMaxLine.add(DV.domainArea[0], -domainOverlapLineHeight);
-            domainMinLine.add(DV.domainArea[1], 0);
-            domainMinLine.add(DV.domainArea[1], -domainOverlapLineHeight);
-        }
-        else
-        {
-            domainMaxLine.add(DV.domainArea[0], 0);
-            domainMaxLine.add(DV.domainArea[0], domainOverlapLineHeight);
-            domainMinLine.add(DV.domainArea[1], 0);
-            domainMinLine.add(DV.domainArea[1], domainOverlapLineHeight);
-        }
+            domainOverlapLineHeight *= -1;
+
+        domainMaxLine.add(DV.domainArea[0], 0);
+        domainMaxLine.add(DV.domainArea[0], domainOverlapLineHeight);
+        domainMinLine.add(DV.domainArea[1], 0);
+        domainMinLine.add(DV.domainArea[1], domainOverlapLineHeight);
 
         // add domain series to collection
         domain.addSeries(domainMaxLine);
         domain.addSeries(domainMinLine);
 
         // set overlap lines
-        if (upperOrLower == 1)
-        {
-            overlapMaxLine.add(DV.overlapArea[0], 0);
-            overlapMaxLine.add(DV.overlapArea[0], -domainOverlapLineHeight);
-            overlapMinLine.add(DV.overlapArea[1], 0);
-            overlapMinLine.add(DV.overlapArea[1], -domainOverlapLineHeight);
-        }
-        else
-        {
-            overlapMaxLine.add(DV.overlapArea[0], 0);
-            overlapMaxLine.add(DV.overlapArea[0], domainOverlapLineHeight);
-            overlapMinLine.add(DV.overlapArea[1], 0);
-            overlapMinLine.add(DV.overlapArea[1], domainOverlapLineHeight);
-        }
+        overlapMaxLine.add(DV.overlapArea[0], 0);
+        overlapMaxLine.add(DV.overlapArea[0], domainOverlapLineHeight);
+        overlapMinLine.add(DV.overlapArea[1], 0);
+        overlapMinLine.add(DV.overlapArea[1], domainOverlapLineHeight);
 
         // add overlap series to collection
         overlap.addSeries(overlapMaxLine);
@@ -752,17 +748,12 @@ public class DataVisualization
         // get threshold line height
         double thresholdLineHeight = DV.fieldLength / 13.0;
 
-        // get threshold line
         if (upperOrLower == 1)
-        {
-            thresholdLine.add(DV.threshold, 0);
-            thresholdLine.add(DV.threshold, -thresholdLineHeight);
-        }
-        else
-        {
-            thresholdLine.add(DV.threshold, 0);
-            thresholdLine.add(DV.threshold, thresholdLineHeight);
-        }
+            thresholdLineHeight *= -1;
+
+        // get threshold line
+        thresholdLine.add(DV.threshold, 0);
+        thresholdLine.add(DV.threshold, thresholdLineHeight);
 
         // add threshold series to collection
         threshold.addSeries(thresholdLine);
@@ -794,22 +785,17 @@ public class DataVisualization
                 // add points to lines
                 for (int j = 0; j < DV.fieldLength; j++)
                 {
+                    int upOrDown;
                     if (upperOrLower == 1)
-                    {
-                        lines.get(lineCnt).add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
-
-                        if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1] &&
-                                (j > 0 && j < DV.fieldLength - 1) && (DV.angles[j] == DV.angles[j+1]))
-                            midpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
-                    }
+                        upOrDown = -1;
                     else
-                    {
-                        lines.get(lineCnt).add(data.coordinates[i][j][0], data.coordinates[i][j][1]);
+                        upOrDown = 1;
 
-                        if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1] &&
-                                (j > 0 && j < DV.fieldLength - 1) && (DV.angles[j] == DV.angles[j+1]))
-                            midpointSeries.add(data.coordinates[i][j][0], data.coordinates[i][j][1]);
-                    }
+                    lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
+
+                    if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1] &&
+                            (j > 0 && j < DV.fieldLength - 1) && (DV.angles[j] == DV.angles[j+1]))
+                        midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
                     // add endpoint and timeline
                     if (j == DV.fieldLength - 1)
@@ -871,36 +857,25 @@ public class DataVisualization
         plot.setInsets(RectangleInsets.ZERO_INSETS);
 
         // set domain and range of graph
-        double bound = 1.2 * DV.fieldLength;
+        double bound = graphScaler * DV.fieldLength;
+        double tick = DV.fieldLength / 10.0;
 
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-bound, bound);
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        xAxis.setTickUnit(new NumberTickUnit(tick));
+
+        // set range
+        ValueAxis rangeView = plot.getRangeAxis();
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(tick));
+
+        // set range up or down
         if (upperOrLower == 1)
-        {
-            double tick = DV.fieldLength / 10.0;
-
-            ValueAxis domainView = plot.getDomainAxis();
-            domainView.setRange(-bound, bound);
-            NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
-            xAxis.setTickUnit(new NumberTickUnit(tick));
-
-            ValueAxis rangeView = plot.getRangeAxis();
             rangeView.setRange(-bound * 0.4, 0);
-            NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
-            yAxis.setTickUnit(new NumberTickUnit(tick));
-        }
         else
-        {
-            double tick = DV.fieldLength / 10.0;
-
-            ValueAxis domainView = plot.getDomainAxis();
-            domainView.setRange(-bound, bound);
-            NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
-            xAxis.setTickUnit(new NumberTickUnit(tick));
-
-            ValueAxis rangeView = plot.getRangeAxis();
             rangeView.setRange(0, bound * 0.4);
-            NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
-            yAxis.setTickUnit(new NumberTickUnit(tick));
-        }
 
         // renderer for bars
         XYIntervalSeriesCollection bars = new XYIntervalSeriesCollection();

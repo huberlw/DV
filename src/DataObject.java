@@ -23,12 +23,30 @@ public class DataObject
 
     /**
      * Updates the coordinates for each datapoint in a DataObject
+     * @return highest point in DataObject
      */
-    public void updateCoordinates()
+    public double updateCoordinates()
     {
+        // save the highest point
+        double highest = Double.MIN_VALUE;
+
         // generate coordinates for every datapoint
         for (int i = 0; i < data.length; i++)
+        {
             coordinates[i] = generateCoordinates(data[i]);
+
+            // check for new highest
+            if (coordinates[i][DV.fieldLength-1][1] > highest)
+                highest = coordinates[i][DV.fieldLength-1][1];
+        }
+
+        // only save the highest if greater than field length * 0.4
+        if (highest < DV.fieldLength * 0.4)
+            highest = 1;
+        else
+            highest = (highest + 0.1) / (DV.fieldLength * 0.4);
+
+        return highest;
     }
 
 
