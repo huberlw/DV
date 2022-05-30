@@ -102,13 +102,24 @@ public class ConfusionMatrices
             for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
                 cm.append(i).append("\t");
 
-            for (int i = 0; i < 2 + DV.prevAccuracies.size(); i++)
+            for (int i = 0; i < 2; i++)
             {
-                // append class label
-                cm.append("\n").append(i+1).append("\t");
+                if (DV.prevAccuracies.size() == 0)
+                {
+                    // append class label
+                    cm.append("\n").append(i+1).append("\t");
 
-                // append classifications
-                cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
+                    // append classifications
+                    cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
+                }
+                else
+                {
+                    // append class label
+                    cm.append("\n").append(i+1).append("\t");
+
+                    // append classifications
+                    cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t").append("I AM ONLY TEMPORARY");
+                }
             }
 
             // append accuracy
@@ -193,13 +204,24 @@ public class ConfusionMatrices
                     int cnt = 0;
                     int index = -1;
 
-                    while (cnt++ < 2 + DV.prevAccuracies.size())
+                    while (cnt++ < 2)
                     {
-                        // append class label
-                        cm.append("\n").append(cnt).append("\t");
+                        if (DV.prevAccuracies.size() == 0)
+                        {
+                            // append class label
+                            cm.append("\n").append(cnt).append("\t");
 
-                        // append classifications
-                        cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t");
+                            // append classifications
+                            cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t");
+                        }
+                        else
+                        {
+                            // append class label
+                            cm.append("\n").append(cnt).append("\t");
+
+                            // append classifications
+                            cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t").append("I AM ONLY TEMPORARY");
+                        }
                     }
 
                     // append accuracy
@@ -272,7 +294,7 @@ public class ConfusionMatrices
             // get confusion matrix with LDA
             ArrayList<String> cmValues = LDAForConfusionMatrices(false);
 
-            if (cmValues != null)
+            if (cmValues != null && cmValues.size() > 0)
             {
                 // create confusion matrix
                 StringBuilder cm = new StringBuilder("Overlap Analytics\nReal\tPredictions\nClass\t");
@@ -295,6 +317,32 @@ public class ConfusionMatrices
 
                 // append accuracy
                 cm.append("\n").append(cmValues.get(cmValues.size() - 1));
+
+                // set overlap confusion matrix
+                DV.overlapCM.setText(cm.toString());
+            }
+            else if (cmValues != null)
+            {
+                // create confusion matrix
+                StringBuilder cm = new StringBuilder("Overlap Analytics\nReal\tPredictions\nClass\t");
+
+                // append predicted classes
+                for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
+                    cm.append(i).append("\t");
+
+                int cnt = 0;
+
+                while (cnt++ < 2 + DV.prevAccuracies.size())
+                {
+                    // append class label
+                    cm.append("\n").append(cnt).append("\t");
+
+                    // append classifications
+                    cm.append(0).append("\t").append(0).append("\t");
+                }
+
+                // append accuracy
+                cm.append("\n").append(0).append("%");
 
                 // set overlap confusion matrix
                 DV.overlapCM.setText(cm.toString());
@@ -401,13 +449,24 @@ public class ConfusionMatrices
             for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
                 cm.append(i).append("\t");
 
-            for (int i = 0; i < 2 + DV.prevAccuracies.size(); i++)
+            for (int i = 0; i < 2; i++)
             {
-                // append class label
-                cm.append("\n").append(i+1).append("\t");
+                if (DV.prevAccuracies.size() == 0)
+                {
+                    // append class label
+                    cm.append("\n").append(i+1).append("\t");
 
-                // append classifications
-                cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
+                    // append classifications
+                    cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
+                }
+                else
+                {
+                    // append class label
+                    cm.append("\n").append(i+1).append("\t");
+
+                    // append classifications
+                    cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t").append("I AM ONLY TEMPORARY");
+                }
             }
 
             // append accuracy

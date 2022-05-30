@@ -182,12 +182,12 @@ public class DataVisualization
     /**
      * Searches for the best accuracy by
      * adjusting the threshold location
-     * @param accuracy initial accuracy
+     * @param bestAccuracy current best accuracy
      */
-    public static void optimizeThreshold(double accuracy)
+    public static void optimizeThreshold(double bestAccuracy)
     {
         // store current best threshold
-        double best = DV.threshold;
+        double bestThreshold = DV.threshold;
 
         // increment equals 2 slider ticks
         double increment = 2 * DV.fieldLength / 200.0;
@@ -201,21 +201,24 @@ public class DataVisualization
             getAccuracy();
 
             // update the best threshold and accuracy
-            if (DV.accuracy >= accuracy)
+            if (DV.accuracy >= bestAccuracy)
             {
-                accuracy = DV.accuracy;
-                best = DV.threshold;
+                bestAccuracy = DV.accuracy;
+                bestThreshold = DV.threshold;
             }
 
             // new trial threshold
             DV.threshold += increment;
         }
 
+        // set best accuracy
+        DV.accuracy = bestAccuracy;
+
         // use best threshold
-        DV.threshold = best;
+        DV.threshold = bestThreshold;
 
         // set slider to best
-        DV.thresholdSlider.setValue((int) (best / DV.fieldLength * 200) + 200);
+        DV.thresholdSlider.setValue((int) (bestThreshold / DV.fieldLength * 200) + 200);
     }
 
 
