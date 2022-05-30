@@ -19,7 +19,7 @@ public class DataSetup
 
         if (stringData != null)
         {
-            // get classes and class number then removes classes dataset
+            // get classes and class number then removes classes from dataset
             if (DV.hasClasses)
             {
                 getClasses(stringData);
@@ -82,30 +82,100 @@ public class DataSetup
     }
 
 
+    public static boolean setupImportData(File importFile)
+    {
+        // data string[][] representation of import file
+        String[][] stringData = getStringFromCSV(importFile);
+
+        if (stringData != null)
+        {
+            int classIndex = -1;
+
+            // check classes and update class number
+            if (DV.hasClasses)
+            {
+                classIndex = checkClass(stringData);
+                stringData = purgeClasses(stringData);
+            }
+
+            // remove ID
+            if (DV.hasID)
+                stringData = purgeID(stringData);
+
+            // get numerical data from string data
+            double[][] numericalData = stringToNumerical(stringData);
+
+            if (numericalData != null)
+            {
+                // save original data
+                double[][] originalNumericalData = new double[numericalData.length][];
+
+                for (int i = 0; i < numericalData.length; i++)
+                    originalNumericalData[i] = Arrays.copyOf(numericalData[i], DV.fieldLength);
+
+                // normalize data
+                double[][] normalizedNumericalData = normalizeData(numericalData);
+
+                // add new data
+                addImportedData(normalizedNumericalData, classIndex, false);
+                addImportedData(originalNumericalData, classIndex, true);
+
+                return true;
+            }
+            else
+                return false;
+        }
+        else
+            return false;
+    }
+
+
     /**
      * Gets all classes from input data
      * @param stringData String[][] representation of input data
      */
     private static void getClasses(String[][] stringData)
     {
-        if (stringData != null)
+        // LinkedHashSet preserves order and does not allow duplicates
+        LinkedHashSet<String> unique = new LinkedHashSet<>();
+
+        DV.allClasses = new ArrayList<>();
+
+        // add all classes to unique and allClasses
+        for (int i = 1; i < stringData.length; i++)
         {
-            // LinkedHashSet preserves order and does not allow duplicates
-            LinkedHashSet<String> unique = new LinkedHashSet<>();
-
-            DV.allClasses = new ArrayList<>();
-
-            // add all classes to unique and allClasses
-            for (int i = 1; i < stringData.length; i++)
-            {
-                unique.add(stringData[i][stringData[0].length - 1]);
-                DV.allClasses.add(stringData[i][stringData[0].length - 1]);
-            }
-
-            // store unique classes and class number
-            DV.uniqueClasses = new ArrayList<>(unique);
-            DV.classNumber = unique.size();
+            unique.add(stringData[i][stringData[0].length - 1]);
+            DV.allClasses.add(stringData[i][stringData[0].length - 1]);
         }
+
+        // store unique classes and class number
+        DV.uniqueClasses = new ArrayList<>(unique);
+        DV.classNumber = unique.size();
+    }
+
+
+    /**
+     * Checks class on import data and either
+     * adds data to existing class or
+     * creates new class
+     * @return index of class
+     */
+    private static int checkClass(String[][] stringData)
+    {
+        // check all classes
+        for (int i = 0; i < DV.uniqueClasses.size(); i++)
+        {
+            if (stringData[1][DV.fieldLength - 1].equals(DV.uniqueClasses.get(i)))
+                return i;
+        }
+
+        // increase class number
+        DV.classNumber++;
+
+        // add class to new class
+        DV.uniqueClasses.add(stringData[1][DV.fieldLength-1]);
+
+        return DV.classNumber;
     }
 
 
@@ -467,6 +537,21 @@ public class DataSetup
             dataObjects.add(new DataObject(DV.uniqueClasses.get(i), separateClasses.get(i)));
 
         return dataObjects;
+    }
+
+
+    /**
+     * Adds imported data to DV.data and DV.originalData
+     * @param data imported data
+     * @param classIndex index of class name for data
+     * @param original whether the data is normalized or not
+     */
+    private static void addImportedData(double[][] data, int classIndex, boolean original)
+    {
+        if (original)
+            DV.originalData.add(new DataObject(DV.uniqueClasses.get(classIndex), data));
+        else
+            DV.data.add(new DataObject(DV.uniqueClasses.get(classIndex), data));
     }
 
 

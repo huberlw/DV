@@ -789,6 +789,7 @@ public class DV extends JFrame
             // create graphs
             if (success)
             {
+                // optimize data setup with Linear Discriminant Analysis
                 DataVisualization.optimizeSetup();
                 angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
 
@@ -807,8 +808,8 @@ public class DV extends JFrame
         {
             JOptionPane.showMessageDialog(
                     mainFrame,
-                    "Could not open file.\n Please ensure the file is properly formatted.\nView the \"Help\" tab for additional information.",
-                    "Error",
+                    "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not open file",
                     JOptionPane.ERROR_MESSAGE);
         }
 
@@ -823,7 +824,60 @@ public class DV extends JFrame
      */
     private void importData()
     {
+        if (data.size() > 0)
+        {
+            // set filter on file chooser
+            JFileChooser fileDialog = new JFileChooser();
+            fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
+            // open file dialog
+            if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+            {
+                File importFile = fileDialog.getSelectedFile();
+
+                // reset program
+                resetProgram();
+
+                // check if import was successful
+                boolean success = DataSetup.setupImportData(importFile);
+
+                // create graphs
+                if (success)
+                {
+                    // optimize data setup with Linear Discriminant Analysis
+                    DataVisualization.optimizeSetup();
+                    angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
+
+                    DataVisualization.drawGraphs(0);
+                }
+                else
+                {
+                    // reset program
+                    resetProgram();
+
+                    // add blank graph
+                    graphPanel.add(blankGraph());
+                }
+            }
+            else
+            {
+                JOptionPane.showMessageDialog(
+                        mainFrame,
+                        "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: could not open file",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+
+
+        }
+        else
+        {
+            JOptionPane.showMessageDialog(
+                    mainFrame,
+                    "Please create a project before importing data.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not import data",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 
