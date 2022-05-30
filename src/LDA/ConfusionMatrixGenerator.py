@@ -6,15 +6,13 @@ import math
 import sys
 import os
 
-# get data file and dimensions
+# get data file
 path = sys.argv[1]
 
 # get printing
-printing = bool(sys.argv[3])
-
+printing = bool(sys.argv[2])
 
 if os.path.exists(path):
-    print("HELLO")
     # create dataframe from file
     dataframe = pd.read_csv(path)
 
@@ -59,6 +57,16 @@ if os.path.exists(path):
     if printing:
         print((weightedMeanSum1 + weightedMeanSum2) / 2)
 
-    # get confusion matrix
-    #print(pd.DataFrame(confusion_matrix(labels, lda.predict(data))))
+    # get predications
+    predictions = lda.predict(data)
 
+    # get confusion matrix
+    cm = confusion_matrix(labels, predictions)
+
+    # inform DV of confusion matrix
+    for i in range(len(cm)):
+        for j in range(len(cm[i])):
+            print(cm[i][j])
+
+    # inform DV of accuracy
+    print(f"Accuracy: {round(accuracy_score(labels, predictions) * 100, 2)}%")

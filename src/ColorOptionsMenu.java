@@ -10,7 +10,6 @@ public class ColorOptionsMenu extends JPanel
 
         // create popup window
         JFrame colorOptionsFrame = new JFrame("Color Options");
-        colorOptionsFrame.setResizable(false);
         colorOptionsFrame.setLocation(mouseLocation);
 
         // color panel

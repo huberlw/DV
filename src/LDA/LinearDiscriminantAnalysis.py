@@ -5,9 +5,8 @@ import math
 import sys
 import os
 
-# get data file and dimensions
+# get data file
 path = sys.argv[1]
-dims = int(sys.argv[2])
 
 if os.path.exists(path):
     # create dataframe from file

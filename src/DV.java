@@ -102,6 +102,12 @@ public class DV extends JFrame
     static double accuracy;
     static ArrayList<Double> prevAccuracies;
 
+    // display confusion matrices
+    static boolean allDataChecked = true;
+    static boolean withoutOverlapChecked = true;
+    static boolean overlapChecked = true;
+    static boolean worstCaseChecked = true;
+
     /************************************************
      * FOR INPUT DATA
      ***********************************************/
@@ -276,6 +282,13 @@ public class DV extends JFrame
         toolBar.add(visOptionsBtn);
         toolBar.addSeparator();
 
+        // confusion matrix options
+        JButton CMOptionsBtn = new JButton("Toggle Confusion Matrices");
+        CMOptionsBtn.setToolTipText("Toggle different confusion matrices");
+        CMOptionsBtn.addActionListener(e -> new ConfusionMatrixMenu(MouseInfo.getPointerInfo().getLocation()));
+        toolBar.add(CMOptionsBtn);
+        toolBar.addSeparator();
+
         // resets screen
         JButton resetScreenBtn = new JButton("Reset Screen");
         resetScreenBtn.setToolTipText("Resets rendered zoom area");
@@ -304,7 +317,7 @@ public class DV extends JFrame
 
         // toggle bar-line
         JButton barLineBtn = new JButton("Toggle Bar-line");
-        barLineBtn.setToolTipText("Toggle graph showing bar-line of endpoint placement");
+        barLineBtn.setToolTipText("Toggle for showing bar-line graph of endpoint placement");
         barLineBtn.addActionListener(e ->
         {
             showBars = !showBars;
@@ -647,9 +660,14 @@ public class DV extends JFrame
         overlapCM = new JTextArea(10, 40);
         worstCaseCM = new JTextArea(10, 40);
 
+        // set font size
+        allDataCM.setFont(allDataCM.getFont().deriveFont(16f));
+        dataWithoutOverlapCM.setFont(dataWithoutOverlapCM.getFont().deriveFont(16f));
+        overlapCM.setFont(overlapCM.getFont().deriveFont(16f));
+        worstCaseCM.setFont(worstCaseCM.getFont().deriveFont(16f));
+
         // create confusion matrix panel
-        confusionMatrixPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        confusionMatrixPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        confusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 0));
         confusionMatrixPanel.add(allDataCM);
         confusionMatrixPanel.add(dataWithoutOverlapCM);
         confusionMatrixPanel.add(overlapCM);

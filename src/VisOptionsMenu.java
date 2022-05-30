@@ -11,7 +11,6 @@ public class VisOptionsMenu extends JPanel
 
         // create popup window
         JFrame visOptionsFrame = new JFrame("Color Options");
-        visOptionsFrame.setResizable(false);
         visOptionsFrame.setLocation(mouseLocation);
 
         // choose class to visualize as main

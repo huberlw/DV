@@ -23,9 +23,10 @@ public class DataObject
 
     /**
      * Updates the coordinates for each datapoint in a DataObject
+     * @param angles weights for each value in a datapoint
      * @return highest point in DataObject
      */
-    public double updateCoordinates()
+    public double updateCoordinates(double[] angles)
     {
         // save the highest point
         double highest = Double.MIN_VALUE;
@@ -33,7 +34,7 @@ public class DataObject
         // generate coordinates for every datapoint
         for (int i = 0; i < data.length; i++)
         {
-            coordinates[i] = generateCoordinates(data[i]);
+            coordinates[i] = generateCoordinates(data[i], angles);
 
             // check for new highest
             if (coordinates[i][DV.fieldLength-1][1] > highest)
@@ -53,19 +54,20 @@ public class DataObject
     /**
      * Generates coordinates for a datapoint
      * @param dataPoint datapoint in DataObject
+     * @param angles weights for each value
      * @return coordinates for datapoint
      */
-    private double[][] generateCoordinates(double[] dataPoint)
+    private double[][] generateCoordinates(double[] dataPoint, double[] angles)
     {
         // output points
         double[][] xyPoints = new double[dataPoint.length][2];
 
         // get xyPoints
-        xyPoints[0] = getXYPoint(dataPoint[0], DV.angles[0]);
+        xyPoints[0] = getXYPoint(dataPoint[0], angles[0]);
 
         for (int i = 1; i < dataPoint.length; i++)
         {
-            xyPoints[i] = getXYPoint(dataPoint[i], DV.angles[i]);
+            xyPoints[i] = getXYPoint(dataPoint[i], angles[i]);
 
             // add previous points to current points
             xyPoints[i][0] += xyPoints[i-1][0];
@@ -79,7 +81,7 @@ public class DataObject
     /**
      * Gets coordinates for a value
      * @param value value to find coordinates for
-     * @param angle direction of value
+     * @param angle weight of value
      * @return coordinates for value
      */
     private double[] getXYPoint(double value, double angle)

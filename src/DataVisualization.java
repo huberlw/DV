@@ -130,8 +130,7 @@ public class DataVisualization
         // create LDA (python) process
         ProcessBuilder lda = new ProcessBuilder("venv\\Scripts\\python",
                 System.getProperty("user.dir") + "\\src\\LDA\\LinearDiscriminantAnalysis.py",
-                System.getProperty("user.dir") + "\\src\\LDA\\DV_data.csv",
-                String.valueOf(DV.fieldLength));
+                System.getProperty("user.dir") + "\\src\\LDA\\DV_data.csv");
 
         try
         {
@@ -385,7 +384,7 @@ public class DataVisualization
             // check if class is visualized
             if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
-                DV.data.get(i).updateCoordinates();
+                DV.data.get(i).updateCoordinates(DV.angles);
                 totalPoints += DV.data.get(i).coordinates.length;
             }
         }
@@ -465,7 +464,7 @@ public class DataVisualization
         for (int i = 0; i < DV.data.size(); i++)
         {
             if (i == DV.upperClass || DV.lowerClasses.get(i))
-                DV.data.get(i).updateCoordinates();
+                DV.data.get(i).updateCoordinates(DV.angles);
         }
 
         // overlap area, previous overlap are, and total area
@@ -482,14 +481,14 @@ public class DataVisualization
         // find overlap for all classes
         for (int i = 0; i < DV.data.size(); i++)
         {
-            if (i == DV.upperClass)
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
                 for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                 {
                     double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
 
                     // get classification
-                    if (DV.upperIsLower)
+                    if ((i == DV.upperClass && DV.upperIsLower) || (DV.lowerClasses.get(i) && !DV.upperIsLower))
                     {
                         // check if endpoint expands total area
                         if (endpoint < totalArea[0])
@@ -540,69 +539,6 @@ public class DataVisualization
                             {
                                 prevOverlap[0] = endpoint;
                                 isPrevious[0] = true;
-                            }
-                        }
-                    }
-                }
-            }
-            else if (DV.lowerClasses.get(i))
-            {
-                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
-                {
-                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
-
-                    // get classification
-                    if (DV.upperIsLower)
-                    {
-                        // check if endpoint expands total area
-                        if (endpoint > totalArea[1])
-                            totalArea[1] = endpoint;
-
-                        // check if endpoint is misclassified
-                        if (endpoint < DV.threshold)
-                        {
-                            // check if endpoint expands overlap are
-                            if (endpoint < DV.overlapArea[0])
-                            {
-                                prevOverlap[0] = DV.overlapArea[0];
-                                DV.overlapArea[0] = endpoint;
-
-                                if (misclassified[0])
-                                    isPrevious[0] = true;
-
-                                misclassified[0] = true;
-                            }
-                            else if (endpoint < prevOverlap[0]) // get largest previous overlap point
-                            {
-                                prevOverlap[0] = endpoint;
-                                isPrevious[0] = true;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // check if endpoint expands total area
-                        if (endpoint < totalArea[0])
-                            totalArea[0] = endpoint;
-
-                        // check if endpoint is misclassified
-                        if (endpoint > DV.threshold)
-                        {
-                            // check if endpoint expands overlap area
-                            if (endpoint > DV.overlapArea[1])
-                            {
-                                prevOverlap[1] = DV.overlapArea[1];
-                                DV.overlapArea[1] = endpoint;
-
-                                if (misclassified[1])
-                                    isPrevious[1] = true;
-
-                                misclassified[1] = true;
-                            }
-                            else if (endpoint > prevOverlap[1]) // get largest previous overlap point
-                            {
-                                prevOverlap[1] = endpoint;
-                                isPrevious[1] = true;
                             }
                         }
                     }
@@ -680,6 +616,8 @@ public class DataVisualization
         ConfusionMatrices.generateConfusionMatrices();
 
         // revalidate graphs and confusion matrices
+        DV.graphPanel.repaint();
+        DV.confusionMatrixPanel.repaint();
         DV.graphPanel.revalidate();
         DV.confusionMatrixPanel.revalidate();
 
@@ -712,7 +650,7 @@ public class DataVisualization
         // get coordinates
         for (DataObject dataObject : dataObjects)
         {
-            double tmpScale = dataObject.updateCoordinates();
+            double tmpScale = dataObject.updateCoordinates(DV.angles);
 
             // check for greater scaler
             if (tmpScale > graphScaler)
