@@ -31,6 +31,10 @@ public class VisOptionsMenu extends JPanel
 
             if (chosen != -1)
             {
+                // remove past accuracies
+                DV.prevAccuracies.clear();
+
+                // set upper class
                 DV.upperClass = chosen;
 
                 // lower class gets all others
@@ -42,6 +46,8 @@ public class VisOptionsMenu extends JPanel
                         DV.lowerClasses.set(i, false);
                 }
 
+                // optimize setup then draw graphs
+                DataVisualization.optimizeSetup();
                 DataVisualization.drawGraphs(0);
 
                 visOptionsFrame.dispatchEvent(new WindowEvent(visOptionsFrame, WindowEvent.WINDOW_CLOSING));
@@ -95,6 +101,8 @@ public class VisOptionsMenu extends JPanel
                             DV.lowerClasses.set(i, false);
                     }
 
+                    // optimize setup then draw graphs
+                    DataVisualization.optimizeSetup();
                     DataVisualization.drawGraphs(0);
                 }
             }
