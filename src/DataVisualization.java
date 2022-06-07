@@ -128,7 +128,7 @@ public class DataVisualization
     private static void LDA()
     {
         // create LDA (python) process
-        ProcessBuilder lda = new ProcessBuilder("venv\\Scripts\\python",
+        ProcessBuilder lda = new ProcessBuilder("..\\venv\\Scripts\\python",
                 System.getProperty("user.dir") + "\\src\\LDA\\LinearDiscriminantAnalysis.py",
                 System.getProperty("user.dir") + "\\src\\LDA\\DV_data.csv");
 

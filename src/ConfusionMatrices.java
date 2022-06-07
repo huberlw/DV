@@ -6,6 +6,9 @@ import java.util.List;
 
 public class ConfusionMatrices
 {
+    // holds the percentage of overlap points used
+    static String percentageOverlapPointsUsed;
+
     // holds overlapping datapoints
     static ArrayList<double[]> upper;
     static ArrayList<double[]> lower;
@@ -35,6 +38,7 @@ public class ConfusionMatrices
         if (DV.allDataChecked)
         {
             int totalPoints = 0;
+            int totalPointsUsed = 0;
             int correctPoints = 0;
 
             // get point distribution
@@ -42,58 +46,78 @@ public class ConfusionMatrices
 
             for (int i = 0; i < DV.data.size(); i++)
             {
+                totalPoints += DV.data.get(i).data.length;
+
                 if (i == DV.upperClass || DV.lowerClasses.get(i))
                 {
-                    totalPoints += DV.data.get(i).data.length;
-
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
                         double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
 
-                        // get classification
-                        if (i == DV.upperClass && DV.upperIsLower)
+                        // check if endpoint is within the subset of used data
+                        if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
                         {
-                            // check if endpoint is correctly classified
-                            if (endpoint < DV.threshold && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                            // get classification
+                            if (i == DV.upperClass && DV.upperIsLower)
                             {
-                                pntDist[0][0]++;
-                                correctPoints++;
+                                // check if endpoint is correctly classified
+                                if (endpoint < DV.threshold)
+                                {
+                                    pntDist[0][0]++;
+                                    totalPointsUsed++;
+                                    correctPoints++;
+                                }
+                                else
+                                {
+                                    totalPointsUsed++;
+                                    pntDist[0][1]++;
+                                }
+                            }
+                            else if (i == DV.upperClass)
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint > DV.threshold)
+                                {
+                                    pntDist[0][0]++;
+                                    totalPointsUsed++;
+                                    correctPoints++;
+                                }
+                                else
+                                {
+                                    totalPointsUsed++;
+                                    pntDist[0][1]++;
+                                }
+                            }
+                            else if(DV.lowerClasses.get(i) && DV.upperIsLower)
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint > DV.threshold)
+                                {
+                                    pntDist[1][1]++;
+                                    totalPointsUsed++;
+                                    correctPoints++;
+                                }
+                                else
+                                {
+                                    totalPointsUsed++;
+                                    pntDist[1][0]++;
+                                }
                             }
                             else
-                                pntDist[0][1]++;
-                        }
-                        else if (i == DV.upperClass)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint > DV.threshold && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
                             {
-                                pntDist[0][0]++;
-                                correctPoints++;
+                                // check if endpoint is correctly classified
+                                if (endpoint < DV.threshold)
+                                {
+                                    pntDist[1][1]++;
+                                    totalPointsUsed++;
+                                    correctPoints++;
+                                }
+                                else
+                                {
+                                    totalPointsUsed++;
+                                    pntDist[1][0]++;
+                                }
                             }
-                            else
-                                pntDist[0][1]++;
-                        }
-                        else if(DV.lowerClasses.get(i) && DV.upperIsLower)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint > DV.threshold && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
-                            {
-                                pntDist[1][1]++;
-                                correctPoints++;
-                            }
-                            else
-                                pntDist[1][0]++;
-                        }
-                        else
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint < DV.threshold && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
-                            {
-                                pntDist[1][1]++;
-                                correctPoints++;
-                            }
-                            else
-                                pntDist[1][0]++;
                         }
                     }
                 }
@@ -127,7 +151,10 @@ public class ConfusionMatrices
             }
 
             // append accuracy
-            cm.append(String.format("\nAccuracy: %.2f%%", 100.0 * correctPoints / totalPoints));
+            cm.append(String.format("\nAccuracy: %.2f%%", 100.0 * correctPoints / totalPointsUsed));
+
+            // append percentage of total points used
+            cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
 
             // set all data confusion matrix
             DV.allDataCM.setText(cm.toString());
@@ -151,11 +178,17 @@ public class ConfusionMatrices
             ArrayList<double[]> upper = new ArrayList<>();
             ArrayList<double[]> lower = new ArrayList<>();
 
+            // total datapoints within subset of utilized data
+            int totalPoints = 0;
+            int totalPointsUsed = 0;
+
             // check all classes
             for (int i = 0; i < DV.data.size(); i++)
             {
                 if (i == DV.upperClass)
                 {
+                    totalPoints += DV.data.get(i).data.length;
+
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
                         double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
@@ -167,11 +200,14 @@ public class ConfusionMatrices
                             System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
 
                             upper.add(thisPoint);
+                            totalPointsUsed++;
                         }
                     }
                 }
                 else if (DV.lowerClasses.get(i))
                 {
+                    totalPoints += DV.data.get(i).data.length;
+
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
                         double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
@@ -183,6 +219,7 @@ public class ConfusionMatrices
                             System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
 
                             lower.add(thisPoint);
+                            totalPointsUsed++;
                         }
                     }
                 }
@@ -231,6 +268,9 @@ public class ConfusionMatrices
                     // append accuracy
                     cm.append("\n").append(cmValues.get(cmValues.size() - 1));
 
+                    // append percentage of total points used
+                    cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
+
                     // set overlap confusion matrix
                     DV.dataWithoutOverlapCM.setText(cm.toString());
                 }
@@ -255,11 +295,17 @@ public class ConfusionMatrices
             upper = new ArrayList<>();
             lower = new ArrayList<>();
 
+            // total datapoints within subset of utilized data
+            int totalPoints = 0;
+            int totalPointsUsed = 0;
+
             // check all classes
             for (int i = 0; i < DV.data.size(); i++)
             {
                 if (i == DV.upperClass)
                 {
+                    totalPoints += DV.data.get(i).data.length;
+
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
                         double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
@@ -271,11 +317,14 @@ public class ConfusionMatrices
                             System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
 
                             upper.add(thisPoint);
+                            totalPointsUsed++;
                         }
                     }
                 }
                 else if (DV.lowerClasses.get(i))
                 {
+                    totalPoints += DV.data.get(i).data.length;
+
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
                         double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
@@ -287,10 +336,14 @@ public class ConfusionMatrices
                             System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
 
                             lower.add(thisPoint);
+                            totalPointsUsed++;
                         }
                     }
                 }
             }
+
+            // get percentage of overlap points used
+            percentageOverlapPointsUsed = String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints);
 
             if (DV.overlapChecked)
             {
@@ -335,6 +388,9 @@ public class ConfusionMatrices
                     // append accuracy
                     cm.append("\n").append(cmValues.get(cmValues.size() - 1));
 
+                    // append percentage of total points used
+                    cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
+
                     // set overlap confusion matrix
                     DV.overlapCM.setText(cm.toString());
                 }
@@ -360,6 +416,9 @@ public class ConfusionMatrices
 
                     // append accuracy
                     cm.append("\n").append(0).append("%");
+
+                    // append percentage of total points used
+                    cm.append(percentageOverlapPointsUsed);
 
                     // set overlap confusion matrix
                     DV.overlapCM.setText(cm.toString());
@@ -406,7 +465,7 @@ public class ConfusionMatrices
             upperOverlap.updateCoordinates(worstCaseAngles);
             lowerOverlap.updateCoordinates(worstCaseAngles);
 
-            int totalPoints = lower.size() + upper.size();
+            int totalPointsUsed = lower.size() + upper.size();
             int correctPoints = 0;
 
             // get point distribution
@@ -463,7 +522,7 @@ public class ConfusionMatrices
             }
 
             // create confusion matrix
-            StringBuilder cm = new StringBuilder("Worst Case Analytics\nReal\tPredictions\nClass\t");
+            StringBuilder cm = new StringBuilder("Worst Case Data Analytics\nReal\tPredictions\nClass\t");
 
             // append predicted classes
             for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
@@ -490,7 +549,10 @@ public class ConfusionMatrices
             }
 
             // append accuracy
-            cm.append(String.format("\nAccuracy: %.2f%%", 100.0 * correctPoints / totalPoints));
+            cm.append(String.format("\nAccuracy: %.2f%%", 100.0 * correctPoints / totalPointsUsed));
+
+            // append percentage of total points used
+            cm.append(percentageOverlapPointsUsed);
 
             // set all data confusion matrix
             DV.worstCaseCM.setText(cm.toString());
@@ -564,7 +626,7 @@ public class ConfusionMatrices
             pyBool = "";
 
         // create LDA (python) process
-        ProcessBuilder lda = new ProcessBuilder("venv\\Scripts\\python",
+        ProcessBuilder lda = new ProcessBuilder("..\\venv\\Scripts\\python",
                 System.getProperty("user.dir") + "\\src\\LDA\\ConfusionMatrixGenerator.py",
                 System.getProperty("user.dir") + "\\src\\LDA\\DV_CM_data.csv",
                 pyBool);

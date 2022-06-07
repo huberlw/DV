@@ -661,10 +661,10 @@ public class DV extends JFrame
         worstCaseCM = new JTextArea(10, 40);
 
         // set font size
-        allDataCM.setFont(allDataCM.getFont().deriveFont(16f));
-        dataWithoutOverlapCM.setFont(dataWithoutOverlapCM.getFont().deriveFont(16f));
-        overlapCM.setFont(overlapCM.getFont().deriveFont(16f));
-        worstCaseCM.setFont(worstCaseCM.getFont().deriveFont(16f));
+        allDataCM.setFont(allDataCM.getFont().deriveFont(Font.BOLD, 16f));
+        dataWithoutOverlapCM.setFont(dataWithoutOverlapCM.getFont().deriveFont(Font.BOLD, 16f));
+        overlapCM.setFont(overlapCM.getFont().deriveFont(Font.BOLD, 16f));
+        worstCaseCM.setFont(worstCaseCM.getFont().deriveFont(Font.BOLD, 16f));
 
         // create confusion matrix panel
         confusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 0));
