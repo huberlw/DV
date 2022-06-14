@@ -17,7 +17,7 @@ public class ColorOptionsMenu extends JPanel
 
         // set domain line color
         JButton domainLineColorBtn = new JButton("Domain Line Color");
-        domainLineColorBtn.setToolTipText("Sets color of domain lines");
+        domainLineColorBtn.setToolTipText("Sets color of subset of utilized data lines");
         domainLineColorBtn.addActionListener(e ->
         {
             Color newColor = JColorChooser.showDialog(

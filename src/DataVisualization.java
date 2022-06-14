@@ -995,9 +995,6 @@ public class DataVisualization
         // create the graph panel and add it to the main panel
         ChartPanel chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1]));
-        chartPanel.setMouseZoomable(false);
-        chartPanel.setMouseZoomable(false);
-
         chartPanel.addChartMouseListener(new ChartMouseListener()
         {
             // display point on click
