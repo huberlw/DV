@@ -130,7 +130,7 @@ public class ConfusionMatrices
             for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
                 cm.append(i).append("\t");
 
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 2 + DV.prevAccuracies.size(); i++)
             {
                 if (DV.prevAccuracies.size() == 0)
                 {
@@ -145,8 +145,26 @@ public class ConfusionMatrices
                     // append class label
                     cm.append("\n").append(i+1).append("\t");
 
-                    // append classifications
-                    cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t").append("I AM ONLY TEMPORARY");
+                    if (i < 2)
+                    {
+                        // append classifications
+                        cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
+
+                        for (int j = 2; j < 2 + DV.prevAccuracies.size(); j++)
+                            cm.append(0).append("\t");
+                    }
+                    else
+                    {
+                        cm.append(DV.prevIncorrect.get(i-2)).append("\t");
+
+                        for (int j = 1; j < 2 + DV.prevAccuracies.size(); j++)
+                        {
+                            if (j == i)
+                                cm.append(DV.prevCorrect.get(i-2)).append("\t");
+                            else
+                                cm.append(0).append("\t");
+                        }
+                    }
                 }
             }
 

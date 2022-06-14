@@ -102,6 +102,10 @@ public class DV extends JFrame
     static double accuracy;
     static ArrayList<Double> prevAccuracies;
 
+    // previous correctly and incorrectly classified points
+    static ArrayList<Integer> prevCorrect;
+    static ArrayList<Integer> prevIncorrect;
+
     // display confusion matrices
     static boolean allDataChecked = true;
     static boolean withoutOverlapChecked = true;
@@ -937,6 +941,10 @@ public class DV extends JFrame
 
         // reset accuracies
         prevAccuracies = new ArrayList<>();
+
+        // reset classifications
+        prevCorrect = new ArrayList<>();
+        prevIncorrect = new ArrayList<>();
 
         // reset graphs
         drawOverlap = false;
