@@ -734,35 +734,32 @@ public class DataVisualization
         // populate series
         for (DataObject data : dataObjects)
         {
-            for (int i = 0; i < data.data.length; i++, lineCnt++)
-            {
+            for (int i = 0; i < data.data.length; i++, lineCnt++) {
                 // start line at (0, 0)
                 lines.add(new XYSeries(lineCnt, false, true));
                 lines.get(lineCnt).add(0, 0);
-                double endpoint = 0;
+                double endpoint = data.coordinates[i][DV.fieldLength - 1][0];
 
-                // add points to lines
-                for (int j = 0; j < DV.fieldLength; j++)
+                // ensure datapoint is within domain
+                // if drawing overlap, ensure datapoint is within overlap
+                if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
+                        (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
                 {
-                    int upOrDown;
-                    if (upperOrLower == 1)
-                        upOrDown = -1;
-                    else
-                        upOrDown = 1;
+                    // add points to lines
+                    for (int j = 0; j < DV.fieldLength; j++) {
+                        int upOrDown;
+                        if (upperOrLower == 1)
+                            upOrDown = -1;
+                        else
+                            upOrDown = 1;
 
-                    lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
+                        lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
-                    if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1] &&
-                            (j > 0 && j < DV.fieldLength - 1) && (DV.angles[j] == DV.angles[j+1]))
-                        midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
+                        if (j > 0 && j < DV.fieldLength - 1 && DV.angles[j] == DV.angles[j + 1])
+                            midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
-                    // add endpoint and timeline
-                    if (j == DV.fieldLength - 1)
-                    {
-                        endpoint = data.coordinates[i][j][0];
-
-                        if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
-                        {
+                        // add endpoint and timeline
+                        if (j == DV.fieldLength - 1) {
                             if (upperOrLower == 1)
                                 endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
                             else
