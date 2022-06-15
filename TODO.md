@@ -6,5 +6,5 @@
 6. Implement multithreading
 7. Finish documentation
 
-## Wish List
+# Wish List
 1. Figure out how to visually separate very vertical visualizations (BCI and Satimage datasets)
