@@ -32,9 +32,7 @@ public class VisOptionsMenu extends JPanel
             if (chosen != -1)
             {
                 // remove past accuracies and classifications
-                DV.prevAccuracies.clear();
-                DV.prevCorrect.clear();
-                DV.prevIncorrect.clear();
+                DV.prevCM.clear();
 
                 // set upper class
                 DV.upperClass = chosen;
@@ -92,7 +90,7 @@ public class VisOptionsMenu extends JPanel
 
                 if (choice == 0)
                 {
-                    DV.prevAccuracies.add(DV.accuracy);
+                    DV.prevCM.add(DV.allDataCM);
 
                     int selected = removableList.getSelectedIndex();
                     String className = removableClasses.get(selected);
@@ -100,10 +98,7 @@ public class VisOptionsMenu extends JPanel
                     for (int i = 0; i < DV.classNumber; i++)
                     {
                         if (className.equals(classes.get(i)))
-                        {
                             DV.lowerClasses.set(i, false);
-                            saveClassifications(i);
-                        }
                     }
 
                     // optimize setup then draw graphs
@@ -164,49 +159,5 @@ public class VisOptionsMenu extends JPanel
         visOptionsFrame.add(visOptions);
         visOptionsFrame.pack();
         visOptionsFrame.setVisible(true);
-    }
-
-    /**
-     * Gets the classifications for the specified class
-     * @param classNum class to get classifications of
-     */
-    private static void saveClassifications(int classNum)
-    {
-        // get current points
-        DV.data.get(classNum).updateCoordinates(DV.angles);
-
-        // correctly and incorrectly classified points
-        int correct = 0;
-        int incorrect = 0;
-
-        // get classifications
-        if (DV.upperIsLower)
-        {
-            for (int j = 0; j < DV.data.get(classNum).coordinates.length; j++)
-            {
-                double endpoint = DV.data.get(classNum).coordinates[j][DV.fieldLength-1][0];
-
-                if (endpoint >= DV.threshold)
-                     correct++;
-                else
-                    incorrect++;
-            }
-        }
-        else
-        {
-            for (int j = 0; j < DV.data.get(classNum).coordinates.length; j++)
-            {
-                double endpoint = DV.data.get(classNum).coordinates[j][DV.fieldLength-1][0];
-
-                if (endpoint <= DV.threshold)
-                    correct++;
-                else
-                    incorrect++;
-            }
-        }
-
-        // save number of correct and incorrect classifications
-        DV.prevCorrect.add(correct);
-        DV.prevIncorrect.add(incorrect);
     }
 }

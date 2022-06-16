@@ -34,12 +34,6 @@ public class DV extends JFrame
     static JPanel graphPanel;
     static JPanel graphDomainPanel;
 
-    // confusion matrices
-    static JTextArea allDataCM;
-    static JTextArea dataWithoutOverlapCM;
-    static JTextArea overlapCM;
-    static JTextArea worstCaseCM;
-
     // scroll areas
     JScrollPane graphPane;
     JScrollPane anglesPane;
@@ -98,15 +92,17 @@ public class DV extends JFrame
     // true if upper class has lower mean
     static boolean upperIsLower = true;
 
-    // current and previous accuracies (only applicable to 3+ class datasets)
+    // current accuracy
     static double accuracy;
-    static ArrayList<Double> prevAccuracies;
 
-    // previous correctly and incorrectly classified points
-    static ArrayList<Integer> prevCorrect;
-    static ArrayList<Integer> prevIncorrect;
+    // current all data confusion matrix
+    static String allDataCM;
+
+    // previous all data confusion matrices (only applicable if 3+ classes)
+    static ArrayList<String> prevCM;
 
     // display confusion matrices
+    static boolean prevAllDataChecked = true;
     static boolean allDataChecked = true;
     static boolean withoutOverlapChecked = true;
     static boolean overlapChecked = true;
@@ -658,24 +654,8 @@ public class DV extends JFrame
         constraints.gridy = 0;
         mainPanel.add(anglesPane, constraints);
 
-        // create confusion matrices
-        allDataCM = new JTextArea(10, 40);
-        dataWithoutOverlapCM = new JTextArea(10, 40);
-        overlapCM = new JTextArea(10, 40);
-        worstCaseCM = new JTextArea(10, 40);
-
-        // set font size
-        allDataCM.setFont(allDataCM.getFont().deriveFont(Font.BOLD, 16f));
-        dataWithoutOverlapCM.setFont(dataWithoutOverlapCM.getFont().deriveFont(Font.BOLD, 16f));
-        overlapCM.setFont(overlapCM.getFont().deriveFont(Font.BOLD, 16f));
-        worstCaseCM.setFont(worstCaseCM.getFont().deriveFont(Font.BOLD, 16f));
-
         // create confusion matrix panel
-        confusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 0));
-        confusionMatrixPanel.add(allDataCM);
-        confusionMatrixPanel.add(dataWithoutOverlapCM);
-        confusionMatrixPanel.add(overlapCM);
-        confusionMatrixPanel.add(worstCaseCM);
+        confusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 5));
 
         // create confusion matrix pane
         confusionMatrixPane = new JScrollPane(confusionMatrixPanel);
@@ -939,12 +919,8 @@ public class DV extends JFrame
         angleSliderPanel.removeAll();
         graphPanel.removeAll();
 
-        // reset accuracies
-        prevAccuracies = new ArrayList<>();
-
-        // reset classifications
-        prevCorrect = new ArrayList<>();
-        prevIncorrect = new ArrayList<>();
+        // reset previous confusion matrices
+        prevCM = new ArrayList<>();
 
         // reset graphs
         drawOverlap = false;

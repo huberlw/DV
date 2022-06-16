@@ -612,10 +612,6 @@ public class DataVisualization
         }
 
         // regenerate confusion matrices
-        DV.allDataCM.removeAll();
-        DV.dataWithoutOverlapCM.removeAll();
-        DV.overlapCM.removeAll();
-        DV.worstCaseCM.removeAll();
         ConfusionMatrices.generateConfusionMatrices();
 
         // revalidate graphs and confusion matrices

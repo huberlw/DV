@@ -1,4 +1,5 @@
 import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -16,16 +17,77 @@ public class ConfusionMatrices
     // holds angles and threshold for LDA
     static ArrayList<Double> LDAFunction = new ArrayList<>();
 
+    // holds current classes
+    static ArrayList<String> curClasses;
+
+
     /**
      * Generates all data, data without overlap,
      * overlap, and worst case confusion matrices
      */
     public static void generateConfusionMatrices()
     {
+        // get current classes being visualized
+        getCurClasses();
+
+        // remove old confusion matrices
+        DV.confusionMatrixPanel.removeAll();
+
+        // add confusion matrices for previous splits
+        addOldConfusionMatrices();
+
+        // create new confusion matrices
         getAllDataConfusionMatrix();
         getDataWithoutOverlapConfusionMatrix();
         getOverlapConfusionMatrix();
         getWorstCaseConfusionMatrix();
+    }
+
+
+    /**
+     * Gets current classes being used
+     */
+    private static void getCurClasses()
+    {
+        curClasses = new ArrayList<>();
+
+        // add upper class
+        curClasses.add(String.format("%d", DV.upperClass));
+
+        StringBuilder lowerClasses = new StringBuilder();
+
+        // add lower classes
+        for (int i = 0; i < DV.classNumber; i++)
+        {
+            if (DV.lowerClasses.get(i))
+            {
+                if (!lowerClasses.isEmpty())
+                    lowerClasses.append(",");
+
+                lowerClasses.append(i);
+            }
+        }
+
+        curClasses.add(lowerClasses.toString());
+    }
+
+
+    /**
+     * Regenerates old confusion matrices from previous data splits
+     */
+    private static void addOldConfusionMatrices()
+    {
+        if (DV.prevAllDataChecked)
+        {
+            // set all previous confusion matrices
+            for (int i = 0; i < DV.prevCM.size(); i++)
+            {
+                JTextArea confusionMatrix = new JTextArea(DV.prevCM.get(i));
+                confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
+                confusionMatrix.setEditable(false);
+                DV.confusionMatrixPanel.add(confusionMatrix);
+            }
+        }
     }
 
 
@@ -127,45 +189,16 @@ public class ConfusionMatrices
             StringBuilder cm = new StringBuilder("All Data Analytics\nReal\tPredictions\nClass\t");
 
             // append predicted classes
-            for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
-                cm.append(i).append("\t");
+            for (int i = 0; i < 2; i++)
+                cm.append(curClasses.get(i)).append("\t");
 
-            for (int i = 0; i < 2 + DV.prevAccuracies.size(); i++)
+            for (int i = 0; i < 2; i++)
             {
-                if (DV.prevAccuracies.size() == 0)
-                {
-                    // append class label
-                    cm.append("\n").append(i+1).append("\t");
+                // append class label
+                cm.append("\n").append(curClasses.get(i)).append("\t");
 
-                    // append classifications
-                    cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
-                }
-                else
-                {
-                    // append class label
-                    cm.append("\n").append(i+1).append("\t");
-
-                    if (i < 2)
-                    {
-                        // append classifications
-                        cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
-
-                        for (int j = 2; j < 2 + DV.prevAccuracies.size(); j++)
-                            cm.append(0).append("\t");
-                    }
-                    else
-                    {
-                        cm.append(DV.prevIncorrect.get(i-2)).append("\t");
-
-                        for (int j = 1; j < 2 + DV.prevAccuracies.size(); j++)
-                        {
-                            if (j == i)
-                                cm.append(DV.prevCorrect.get(i-2)).append("\t");
-                            else
-                                cm.append(0).append("\t");
-                        }
-                    }
-                }
+                // append classifications
+                cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
             }
 
             // append accuracy
@@ -174,12 +207,14 @@ public class ConfusionMatrices
             // append percentage of total points used
             cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
 
+            // set current all data confusion matrix string
+            DV.allDataCM = cm.toString();
+
             // set all data confusion matrix
-            DV.allDataCM.setText(cm.toString());
-        }
-        else
-        {
-            DV.allDataCM.setText("");
+            JTextArea confusionMatrix = new JTextArea(DV.allDataCM);
+            confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
+            confusionMatrix.setEditable(false);
+            DV.confusionMatrixPanel.add(confusionMatrix);
         }
     }
 
@@ -257,30 +292,16 @@ public class ConfusionMatrices
                     StringBuilder cm = new StringBuilder("Data Without Overlap Analytics\nReal\tPredictions\nClass\t");
 
                     // append predicted classes
-                    for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
-                        cm.append(i).append("\t");
+                    for (int i = 0; i < 2; i++)
+                        cm.append(curClasses.get(i)).append("\t");
 
-                    int cnt = 0;
-                    int index = -1;
-
-                    while (cnt++ < 2)
+                    for (int i = 0, index = -1; i < 2; i++)
                     {
-                        if (DV.prevAccuracies.size() == 0)
-                        {
-                            // append class label
-                            cm.append("\n").append(cnt).append("\t");
+                        // append class label
+                        cm.append("\n").append(curClasses.get(i)).append("\t");
 
-                            // append classifications
-                            cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t");
-                        }
-                        else
-                        {
-                            // append class label
-                            cm.append("\n").append(cnt).append("\t");
-
-                            // append classifications
-                            cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t").append("I AM ONLY TEMPORARY");
-                        }
+                        // append classifications
+                        cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t");
                     }
 
                     // append accuracy
@@ -290,14 +311,13 @@ public class ConfusionMatrices
                     cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
 
                     // set overlap confusion matrix
-                    DV.dataWithoutOverlapCM.setText(cm.toString());
+                    JTextArea confusionMatrix = new JTextArea(cm.toString());
+                    confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
+                    confusionMatrix.setEditable(false);
+                    DV.confusionMatrixPanel.add(confusionMatrix);
                 }
             }
-            else
-                DV.dataWithoutOverlapCM.setText("");
         }
-        else
-            DV.dataWithoutOverlapCM.setText("");
     }
 
 
@@ -377,30 +397,16 @@ public class ConfusionMatrices
                     StringBuilder cm = new StringBuilder("Overlap Analytics\nReal\tPredictions\nClass\t");
 
                     // append predicted classes
-                    for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
-                        cm.append(i).append("\t");
+                    for (int i = 0; i < 2; i++)
+                        cm.append(curClasses.get(i)).append("\t");
 
-                    int cnt = 0;
-                    int index = -1;
-
-                    while (cnt++ < 2)
+                    for (int i = 0, index = -1; i < 2; i++)
                     {
-                        if (DV.prevAccuracies.size() == 0)
-                        {
-                            // append class label
-                            cm.append("\n").append(cnt).append("\t");
+                        // append class label
+                        cm.append("\n").append(curClasses.get(i)).append("\t");
 
-                            // append classifications
-                            cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t");
-                        }
-                        else
-                        {
-                            // append class label
-                            cm.append("\n").append(cnt).append("\t");
-
-                            // append classifications
-                            cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t").append("I AM ONLY TEMPORARY");
-                        }
+                        // append classifications
+                        cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t");
                     }
 
                     // append accuracy
@@ -410,7 +416,10 @@ public class ConfusionMatrices
                     cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
 
                     // set overlap confusion matrix
-                    DV.overlapCM.setText(cm.toString());
+                    JTextArea confusionMatrix = new JTextArea(cm.toString());
+                    confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
+                    confusionMatrix.setEditable(false);
+                    DV.confusionMatrixPanel.add(confusionMatrix);
                 }
                 else if (cmValues != null)
                 {
@@ -418,33 +427,32 @@ public class ConfusionMatrices
                     StringBuilder cm = new StringBuilder("Overlap Analytics\nReal\tPredictions\nClass\t");
 
                     // append predicted classes
-                    for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
-                        cm.append(i).append("\t");
+                    for (int i = 0; i < 2; i++)
+                        cm.append(curClasses.get(i)).append("\t");
 
-                    int cnt = 0;
-
-                    while (cnt++ < 2 + DV.prevAccuracies.size())
+                    for (int i = 0; i < 2; i++)
                     {
                         // append class label
-                        cm.append("\n").append(cnt).append("\t");
+                        cm.append("\n").append(curClasses.get(i)).append("\t");
 
                         // append classifications
                         cm.append(0).append("\t").append(0).append("\t");
                     }
 
                     // append accuracy
-                    cm.append("\n").append(0).append("%");
+                    cm.append("\nAccuracy: NaN%");
 
                     // append percentage of total points used
                     cm.append(percentageOverlapPointsUsed);
 
                     // set overlap confusion matrix
-                    DV.overlapCM.setText(cm.toString());
+                    JTextArea confusionMatrix = new JTextArea(cm.toString());
+                    confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
+                    confusionMatrix.setEditable(false);
+                    DV.confusionMatrixPanel.add(confusionMatrix);
                 }
             }
         }
-        else
-            DV.overlapCM.setText("");
     }
 
 
@@ -543,27 +551,16 @@ public class ConfusionMatrices
             StringBuilder cm = new StringBuilder("Worst Case Data Analytics\nReal\tPredictions\nClass\t");
 
             // append predicted classes
-            for (int i = 1; i <= 2 + DV.prevAccuracies.size(); i++)
-                cm.append(i).append("\t");
+            for (int i = 0; i < 2; i++)
+                cm.append(curClasses.get(i)).append("\t");
 
             for (int i = 0; i < 2; i++)
             {
-                if (DV.prevAccuracies.size() == 0)
-                {
-                    // append class label
-                    cm.append("\n").append(i+1).append("\t");
+                // append class label
+                cm.append("\n").append(curClasses.get(i)).append("\t");
 
-                    // append classifications
-                    cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
-                }
-                else
-                {
-                    // append class label
-                    cm.append("\n").append(i+1).append("\t");
-
-                    // append classifications
-                    cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t").append("I AM ONLY TEMPORARY");
-                }
+                // append classifications
+                cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
             }
 
             // append accuracy
@@ -573,10 +570,11 @@ public class ConfusionMatrices
             cm.append(percentageOverlapPointsUsed);
 
             // set all data confusion matrix
-            DV.worstCaseCM.setText(cm.toString());
+            JTextArea confusionMatrix = new JTextArea(cm.toString());
+            confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
+            confusionMatrix.setEditable(false);
+            DV.confusionMatrixPanel.add(confusionMatrix);
         }
-        else
-            DV.worstCaseCM.setText("");
     }
 
 

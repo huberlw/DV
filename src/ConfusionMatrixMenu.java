@@ -14,6 +14,25 @@ public class ConfusionMatrixMenu extends JPanel
         // confusion matrix panel
         JPanel CMPanel = new JPanel();
 
+        // set previous confusion matrices
+        JCheckBox prevAllDataCheckBox = new JCheckBox("Previous All Data", DV.allDataChecked);
+        prevAllDataCheckBox.setToolTipText("Toggle previous all data confusion matrices");
+        prevAllDataCheckBox.addActionListener(e->
+        {
+            // reverse check
+            DV.prevAllDataChecked = !DV.prevAllDataChecked;
+
+            // regenerate confusion matrices
+            ConfusionMatrices.generateConfusionMatrices();
+
+            // revalidate graphs and confusion matrices
+            DV.graphPanel.repaint();
+            DV.confusionMatrixPanel.repaint();
+            DV.graphPanel.revalidate();
+            DV.confusionMatrixPanel.revalidate();
+        });
+        CMPanel.add(prevAllDataCheckBox);
+
         // set all data confusion matrix
         JCheckBox allDataCheckBox = new JCheckBox("All Data", DV.allDataChecked);
         allDataCheckBox.setToolTipText("Toggle all data confusion matrix");
@@ -23,10 +42,6 @@ public class ConfusionMatrixMenu extends JPanel
             DV.allDataChecked = !DV.allDataChecked;
 
             // regenerate confusion matrices
-            DV.allDataCM.removeAll();
-            DV.dataWithoutOverlapCM.removeAll();
-            DV.overlapCM.removeAll();
-            DV.worstCaseCM.removeAll();
             ConfusionMatrices.generateConfusionMatrices();
 
             // revalidate graphs and confusion matrices
@@ -46,10 +61,6 @@ public class ConfusionMatrixMenu extends JPanel
             DV.withoutOverlapChecked = !DV.withoutOverlapChecked;
 
             // regenerate confusion matrices
-            DV.allDataCM.removeAll();
-            DV.dataWithoutOverlapCM.removeAll();
-            DV.overlapCM.removeAll();
-            DV.worstCaseCM.removeAll();
             ConfusionMatrices.generateConfusionMatrices();
 
             // revalidate graphs and confusion matrices
@@ -69,10 +80,6 @@ public class ConfusionMatrixMenu extends JPanel
             DV.overlapChecked = !DV.overlapChecked;
 
             // regenerate confusion matrices
-            DV.allDataCM.removeAll();
-            DV.dataWithoutOverlapCM.removeAll();
-            DV.overlapCM.removeAll();
-            DV.worstCaseCM.removeAll();
             ConfusionMatrices.generateConfusionMatrices();
 
             // revalidate graphs and confusion matrices
@@ -92,10 +99,6 @@ public class ConfusionMatrixMenu extends JPanel
             DV.worstCaseChecked = !DV.worstCaseChecked;
 
             // regenerate confusion matrices
-            DV.allDataCM.removeAll();
-            DV.dataWithoutOverlapCM.removeAll();
-            DV.overlapCM.removeAll();
-            DV.worstCaseCM.removeAll();
             ConfusionMatrices.generateConfusionMatrices();
 
             // revalidate graphs and confusion matrices
