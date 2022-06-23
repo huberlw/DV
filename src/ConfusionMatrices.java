@@ -41,6 +41,7 @@ public class ConfusionMatrices
         getDataWithoutOverlapConfusionMatrix();
         getOverlapConfusionMatrix();
         getWorstCaseConfusionMatrix();
+        getUserValidationConfusionMatrix();
     }
 
 
@@ -571,6 +572,142 @@ public class ConfusionMatrices
 
             // set all data confusion matrix
             JTextArea confusionMatrix = new JTextArea(cm.toString());
+            confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
+            confusionMatrix.setEditable(false);
+            DV.confusionMatrixPanel.add(confusionMatrix);
+        }
+    }
+
+
+    private static void getUserValidationConfusionMatrix()
+    {
+        if (DV.validationClasses != null && DV.userValidationChecked)
+        {
+            // get data without overlap threshold
+            double worstCaseThreshold = LDAFunction.get(LDAFunction.size() - 1);
+
+            // get data without overlap angles
+            double[] worstCaseAngles = new double[DV.fieldLength];
+
+            for (int i = 0; i < DV.fieldLength; i++)
+                worstCaseAngles[i] = LDAFunction.get(i);
+
+            // update points with worst case angles
+            for (int i = 0; i < DV.validationData.size(); i++)
+                DV.validationData.get(i).updateCoordinates(worstCaseAngles);
+
+            int totalPoints = 0;
+
+            for (int i = 0; i < DV.data.size(); i++)
+                totalPoints += DV.data.get(i).data.length;
+
+            int totalPointsUsed = 0;
+            int correctPoints = 0;
+
+            // get point distribution
+            int[][] pntDist = new int[2][2];
+
+            for (int i = 0; i < DV.validationData.size(); i++)
+            {
+                if (i == DV.upperClass || DV.lowerClasses.get(i))
+                {
+                    for (int j = 0; j < DV.validationData.get(i).coordinates.length; j++)
+                    {
+                        double endpoint = DV.validationData.get(i).coordinates[j][DV.fieldLength-1][0];
+
+                        // check if endpoint is within the subset of used data
+                        if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
+                        {
+                            // get classification
+                            if (i == DV.upperClass && DV.upperIsLower)
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint < worstCaseThreshold)
+                                {
+                                    pntDist[0][0]++;
+                                    totalPointsUsed++;
+                                    correctPoints++;
+                                }
+                                else
+                                {
+                                    totalPointsUsed++;
+                                    pntDist[0][1]++;
+                                }
+                            }
+                            else if (i == DV.upperClass)
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint > worstCaseThreshold)
+                                {
+                                    pntDist[0][0]++;
+                                    totalPointsUsed++;
+                                    correctPoints++;
+                                }
+                                else
+                                {
+                                    totalPointsUsed++;
+                                    pntDist[0][1]++;
+                                }
+                            }
+                            else if(DV.lowerClasses.get(i) && DV.upperIsLower)
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint > worstCaseThreshold)
+                                {
+                                    pntDist[1][1]++;
+                                    totalPointsUsed++;
+                                    correctPoints++;
+                                }
+                                else
+                                {
+                                    totalPointsUsed++;
+                                    pntDist[1][0]++;
+                                }
+                            }
+                            else
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint < worstCaseThreshold)
+                                {
+                                    pntDist[1][1]++;
+                                    totalPointsUsed++;
+                                    correctPoints++;
+                                }
+                                else
+                                {
+                                    totalPointsUsed++;
+                                    pntDist[1][0]++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // create confusion matrix
+            StringBuilder cm = new StringBuilder("User Validation Data Analytics\nReal\tPredictions\nClass\t");
+
+            // append predicted classes
+            for (int i = 0; i < 2; i++)
+                cm.append(curClasses.get(i)).append("\t");
+
+            for (int i = 0; i < 2; i++)
+            {
+                // append class label
+                cm.append("\n").append(curClasses.get(i)).append("\t");
+
+                // append classifications
+                cm.append(pntDist[i][0]).append("\t").append(pntDist[i][1]).append("\t");
+            }
+
+            // append accuracy
+            cm.append(String.format("\nAccuracy: %.2f%%", 100.0 * correctPoints / totalPointsUsed));
+
+            // append percentage of total points used
+            cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
+
+            // set all data confusion matrix
+            JTextArea confusionMatrix = new JTextArea( cm.toString());
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
             DV.confusionMatrixPanel.add(confusionMatrix);

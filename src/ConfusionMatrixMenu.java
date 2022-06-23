@@ -52,7 +52,7 @@ public class ConfusionMatrixMenu extends JPanel
         });
         CMPanel.add(allDataCheckBox);
 
-        // set all data confusion matrix
+        // set data without overlap confusion matrix
         JCheckBox withoutOverlapCheckBox = new JCheckBox("Without Overlap", DV.withoutOverlapChecked);
         withoutOverlapCheckBox.setToolTipText("Toggle without overlap confusion matrix");
         withoutOverlapCheckBox.addActionListener(e->
@@ -71,7 +71,7 @@ public class ConfusionMatrixMenu extends JPanel
         });
         CMPanel.add(withoutOverlapCheckBox);
 
-        // set all data confusion matrix
+        // set overlap confusion matrix
         JCheckBox overlapCheckBox = new JCheckBox("Overlap", DV.overlapChecked);
         overlapCheckBox.setToolTipText("Toggle overlap confusion matrix");
         overlapCheckBox.addActionListener(e->
@@ -90,7 +90,7 @@ public class ConfusionMatrixMenu extends JPanel
         });
         CMPanel.add(overlapCheckBox);
 
-        // set all data confusion matrix
+        // set worst case confusion matrix
         JCheckBox worstCaseCheckBox = new JCheckBox("Worst Case", DV.worstCaseChecked);
         worstCaseCheckBox.setToolTipText("Toggle worst case confusion matrix");
         worstCaseCheckBox.addActionListener(e->
@@ -108,6 +108,25 @@ public class ConfusionMatrixMenu extends JPanel
             DV.confusionMatrixPanel.revalidate();
         });
         CMPanel.add(worstCaseCheckBox);
+
+        // set user validation set confusion matrix
+        JCheckBox userValCheckBox = new JCheckBox("User Validation", DV.userValidationChecked);
+        userValCheckBox.setToolTipText("Toggle user validation confusion matrix");
+        userValCheckBox.addActionListener(e->
+        {
+            // reverse check
+            DV.userValidationChecked = !DV.userValidationChecked;
+
+            // regenerate confusion matrices
+            ConfusionMatrices.generateConfusionMatrices();
+
+            // revalidate graphs and confusion matrices
+            DV.graphPanel.repaint();
+            DV.confusionMatrixPanel.repaint();
+            DV.graphPanel.revalidate();
+            DV.confusionMatrixPanel.revalidate();
+        });
+        CMPanel.add(userValCheckBox);
 
         confusionOptionsFrame.add(CMPanel);
         confusionOptionsFrame.pack();

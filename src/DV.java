@@ -107,6 +107,7 @@ public class DV extends JFrame
     static boolean withoutOverlapChecked = true;
     static boolean overlapChecked = true;
     static boolean worstCaseChecked = true;
+    static boolean userValidationChecked = true;
 
     /************************************************
      * FOR INPUT DATA
@@ -129,9 +130,13 @@ public class DV extends JFrame
     static ArrayList<DataObject> data;
     static ArrayList<DataObject> originalData;
 
+    // user made validation data
+    static ArrayList<DataObject> validationData;
+
     // classes for data
     static ArrayList<String> allClasses;
     static ArrayList<String> uniqueClasses;
+    static ArrayList<String> validationClasses;
     static int classNumber;
 
     // fieldnames and length
@@ -218,6 +223,13 @@ public class DV extends JFrame
         importDataItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.ALT_DOWN_MASK));
         importDataItem.addActionListener(e -> importData());
         fileMenu.add(importDataItem);
+
+        // file menu item: validation data
+        // keyboard shortcut: alt + v
+        JMenuItem validationDataItem = new JMenuItem("Validation Data");
+        validationDataItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.ALT_DOWN_MASK));
+        validationDataItem.addActionListener(e -> createUserValidationSet());
+        fileMenu.add(validationDataItem);
 
         // help menu
         // keyboard shortcut: alt + h
@@ -889,6 +901,74 @@ public class DV extends JFrame
     private void saveProjectAs()
     {
 
+    }
+
+
+    /**
+     * Creates user validation set
+     */
+    private void createUserValidationSet()
+    {
+        if (data.size() > 0)
+        {
+            // set filter on file chooser
+            JFileChooser fileDialog = new JFileChooser();
+            fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
+
+            // open file dialog
+            if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+            {
+                File valFile = fileDialog.getSelectedFile();
+
+                // check if validation set was successful
+                boolean success = DataSetup.setupValidationData(valFile);
+
+                // informs of validation data status
+                if (success)
+                {
+                    JOptionPane.showMessageDialog(
+                            mainFrame,
+                            "Validation set has been successfully created.\nCreating confusion matrices.",
+                            "Success: validation set has been created",
+                            JOptionPane.INFORMATION_MESSAGE);
+
+                    // regenerate confusion matrices
+                    ConfusionMatrices.generateConfusionMatrices();
+
+                    // revalidate graphs and confusion matrices
+                    DV.graphPanel.repaint();
+                    DV.confusionMatrixPanel.repaint();
+                    DV.graphPanel.revalidate();
+                    DV.confusionMatrixPanel.revalidate();
+                }
+                else
+                {
+                    JOptionPane.showMessageDialog(
+                            mainFrame,
+                            "The validation set was not able to be created.\nPlease ensure the validation data's file has the same format as the original data file.",
+                            "Error: failed to create validation set",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            else
+            {
+                JOptionPane.showMessageDialog(
+                        mainFrame,
+                        "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: could not open file",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+
+
+        }
+        else
+        {
+            JOptionPane.showMessageDialog(
+                    mainFrame,
+                    "Please create a project before creating a validation set.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not create validation set",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 

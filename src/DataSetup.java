@@ -10,7 +10,7 @@ public class DataSetup
     /**
      * Sets up DV with data from datafile
      * @param dataFile .csv file holding data
-     * @return whether parseData was successful
+     * @return whether setupWithData was successful
      */
     public static boolean setupWithData(File dataFile)
     {
@@ -65,8 +65,8 @@ public class DataSetup
                 double[][] normalizedNumericalData = normalizeData(numericalData);
 
                 // separate by class
-                ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData);
-                ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData);
+                ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, DV.allClasses);
+                ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, DV.allClasses);
 
                 // transform classes into data objects
                 DV.data = createDataObjects(splitByClass);
@@ -82,6 +82,60 @@ public class DataSetup
     }
 
 
+    /**
+     * Sets up validation data for user made worst case confusion matrix
+     * @param valFile .csv file holding data
+     * @return whether setupValidationData was successful
+     */
+    public static boolean setupValidationData(File valFile)
+    {
+        // data string[][] representation of import file
+        String[][] stringData = getStringFromCSV(valFile);
+
+        if (stringData != null)
+        {
+            // check classes and update class number
+            if (DV.hasClasses)
+            {
+                if(checkAllClasses(stringData))
+                    stringData = purgeClasses(stringData);
+                else
+                    return false;
+            }
+
+            // remove ID
+            if (DV.hasID)
+                stringData = purgeID(stringData);
+
+            // get numerical data from string data
+            double[][] numericalData = stringToNumerical(stringData);
+
+            if (numericalData != null)
+            {
+                // normalize data
+                double[][] normalizedNumericalData = normalizeData(numericalData);
+
+                // split data by class
+                ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, DV.validationClasses);
+
+                // transform classes into data objects
+                DV.validationData = createDataObjects(splitByClass);
+
+                return true;
+            }
+            else
+                return false;
+        }
+        else
+            return false;
+    }
+
+
+    /**
+     * Sets up Dv with imported data from importFile
+     * @param importFile .csv file holding data
+     * @return whether setupImportData was successful
+     */
     public static boolean setupImportData(File importFile)
     {
         // data string[][] representation of import file
@@ -154,6 +208,17 @@ public class DataSetup
     }
 
 
+    private static void getValidationClasses(String[][] stringData)
+    {
+        // store validation classes
+        DV.validationClasses = new ArrayList<>();
+
+        // add all classes to unique and allClasses
+        for (int i = 1; i < stringData.length; i++)
+            DV.validationClasses.add(stringData[i][stringData[0].length - 1]);
+    }
+
+
     /**
      * Checks class on import data and either
      * adds data to existing class or
@@ -176,6 +241,33 @@ public class DataSetup
         DV.uniqueClasses.add(stringData[1][DV.fieldLength-1]);
 
         return DV.classNumber;
+    }
+
+
+    private static boolean checkAllClasses(String[][] stringData)
+    {
+        boolean sameClasses = true;
+
+        // check all classes
+        for (int i = 1; i < stringData.length; i++)
+        {
+            for (int j = 0; j < DV.uniqueClasses.size(); j++)
+            {
+                // ensure classes are the same
+                if (stringData[i][stringData[j].length - 1].equals(DV.uniqueClasses.get(j)))
+                    break;
+                else if (j == DV.uniqueClasses.size() - 1)
+                    sameClasses = false;
+            }
+        }
+
+        if (sameClasses)
+        {
+            getValidationClasses(stringData);
+            return true;
+        }
+        else
+            return false;
     }
 
 
@@ -487,9 +579,10 @@ public class DataSetup
     /**
      * Separates data by class
      * @param data data to be separated
+     * @param classes classes of every datapoint
      * @return ArrayList of separate class data
      */
-    private static ArrayList<double[][]> separateByClass(double[][] data)
+    private static ArrayList<double[][]> separateByClass(double[][] data, ArrayList<String> classes)
     {
         // output ArrayList
         ArrayList<double[][]> separatedClasses = new ArrayList<>();
@@ -501,12 +594,12 @@ public class DataSetup
             divider.add(new ArrayList<>());
 
         // check every class
-        for (int i = 0; i < DV.allClasses.size(); i ++)
+        for (int i = 0; i < classes.size(); i ++)
         {
             // find matching class
             for (String str : DV.uniqueClasses)
             {
-                if (str.equals(DV.allClasses.get(i)))
+                if (str.equals(classes.get(i)))
                 {
                     divider.get(DV.uniqueClasses.indexOf(str)).add(data[i]);
                     break;
