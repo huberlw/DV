@@ -128,7 +128,7 @@ public class DataVisualization
     private static void LDA()
     {
         // create LDA (python) process
-        ProcessBuilder lda = new ProcessBuilder("..\\venv\\Scripts\\python",
+        ProcessBuilder lda = new ProcessBuilder(System.getProperty("user.dir") + "\\venv\\Scripts\\python",
                 System.getProperty("user.dir") + "\\src\\LDA\\LinearDiscriminantAnalysis.py",
                 System.getProperty("user.dir") + "\\src\\LDA\\DV_data.csv");
 
@@ -616,9 +616,9 @@ public class DataVisualization
 
         // revalidate graphs and confusion matrices
         DV.graphPanel.repaint();
-        DV.confusionMatrixPanel.repaint();
+        DV.analyticsPanel.repaint();
         DV.graphPanel.revalidate();
-        DV.confusionMatrixPanel.revalidate();
+        DV.analyticsPanel.revalidate();
 
         // warn user if graphs are scaled
         if (DV.showPopup && (upperScaling || lowerScaling))
@@ -803,12 +803,14 @@ public class DataVisualization
                 DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
         plot.getRangeAxis().setVisible(false);
         plot.getDomainAxis().setVisible(false);
-        plot.setRangeGridlinesVisible(true);
         plot.setOutlinePaint(null);
         plot.setOutlineVisible(false);
         plot.setInsets(RectangleInsets.ZERO_INSETS);
         plot.setDomainPannable(true);
         plot.setRangePannable(true);
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setDomainGridlinePaint(Color.GRAY);
+        plot.setRangeGridlinePaint(Color.GRAY);
 
         // set domain and range of graph
         double bound = graphScaler * DV.fieldLength;
@@ -888,9 +890,9 @@ public class DataVisualization
         {
             case 1 -> // threshold line is active
                     {
-                        BasicStroke activeStroke = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
-                        BasicStroke inactiveOverlapStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
-                        BasicStroke inactiveDomainStroke = new BasicStroke(1.5f);
+                        BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
+                        BasicStroke inactiveOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
+                        BasicStroke inactiveDomainStroke = new BasicStroke(2f);
 
                         thresholdRenderer.setSeriesStroke(0, activeStroke);
                         domainRenderer.setSeriesStroke(0, inactiveDomainStroke);
@@ -900,8 +902,8 @@ public class DataVisualization
                     }
             case 2 -> // domain lines are active
                     {
-                        BasicStroke inactiveStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
-                        BasicStroke activeStroke = new BasicStroke(3f);
+                        BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
+                        BasicStroke activeStroke = new BasicStroke(4f);
 
                         thresholdRenderer.setSeriesStroke(0, inactiveStroke);
                         domainRenderer.setSeriesStroke(0, activeStroke);
@@ -911,9 +913,9 @@ public class DataVisualization
                     }
             case 3 -> // overlap lines are active
                     {
-                        BasicStroke activeStroke = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
-                        BasicStroke inactiveThresholdStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
-                        BasicStroke inactiveDomainStroke = new BasicStroke(1.5f);
+                        BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
+                        BasicStroke inactiveThresholdStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
+                        BasicStroke inactiveDomainStroke = new BasicStroke(2f);
 
                         thresholdRenderer.setSeriesStroke(0, inactiveThresholdStroke);
                         domainRenderer.setSeriesStroke(0, inactiveDomainStroke);
@@ -923,8 +925,8 @@ public class DataVisualization
                     }
             default -> // nothing is active
                     {
-                        BasicStroke thresholdOverlapStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {4f}, 0.0f);
-                        BasicStroke domainStroke = new BasicStroke(1.5f);
+                        BasicStroke thresholdOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {4f}, 0.0f);
+                        BasicStroke domainStroke = new BasicStroke(2f);
 
                         thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
                         domainRenderer.setSeriesStroke(0, domainStroke);
@@ -987,6 +989,7 @@ public class DataVisualization
 
         // create the graph panel and add it to the main panel
         ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setMouseWheelEnabled(true);
         chartPanel.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1]));
         chartPanel.addChartMouseListener(new ChartMouseListener()
         {

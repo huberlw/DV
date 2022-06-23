@@ -42,6 +42,13 @@ public class ConfusionMatrices
         getOverlapConfusionMatrix();
         getWorstCaseConfusionMatrix();
         getUserValidationConfusionMatrix();
+
+        // run k-fold cross validation
+        if (DV.crossValidationChecked)
+        {
+            DV.crossValidationPanel.removeAll();
+            runKFoldCrossValidation();
+        }
     }
 
 
@@ -779,7 +786,7 @@ public class ConfusionMatrices
             pyBool = "";
 
         // create LDA (python) process
-        ProcessBuilder lda = new ProcessBuilder("..\\venv\\Scripts\\python",
+        ProcessBuilder lda = new ProcessBuilder(System.getProperty("user.dir") + "\\venv\\Scripts\\python",
                 System.getProperty("user.dir") + "\\src\\LDA\\ConfusionMatrixGenerator.py",
                 System.getProperty("user.dir") + "\\src\\LDA\\DV_CM_data.csv",
                 pyBool);
@@ -818,8 +825,8 @@ public class ConfusionMatrices
             }
 
             // delete created file
-            File fileToDelete = new File("src\\LDA\\Overlap_Data.csv");
-            Files.deleteIfExists(fileToDelete.toPath());
+            //File fileToDelete = new File("src\\LDA\\Overlap_Data.csv");
+            //Files.deleteIfExists(fileToDelete.toPath());
 
             // return confusion matrix
             return classifications;
@@ -829,5 +836,101 @@ public class ConfusionMatrices
             JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Linear Discriminant Analysis", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
         }
+    }
+
+    static void runKFoldCrossValidation()
+    {
+        // store datapoints in upper and lower graphs
+        ArrayList<double[]> upper = new ArrayList<>();
+        ArrayList<double[]> lower = new ArrayList<>();
+
+        // check all classes
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            if (i == DV.upperClass)
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+
+                    // if endpoint is outside of overlap then store point
+                    if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
+                    {
+                        double[] thisPoint = new double[DV.fieldLength];
+                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
+
+                        upper.add(thisPoint);
+                    }
+                }
+            }
+            else if (DV.lowerClasses.get(i))
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+
+                    // if endpoint is outside of overlap then store point
+                    if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
+                    {
+                        double[] thisPoint = new double[DV.fieldLength];
+                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
+
+                        lower.add(thisPoint);
+                    }
+                }
+            }
+        }
+
+        // create file for python process
+        createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)));
+
+        // create k-fold (python) process
+        ProcessBuilder cv = new ProcessBuilder(System.getProperty("user.dir") + "\\venv\\Scripts\\python",
+                System.getProperty("user.dir") + "\\src\\LDA\\kFoldCrossValidation.py",
+                System.getProperty("user.dir") + "\\src\\LDA\\DV_CM_data.csv",
+                String.valueOf(DV.kFolds));
+        //lda.inheritIO();
+
+        try
+        {
+            // run python (LDA) process
+            Process process = cv.start();
+
+            // read python outputs
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String output;
+
+            // confusion matrix classifications
+            ArrayList<String> cvTable = new ArrayList<>();
+
+            while ((output = reader.readLine()) != null)
+            {
+                // get cross validation table
+                cvTable.add(output);
+            }
+
+            if (cvTable.size() > 0)
+            {
+                // create confusion matrix
+                StringBuilder table = new StringBuilder("k-Fold Cross Validation");
+
+                for (String row : cvTable) {
+                    // append model rows
+                    table.append("\n").append(row);
+                }
+
+                // set overlap confusion matrix
+                JTextArea cross_validate = new JTextArea(table.toString());
+                cross_validate.setFont(cross_validate.getFont().deriveFont(Font.BOLD, 12f));
+                cross_validate.setEditable(false);
+                DV.crossValidationPanel.add(cross_validate);
+            }
+        }
+        catch (IOException e)
+        {
+            JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run k-Fold Cross Validation", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        // get output
+        // display output
     }
 }

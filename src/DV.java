@@ -31,6 +31,8 @@ public class DV extends JFrame
     // panels
     static JPanel angleSliderPanel;
     static JPanel confusionMatrixPanel;
+    static JPanel crossValidationPanel;
+    static JPanel analyticsPanel;
     static JPanel graphPanel;
     static JPanel graphDomainPanel;
 
@@ -78,7 +80,7 @@ public class DV extends JFrame
     static boolean showPopup;
 
     /**************************************************
-     * FOR CONFUSION MATRICES
+     * FOR ANALYTICS
      *************************************************/
     // overlap area
     static double[] overlapArea;
@@ -108,6 +110,10 @@ public class DV extends JFrame
     static boolean overlapChecked = true;
     static boolean worstCaseChecked = true;
     static boolean userValidationChecked = true;
+    static boolean crossValidationChecked = true;
+
+    // number of folds for k-fold cross validation
+    static int kFolds = 10;
 
     /************************************************
      * FOR INPUT DATA
@@ -295,8 +301,8 @@ public class DV extends JFrame
         toolBar.addSeparator();
 
         // confusion matrix options
-        JButton CMOptionsBtn = new JButton("Toggle Confusion Matrices");
-        CMOptionsBtn.setToolTipText("Toggle different confusion matrices");
+        JButton CMOptionsBtn = new JButton("Analytic Options");
+        CMOptionsBtn.setToolTipText("Open the analytics options menu");
         CMOptionsBtn.addActionListener(e -> new ConfusionMatrixMenu(MouseInfo.getPointerInfo().getLocation()));
         toolBar.add(CMOptionsBtn);
         toolBar.addSeparator();
@@ -666,11 +672,18 @@ public class DV extends JFrame
         constraints.gridy = 0;
         mainPanel.add(anglesPane, constraints);
 
-        // create confusion matrix panel
+        // create confusion matrix and cross validation panels
         confusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 5));
+        crossValidationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        // create analytics panel
+        analyticsPanel = new JPanel();
+        analyticsPanel.setLayout(new BoxLayout(analyticsPanel, BoxLayout.Y_AXIS));
+        analyticsPanel.add(confusionMatrixPanel);
+        analyticsPanel.add(crossValidationPanel);
 
         // create confusion matrix pane
-        confusionMatrixPane = new JScrollPane(confusionMatrixPanel);
+        confusionMatrixPane = new JScrollPane(analyticsPanel);
         confusionMatrixPane.setPreferredSize(new Dimension(Resolutions.confusionMatrixPane[0], Resolutions.confusionMatrixPane[1]));
         confusionMatrixPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
@@ -703,9 +716,12 @@ public class DV extends JFrame
         plot.setRangeGridlinesVisible(false);
         plot.setDomainPannable(true);
         plot.setRangePannable(true);
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setDomainGridlinePaint(Color.GRAY);
         chart.removeLegend();
         chart.setBorderVisible(false);
         ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setMouseWheelEnabled(true);
         chartPanel.setPreferredSize(new Dimension(Resolutions.chartPanel[0], Resolutions.chartPanel[1]));
 
         return chartPanel;
