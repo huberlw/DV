@@ -588,7 +588,7 @@ public class ConfusionMatrices
 
     private static void getUserValidationConfusionMatrix()
     {
-        if (DV.validationClasses != null && DV.userValidationChecked)
+        if (DV.userValidationImported && DV.userValidationChecked)
         {
             // get data without overlap threshold
             double worstCaseThreshold = LDAFunction.get(LDAFunction.size() - 1);

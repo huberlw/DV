@@ -110,6 +110,7 @@ public class DV extends JFrame
     static boolean overlapChecked = true;
     static boolean worstCaseChecked = true;
     static boolean userValidationChecked = true;
+    static boolean userValidationImported = false;
     static boolean crossValidationChecked = true;
 
     // number of folds for k-fold cross validation
@@ -140,9 +141,7 @@ public class DV extends JFrame
     static ArrayList<DataObject> validationData;
 
     // classes for data
-    static ArrayList<String> allClasses;
     static ArrayList<String> uniqueClasses;
-    static ArrayList<String> validationClasses;
     static int classNumber;
 
     // fieldnames and length

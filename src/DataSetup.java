@@ -7,6 +7,10 @@ import java.util.List;
 
 public class DataSetup
 {
+    // classes for data
+    static ArrayList<String> allClasses;
+    static ArrayList<String> validationClasses;
+
     /**
      * Sets up DV with data from datafile
      * @param dataFile .csv file holding data
@@ -22,7 +26,7 @@ public class DataSetup
             // get classes and class number then removes classes from dataset
             if (DV.hasClasses)
             {
-                getClasses(stringData);
+                allClasses = getClasses(stringData);
                 stringData = purgeClasses(stringData);
             }
             else
@@ -65,8 +69,8 @@ public class DataSetup
                 double[][] normalizedNumericalData = normalizeData(numericalData);
 
                 // separate by class
-                ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, DV.allClasses);
-                ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, DV.allClasses);
+                ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, allClasses);
+                ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
 
                 // transform classes into data objects
                 DV.data = createDataObjects(splitByClass);
@@ -92,36 +96,44 @@ public class DataSetup
         // data string[][] representation of import file
         String[][] stringData = getStringFromCSV(valFile);
 
-        if (stringData != null)
+        // check for proper format
+        boolean correctSize = checkFormat(stringData);
+
+        if (correctSize)
         {
-            // check classes and update class number
-            if (DV.hasClasses)
+            if (stringData != null)
             {
-                if(checkAllClasses(stringData))
-                    stringData = purgeClasses(stringData);
+                // check classes and update class number
+                if (DV.hasClasses)
+                {
+                    if (checkAllClasses(stringData))
+                        stringData = purgeClasses(stringData);
+                    else
+                        return false;
+                }
+
+                // remove ID
+                if (DV.hasID)
+                    stringData = purgeID(stringData);
+
+                // get numerical data from string data
+                double[][] numericalData = stringToNumerical(stringData);
+
+                if (numericalData != null)
+                {
+                    // normalize data
+                    double[][] normalizedNumericalData = normalizeData(numericalData);
+
+                    // split data by class
+                    ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, validationClasses);
+
+                    // transform classes into data objects
+                    DV.validationData = createDataObjects(splitByClass);
+
+                    return true;
+                }
                 else
                     return false;
-            }
-
-            // remove ID
-            if (DV.hasID)
-                stringData = purgeID(stringData);
-
-            // get numerical data from string data
-            double[][] numericalData = stringToNumerical(stringData);
-
-            if (numericalData != null)
-            {
-                // normalize data
-                double[][] normalizedNumericalData = normalizeData(numericalData);
-
-                // split data by class
-                ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, DV.validationClasses);
-
-                // transform classes into data objects
-                DV.validationData = createDataObjects(splitByClass);
-
-                return true;
             }
             else
                 return false;
@@ -132,7 +144,7 @@ public class DataSetup
 
 
     /**
-     * Sets up Dv with imported data from importFile
+     * Sets up DV with imported data from importFile
      * @param importFile .csv file holding data
      * @return whether setupImportData was successful
      */
@@ -141,40 +153,50 @@ public class DataSetup
         // data string[][] representation of import file
         String[][] stringData = getStringFromCSV(importFile);
 
-        if (stringData != null)
+        // check for proper format
+        boolean correctSize = checkFormat(stringData);
+
+        if (correctSize)
         {
-            int classIndex = -1;
-
-            // check classes and update class number
-            if (DV.hasClasses)
+            if (stringData != null)
             {
-                classIndex = checkClass(stringData);
-                stringData = purgeClasses(stringData);
-            }
+                // check classes and update class number
+                if (DV.hasClasses)
+                {
+                    allClasses = getClasses(stringData);
+                    stringData = purgeClasses(stringData);
+                }
 
-            // remove ID
-            if (DV.hasID)
-                stringData = purgeID(stringData);
+                // remove ID
+                if (DV.hasID)
+                    stringData = purgeID(stringData);
 
-            // get numerical data from string data
-            double[][] numericalData = stringToNumerical(stringData);
+                // get numerical data from string data
+                double[][] numericalData = stringToNumerical(stringData);
 
-            if (numericalData != null)
-            {
-                // save original data
-                double[][] originalNumericalData = new double[numericalData.length][];
+                if (numericalData != null)
+                {
+                    // save original data
+                    double[][] originalNumericalData = new double[numericalData.length][];
 
-                for (int i = 0; i < numericalData.length; i++)
-                    originalNumericalData[i] = Arrays.copyOf(numericalData[i], DV.fieldLength);
+                    for (int i = 0; i < numericalData.length; i++)
+                        originalNumericalData[i] = Arrays.copyOf(numericalData[i], DV.fieldLength);
 
-                // normalize data
-                double[][] normalizedNumericalData = normalizeData(numericalData);
+                    // normalize data
+                    double[][] normalizedNumericalData = normalizeData(numericalData);
 
-                // add new data
-                addImportedData(normalizedNumericalData, classIndex, false);
-                addImportedData(originalNumericalData, classIndex, true);
+                    // separate by class
+                    ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, allClasses);
+                    ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
 
-                return true;
+                    // add new data
+                    DV.data = addImportedData(splitByClass,  false);
+                    DV.originalData = addImportedData(originalByClass, true);
+
+                    return true;
+                }
+                else
+                    return false;
             }
             else
                 return false;
@@ -184,66 +206,62 @@ public class DataSetup
     }
 
 
+    /**\
+     * Checks if the format of the input data
+     * matches that of previous data.
+     * @param stringData String[][] representation of input data
+     * @return whether the format was valid or not
+     */
+    private static boolean checkFormat(String[][] stringData)
+    {
+        // get number of columns for data
+        int cols = DV.classNumber;
+        if (DV.hasID) cols++;
+        if (DV.hasClasses) cols++;
+
+        return stringData.length == cols;
+    }
+
+
     /**
      * Gets all classes from input data
      * @param stringData String[][] representation of input data
+     * @return found classes
      */
-    private static void getClasses(String[][] stringData)
+    private static ArrayList<String> getClasses(String[][] stringData)
     {
         // LinkedHashSet preserves order and does not allow duplicates
-        LinkedHashSet<String> unique = new LinkedHashSet<>();
+        LinkedHashSet<String> unique;
+        // ArrayList to store the class of each datapoint
+        ArrayList<String> classes = new ArrayList<>();
 
-        DV.allClasses = new ArrayList<>();
+        // add already known classes if importing data
+        if (DV.uniqueClasses != null)
+            unique = new LinkedHashSet<>(DV.uniqueClasses);
+        else
+            unique = new LinkedHashSet<>();
 
         // add all classes to unique and allClasses
         for (int i = 1; i < stringData.length; i++)
         {
             unique.add(stringData[i][stringData[0].length - 1]);
-            DV.allClasses.add(stringData[i][stringData[0].length - 1]);
+            classes.add(stringData[i][stringData[0].length - 1]);
         }
 
         // store unique classes and class number
         DV.uniqueClasses = new ArrayList<>(unique);
         DV.classNumber = unique.size();
-    }
 
-
-    private static void getValidationClasses(String[][] stringData)
-    {
-        // store validation classes
-        DV.validationClasses = new ArrayList<>();
-
-        // add all classes to unique and allClasses
-        for (int i = 1; i < stringData.length; i++)
-            DV.validationClasses.add(stringData[i][stringData[0].length - 1]);
+        return classes;
     }
 
 
     /**
-     * Checks class on import data and either
-     * adds data to existing class or
-     * creates new class
-     * @return index of class
+     * Checks if validation classes are valid. (same classes as visualized data)
+     * Stores classes if valid.
+     * @param stringData String[][] representation of input data
+     * @return whether classes were valid
      */
-    private static int checkClass(String[][] stringData)
-    {
-        // check all classes
-        for (int i = 0; i < DV.uniqueClasses.size(); i++)
-        {
-            if (stringData[1][DV.fieldLength - 1].equals(DV.uniqueClasses.get(i)))
-                return i;
-        }
-
-        // increase class number
-        DV.classNumber++;
-
-        // add class to new class
-        DV.uniqueClasses.add(stringData[1][DV.fieldLength-1]);
-
-        return DV.classNumber;
-    }
-
-
     private static boolean checkAllClasses(String[][] stringData)
     {
         boolean sameClasses = true;
@@ -263,7 +281,13 @@ public class DataSetup
 
         if (sameClasses)
         {
-            getValidationClasses(stringData);
+            // store validation classes
+            validationClasses = new ArrayList<>();
+
+            // add all classes to unique and allClasses
+            for (int i = 1; i < stringData.length; i++)
+                validationClasses.add(stringData[i][stringData[0].length - 1]);
+
             return true;
         }
         else
@@ -416,15 +440,15 @@ public class DataSetup
                     }
 
                     // remove invalid from allClasses
-                    String invalidData = DV.allClasses.get(i - invalids);
-                    DV.allClasses.remove(i - invalids);
+                    String invalidData = allClasses.get(i - invalids);
+                    allClasses.remove(i - invalids);
 
                     // check if class still exists
-                    for (int k = 0; k < DV.allClasses.size(); k++)
+                    for (int k = 0; k < allClasses.size(); k++)
                     {
-                        if (invalidData.equals(DV.allClasses.get(k)))
+                        if (invalidData.equals(allClasses.get(k)))
                             break;
-                        else if (k == DV.allClasses.size() - 1)
+                        else if (k == allClasses.size() - 1)
                         {
                             DV.uniqueClasses.remove(invalidData);
                             DV.classNumber--;
@@ -634,17 +658,53 @@ public class DataSetup
 
 
     /**
-     * Adds imported data to DV.data and DV.originalData
+     * Creates DataObjects with imported data
      * @param data imported data
-     * @param classIndex index of class name for data
      * @param original whether the data is normalized or not
+     * @return ArrayList of DataObjects
      */
-    private static void addImportedData(double[][] data, int classIndex, boolean original)
+    private static ArrayList<DataObject> addImportedData(ArrayList<double[][]> data, boolean original)
     {
+        ArrayList<DataObject> dataObjects = new ArrayList<>();
+
         if (original)
-            DV.originalData.add(new DataObject(DV.uniqueClasses.get(classIndex), data));
+        {
+            for (int i = 0; i < DV.classNumber; i++)
+            {
+                // create DataObject with previous points
+                if (data.get(i).length > 0)
+                {
+                    // get all datapoints
+                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(DV.originalData.get(i).data));
+                    tmpData.addAll(Arrays.asList(data.get(i)));
+
+                    // create object
+                    dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
+                }
+                else
+                    dataObjects.add(DV.originalData.get(i));
+            }
+        }
         else
-            DV.data.add(new DataObject(DV.uniqueClasses.get(classIndex), data));
+        {
+            for (int i = 0; i < DV.classNumber; i++)
+            {
+                // create DataObject with previous points
+                if (data.get(i).length > 0)
+                {
+                    // get all datapoints
+                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(DV.data.get(i).data));
+                    tmpData.addAll(Arrays.asList(data.get(i)));
+
+                    // create object
+                    dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
+                }
+                else
+                    dataObjects.add(DV.data.get(i));
+            }
+        }
+
+        return dataObjects;
     }
 
 

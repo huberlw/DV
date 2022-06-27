@@ -925,7 +925,7 @@ public class DataVisualization
                     }
             default -> // nothing is active
                     {
-                        BasicStroke thresholdOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {4f}, 0.0f);
+                        BasicStroke thresholdOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {8f}, 0.0f);
                         BasicStroke domainStroke = new BasicStroke(2f);
 
                         thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
