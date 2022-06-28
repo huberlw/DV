@@ -206,7 +206,201 @@ public class DataSetup
     }
 
 
-    /**\
+    /**
+     * Sets up DV with saved project
+     * @param projectFile .csv file holding project info
+     * @return whether setupProjectData was successful
+     */
+    public static boolean setupProjectData(File projectFile)
+    {
+        // data string[][] representation of project file
+        String[][] stringData = getStringFromCSV(projectFile);
+
+        if (stringData != null)
+        {
+            int buffer = 0;
+
+            // get graph colors
+            DV.graphColors[0] = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
+            DV.graphColors[1] = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
+
+            // get line colors
+            DV.domainLines = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
+            DV.overlapLines = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
+            DV.thresholdLine = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
+
+            // get data format
+            DV.hasID = "1".equals(stringData[buffer][0]);
+            DV.hasClasses = "1".equals(stringData[buffer][1]);
+            DV.zScoreMinMax = "1".equals(stringData[buffer++][2]);
+
+            // get field length
+            DV.fieldLength = Integer.parseInt(stringData[buffer++][0]);
+
+            // get angles
+            DV.angles = new double[DV.fieldLength];
+
+            for (int i = 0; i < DV.fieldLength; i++)
+                DV.angles[i] = Double.parseDouble(stringData[buffer][i]);
+
+            buffer++;
+
+            // get threshold
+            DV.threshold = Double.parseDouble(stringData[buffer++][0]);
+
+            // get overlap area
+            DV.overlapArea = new double[2];
+
+            DV.overlapArea[0] = Double.parseDouble(stringData[buffer][0]);
+            DV.overlapArea[1] = Double.parseDouble(stringData[buffer++][1]);
+
+            // get domain area
+            DV.domainArea = new double[2];
+
+            DV.domainArea[0] = Double.parseDouble(stringData[buffer][0]);
+            DV.domainArea[1] = Double.parseDouble(stringData[buffer++][1]);
+
+            // save analytics toggles
+            DV.prevAllDataChecked = "1".equals(stringData[buffer][0]);
+            DV.allDataChecked = "1".equals(stringData[buffer][1]);
+            DV.withoutOverlapChecked = "1".equals(stringData[buffer][2]);
+            DV.overlapChecked = "1".equals(stringData[buffer][3]);
+            DV.worstCaseChecked = "1".equals(stringData[buffer][4]);
+            DV.userValidationChecked = "1".equals(stringData[buffer][5]);
+            DV.userValidationImported = "1".equals(stringData[buffer][6]);
+            DV.crossValidationChecked = "1".equals(stringData[buffer++][7]);
+
+            // get previous confusion matrices
+            int prevCMs = Integer.parseInt(stringData[buffer++][0]);
+
+            for (int i = 0; i < prevCMs; i++)
+            {
+                char[] cm = stringData[buffer++][0].toCharArray();
+
+             for (int j = 0; j < cm.length; j++)
+             {
+                 // replace placeholder character with newline
+                 if (cm[j] == '~')
+                     cm[j] = '\n';
+             }
+
+                DV.prevCM.add(Arrays.toString(cm));
+            }
+
+            // get k-folds
+            DV.kFolds = Integer.parseInt(stringData[buffer++][0]);
+
+            // get number of classes
+            DV.classNumber = Integer.parseInt(stringData[buffer++][0]);
+
+            // get visualized classes
+            DV.upperClass = Integer.parseInt(stringData[buffer++][0]);
+
+            DV.lowerClasses = new ArrayList<>();
+
+            for (int i = 0; i < DV.classNumber; i++)
+            {
+                if ("1".equals(stringData[buffer][i]))
+                    DV.lowerClasses.add(true);
+                else
+                    DV.lowerClasses.add(false);
+            }
+
+            buffer++;
+
+            // get class order
+            DV.upperIsLower = "1".equals(stringData[buffer++][0]);
+
+            // get unique classes
+            DV.uniqueClasses = new ArrayList<>();
+            DV.uniqueClasses.addAll(Arrays.asList(stringData[buffer++]).subList(0, DV.classNumber));
+
+            // get fieldNames
+            DV.fieldNames = new ArrayList<>();
+            DV.fieldNames.addAll(Arrays.asList(stringData[buffer++]).subList(0, DV.fieldLength));
+
+            // get data
+            ArrayList<double[][]> classData = new ArrayList<>();
+
+            for (int c = 0; c < DV.classNumber; c++)
+            {
+                // get number of data points
+                int numPoints = Integer.parseInt(stringData[buffer++][0]);
+
+                // array to hold class data
+                double[][] normData = new double[numPoints][DV.fieldLength];
+
+                for (int i = 0; i < numPoints; i++)
+                {
+                    for (int j = 0; j < DV.fieldLength; j++)
+                        normData[i][j] = Double.parseDouble(stringData[buffer][j]);
+
+                    buffer++;
+                }
+
+                classData.add(normData);
+            }
+
+            // create DataObjects
+            DV.data = createDataObjects(classData);
+            classData.clear();
+
+            // get original data
+            for (int c = 0; c < DV.classNumber; c++)
+            {
+                // get number of data points
+                int numPoints = Integer.parseInt(stringData[buffer++][0]);
+
+                // array to hold class data
+                double[][] origData = new double[numPoints][DV.fieldLength];
+
+                for (int i = 0; i < numPoints; i++)
+                {
+                    for (int j = 0; j < DV.fieldLength; j++)
+                        origData[i][j] = Double.parseDouble(stringData[buffer][j]);
+
+                    buffer++;
+                }
+
+                classData.add(origData);
+            }
+
+            // create DataObjects
+            DV.originalData = createDataObjects(classData);
+            classData.clear();
+
+            if (DV.userValidationImported)
+            {
+                // get validation data data
+                for (int c = 0; c < DV.classNumber; c++)
+                {
+                    // get number of data points
+                    int numPoints = Integer.parseInt(stringData[buffer++][0]);
+
+                    // array to hold class data
+                    double[][] valData = new double[numPoints][DV.fieldLength];
+
+                    for (int i = 0; i < numPoints; i++)
+                    {
+                        for (int j = 0; j < DV.fieldLength; j++)
+                            valData[i][j] = Double.parseDouble(stringData[buffer][j]);
+
+                        buffer++;
+                    }
+
+                    classData.add(valData);
+                }
+
+                // create DataObjects
+                DV.validationData = createDataObjects(classData);
+            }
+        }
+
+        return true;
+    }
+
+
+    /**
      * Checks if the format of the input data
      * matches that of previous data.
      * @param stringData String[][] representation of input data
@@ -656,7 +850,10 @@ public class DataSetup
 
         // creates DataObject with class name and data
         for (int i = 0; i < separateClasses.size(); i++)
-            dataObjects.add(new DataObject(DV.uniqueClasses.get(i), separateClasses.get(i)));
+        {
+            if (separateClasses.get(i).length > 0)
+                dataObjects.add(new DataObject(DV.uniqueClasses.get(i), separateClasses.get(i)));
+        }
 
         return dataObjects;
     }

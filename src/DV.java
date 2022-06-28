@@ -14,8 +14,11 @@ import org.jfree.data.xy.XYSeriesCollection;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DV extends JFrame
@@ -147,6 +150,12 @@ public class DV extends JFrame
     // fieldnames and length
     static ArrayList<String> fieldNames;
     static int fieldLength;
+
+    /************************************************
+     * FOR PROJECT
+     ***********************************************/
+    // name of project (if saved)
+    static String projectSaveName;
 
 
     /**
@@ -810,9 +819,6 @@ public class DV extends JFrame
                 }
                 else
                 {
-                    // reset program
-                    resetProgram();
-
                     // add blank graph
                     graphPanel.add(blankGraph());
                 }
@@ -824,6 +830,9 @@ public class DV extends JFrame
                         "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
                         "Error: could not open file",
                         JOptionPane.ERROR_MESSAGE);
+
+                // add blank graph
+                graphPanel.add(blankGraph());
             }
 
             // repaint and revalidate DV
@@ -847,7 +856,6 @@ public class DV extends JFrame
      */
     private void importData()
     {
-
         try
         {
             if (data.size() > 0)
@@ -878,9 +886,6 @@ public class DV extends JFrame
                     }
                     else
                     {
-                        // reset program
-                        resetProgram();
-
                         // add blank graph
                         graphPanel.add(blankGraph());
                     }
@@ -892,9 +897,10 @@ public class DV extends JFrame
                             "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
                             "Error: could not open file",
                             JOptionPane.ERROR_MESSAGE);
+
+                    // add blank graph
+                    graphPanel.add(blankGraph());
                 }
-
-
             }
             else
             {
@@ -903,6 +909,9 @@ public class DV extends JFrame
                         "Please create a project before importing data.\nFor additional information, please view the \"Help\" tab.",
                         "Error: could not import data",
                         JOptionPane.ERROR_MESSAGE);
+
+                // add blank graph
+                graphPanel.add(blankGraph());
             }
         }
         catch (Exception e)
@@ -912,6 +921,9 @@ public class DV extends JFrame
                     "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
                     "Error: could not open file",
                     JOptionPane.ERROR_MESSAGE);
+
+            // add blank graph
+            graphPanel.add(blankGraph());
         }
     }
 
@@ -921,7 +933,59 @@ public class DV extends JFrame
      */
     private void openSavedProject()
     {
+        try
+        {
+            // set filter on file chooser
+            JFileChooser fileDialog = new JFileChooser();
+            fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
+            // open file dialog
+            if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+            {
+                File projectFile = fileDialog.getSelectedFile();
+
+                // reset program
+                resetProgram();
+
+                // check if import was successful
+                boolean success = DataSetup.setupProjectData(projectFile);
+
+                // create graphs
+                if (success)
+                {
+                    angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
+
+                    DataVisualization.drawGraphs(0);
+                }
+                else
+                {
+                    // add blank graph
+                    graphPanel.add(blankGraph());
+                }
+            }
+            else
+            {
+                JOptionPane.showMessageDialog(
+                        mainFrame,
+                        "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: could not open file",
+                        JOptionPane.ERROR_MESSAGE);
+
+                // add blank graph
+                graphPanel.add(blankGraph());
+            }
+        }
+        catch (Exception e)
+        {
+            JOptionPane.showMessageDialog(
+                    mainFrame,
+                    "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not open file",
+                    JOptionPane.ERROR_MESSAGE);
+
+            // add blank graph
+            graphPanel.add(blankGraph());
+        }
     }
 
 
@@ -930,7 +994,229 @@ public class DV extends JFrame
      */
     private void saveProject()
     {
+        if (data != null && projectSaveName != null)
+        {
+            try
+            {
+                // write to csv file
+                Writer out = new FileWriter(projectSaveName, false);
 
+                // save graph colors
+                out.write(graphColors[0].getRed() + ",");
+                out.write(graphColors[0].getGreen() + ",");
+                out.write(graphColors[0].getBlue() + "\n");
+                out.write(graphColors[1].getRed() + ",");
+                out.write(graphColors[1].getGreen() + ",");
+                out.write(graphColors[1].getBlue() + "\n");
+
+                // save line colors
+                out.write(domainLines.getRed() + ",");
+                out.write(domainLines.getGreen() + ",");
+                out.write(domainLines.getBlue() + "\n");
+                out.write(overlapLines.getRed() + ",");
+                out.write(overlapLines.getGreen() + ",");
+                out.write(overlapLines.getBlue() + "\n");
+                out.write(thresholdLine.getRed() + ",");
+                out.write(thresholdLine.getGreen() + ",");
+                out.write(thresholdLine.getBlue() + "\n");
+
+                // save data format
+                if (hasID) out.write("1,");
+                else out.write("0,");
+                if (hasClasses) out.write("1,");
+                else out.write("0,");
+                if (zScoreMinMax) out.write("1\n");
+                else out.write("0\n");
+
+                // save field length
+                out.write(fieldLength + "\n");
+
+                // save angles
+                for (int i = 0; i < angles.length; i++)
+                {
+                    if (i != angles.length - 1)
+                        out.write(angles[i] + ",");
+                    else
+                        out.write(angles[i] + "\n");
+                }
+
+                // save threshold
+                out.write(threshold + "\n");
+
+                // save overlap area
+                out.write(overlapArea[0] + ",");
+                out.write(overlapArea[1] + "\n");
+
+                // save domain area
+                out.write(domainArea[0] + ",");
+                out.write(domainArea[1] + "\n");
+
+                // save analytics toggles
+                if (prevAllDataChecked) out.write("1,");
+                else out.write("0,");
+                if (allDataChecked) out.write("1,");
+                else out.write("0,");
+                if (withoutOverlapChecked) out.write("1,");
+                else out.write("0,");
+                if (overlapChecked) out.write("1,");
+                else out.write("0,");
+                if (worstCaseChecked) out.write("1,");
+                else out.write("0,");
+                if (userValidationChecked) out.write("1,");
+                else out.write("0,");
+                if (userValidationImported) out.write("1,");
+                else out.write("0,");
+                if (crossValidationChecked) out.write("1\n");
+                else out.write("0\n");
+
+                // are there previous confusion matrices
+                if (prevCM.size() > 0)
+                    out.write(prevCM.size() + "\n");
+                else
+                    out.write("0\n");
+
+                // save previous confusion matrices
+                for (String s : prevCM)
+                {
+                    char[] cm = s.toCharArray();
+
+                    for (int j = 0; j < cm.length; j++)
+                    {
+                        // replace newline character with placeholder
+                        if (cm[j] == '\n')
+                            cm[j] = '~';
+                    }
+
+                    out.write(Arrays.toString(cm) + "\n");
+                }
+
+                // save k-folds
+                out.write(kFolds + "\n");
+
+                // save number of classes
+                out.write(classNumber + "\n");
+
+                // save visualized classes
+                out.write(upperClass + "\n");
+
+                for (int i = 0; i < lowerClasses.size(); i++)
+                {
+                    if (i != lowerClasses.size() - 1)
+                    {
+                        if (lowerClasses.get(i)) out.write("1,");
+                        else out.write("0,");
+                    }
+                    else
+                    {
+                        if (lowerClasses.get(i)) out.write("1\n");
+                        else out.write("0\n");
+                    }
+                }
+
+                // save class order
+                if (upperIsLower) out.write("1\n");
+                else out.write("0\n");
+
+                // save unique classes
+                for (int i = 0; i < uniqueClasses.size(); i++)
+                {
+                    if (i != uniqueClasses.size() - 1)
+                        out.write(uniqueClasses.get(i) + ",");
+                    else
+                        out.write(uniqueClasses.get(i) + "\n");
+                }
+
+                // save fieldNames
+                for (int i = 0; i < fieldNames.size(); i++)
+                {
+                    if (i != fieldNames.size() - 1)
+                        out.write(fieldNames.get(i) + ",");
+                    else
+                        out.write(fieldNames.get(i) + "\n");
+                }
+
+                // save data
+                for (DataObject normData : data)
+                {
+                    // save number of datapoints
+                    out.write(normData.data.length + "\n");
+
+                    for (int j = 0; j < normData.data.length; j++)
+                    {
+                        for (int k = 0; k < fieldLength; k++)
+                        {
+                            if (k != fieldLength - 1)
+                                out.write(normData.data[j][k] + ",");
+                            else
+                                out.write(normData.data[j][k] + "\n");
+                        }
+                    }
+                }
+
+                // save original data
+                for (DataObject origData : originalData)
+                {
+                    // save number of datapoints
+                    out.write(origData.data.length + "\n");
+
+                    for (int j = 0; j < origData.data.length; j++)
+                    {
+                        for (int k = 0; k < fieldLength; k++)
+                        {
+                            if (k != fieldLength - 1)
+                                out.write(origData.data[j][k] + ",");
+                            else
+                                out.write(origData.data[j][k] + "\n");
+                        }
+                    }
+                }
+
+
+                if (userValidationImported)
+                {
+                    // save validation data
+                    for (DataObject valData : validationData)
+                    {
+                        // save number of datapoints
+                        out.write(valData.data.length + "\n");
+
+                        for (int j = 0; j < valData.data.length; j++)
+                        {
+                            for (int k = 0; k < fieldLength; k++)
+                            {
+                                if (k != fieldLength - 1)
+                                    out.write(valData.data[j][k] + ",");
+                                else
+                                    out.write(valData.data[j][k] + "\n");
+                            }
+                        }
+                    }
+                }
+
+                // close file
+                out.close();
+            }
+            catch(IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+        else if (data == null)
+        {
+            JOptionPane.showMessageDialog(
+                    mainFrame,
+                    "Please create a project before saving.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not create project save",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+        else
+        {
+            JOptionPane.showMessageDialog(
+                    mainFrame,
+                    "There is no project save available. Please use \"Save As\" instead.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: no project save available",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 
@@ -939,7 +1225,249 @@ public class DV extends JFrame
      */
     private void saveProjectAs()
     {
+        if (data != null)
+        {
+            try
+            {
+                // create save file dialog
+                JFileChooser fileSaver = new JFileChooser();
+                fileSaver.setDialogType(JFileChooser.SAVE_DIALOG);
+                fileSaver.setAcceptAllFileFilterUsed(false);
+                fileSaver.addChoosableFileFilter(new FileNameExtensionFilter("CSV file", "csv"));
 
+                if (fileSaver.showSaveDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+                {
+                    // get file
+                    File fileToSave = fileSaver.getSelectedFile();
+                    String fileName = fileToSave.toString();
+
+                    if (fileName.contains(".") && !fileName.contains(".csv"))
+                    {
+                        JOptionPane.showMessageDialog(
+                                mainFrame,
+                                "All save files must have a .csv extension.",
+                                "Error: save file must be a CSV",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+
+                    // add csv extension if not explicitly typed
+                    if (!fileName.contains(".csv"))
+                        fileName += ".csv";
+
+                    projectSaveName = fileName;
+
+                    // write to csv file
+                    Writer out = new FileWriter(fileName, false);
+
+                    // save graph colors
+                    out.write(graphColors[0].getRed() + ",");
+                    out.write(graphColors[0].getGreen() + ",");
+                    out.write(graphColors[0].getBlue() + "\n");
+                    out.write(graphColors[1].getRed() + ",");
+                    out.write(graphColors[1].getGreen() + ",");
+                    out.write(graphColors[1].getBlue() + "\n");
+
+                    // save line colors
+                    out.write(domainLines.getRed() + ",");
+                    out.write(domainLines.getGreen() + ",");
+                    out.write(domainLines.getBlue() + "\n");
+                    out.write(overlapLines.getRed() + ",");
+                    out.write(overlapLines.getGreen() + ",");
+                    out.write(overlapLines.getBlue() + "\n");
+                    out.write(thresholdLine.getRed() + ",");
+                    out.write(thresholdLine.getGreen() + ",");
+                    out.write(thresholdLine.getBlue() + "\n");
+
+                    // save data format
+                    if (hasID) out.write("1,");
+                    else out.write("0,");
+                    if (hasClasses) out.write("1,");
+                    else out.write("0,");
+                    if (zScoreMinMax) out.write("1\n");
+                    else out.write("0\n");
+
+                    // save field length
+                    out.write(fieldLength + "\n");
+
+                    // save angles
+                    for (int i = 0; i < angles.length; i++)
+                    {
+                        if (i != angles.length - 1)
+                            out.write(angles[i] + ",");
+                        else
+                            out.write(angles[i] + "\n");
+                    }
+
+                    // save threshold
+                    out.write(threshold + "\n");
+
+                    // save overlap area
+                    out.write(overlapArea[0] + ",");
+                    out.write(overlapArea[1] + "\n");
+
+                    // save domain area
+                    out.write(domainArea[0] + ",");
+                    out.write(domainArea[1] + "\n");
+
+                    // save analytics toggles
+                    if (prevAllDataChecked) out.write("1,");
+                    else out.write("0,");
+                    if (allDataChecked) out.write("1,");
+                    else out.write("0,");
+                    if (withoutOverlapChecked) out.write("1,");
+                    else out.write("0,");
+                    if (overlapChecked) out.write("1,");
+                    else out.write("0,");
+                    if (worstCaseChecked) out.write("1,");
+                    else out.write("0,");
+                    if (userValidationChecked) out.write("1,");
+                    else out.write("0,");
+                    if (userValidationImported) out.write("1,");
+                    else out.write("0,");
+                    if (crossValidationChecked) out.write("1\n");
+                    else out.write("0\n");
+
+                    // are there previous confusion matrices
+                    if (prevCM.size() > 0)
+                        out.write(prevCM.size() + "\n");
+                    else
+                        out.write("0\n");
+
+                    // save previous confusion matrices
+                    for (String s : prevCM)
+                    {
+                        char[] cm = s.toCharArray();
+
+                        for (int j = 0; j < cm.length; j++)
+                        {
+                            // replace newline character with placeholder
+                            if (cm[j] == '\n')
+                                cm[j] = '~';
+                        }
+
+                        out.write(Arrays.toString(cm) + "\n");
+                    }
+
+                    // save k-folds
+                    out.write(kFolds + "\n");
+
+                    // save number of classes
+                    out.write(classNumber + "\n");
+
+                    // save visualized classes
+                    out.write(upperClass + "\n");
+
+                    for (int i = 0; i < lowerClasses.size(); i++)
+                    {
+                        if (i != lowerClasses.size() - 1)
+                        {
+                            if (lowerClasses.get(i)) out.write("1,");
+                            else out.write("0,");
+                        }
+                        else
+                        {
+                            if (lowerClasses.get(i)) out.write("1\n");
+                            else out.write("0\n");
+                        }
+                    }
+
+                    // save class order
+                    if (upperIsLower) out.write("1\n");
+                    else out.write("0\n");
+
+                    // save unique classes
+                    for (int i = 0; i < uniqueClasses.size(); i++)
+                    {
+                        if (i != uniqueClasses.size() - 1)
+                            out.write(uniqueClasses.get(i) + ",");
+                        else
+                            out.write(uniqueClasses.get(i) + "\n");
+                    }
+
+                    // save fieldNames
+                    for (int i = 0; i < fieldNames.size(); i++)
+                    {
+                        if (i != fieldNames.size() - 1)
+                            out.write(fieldNames.get(i) + ",");
+                        else
+                            out.write(fieldNames.get(i) + "\n");
+                    }
+
+                    // save data
+                    for (DataObject normData : data)
+                    {
+                        // save number of datapoints
+                        out.write(normData.data.length + "\n");
+
+                        for (int j = 0; j < normData.data.length; j++)
+                        {
+                            for (int k = 0; k < fieldLength; k++)
+                            {
+                                if (k != fieldLength - 1)
+                                    out.write(normData.data[j][k] + ",");
+                                else
+                                    out.write(normData.data[j][k] + "\n");
+                            }
+                        }
+                    }
+
+                    // save original data
+                    for (DataObject origData : originalData)
+                    {
+                        // save number of datapoints
+                        out.write(origData.data.length + "\n");
+
+                        for (int j = 0; j < origData.data.length; j++)
+                        {
+                            for (int k = 0; k < fieldLength; k++)
+                            {
+                                if (k != fieldLength - 1)
+                                    out.write(origData.data[j][k] + ",");
+                                else
+                                    out.write(origData.data[j][k] + "\n");
+                            }
+                        }
+                    }
+
+
+                    if (userValidationImported)
+                    {
+                        // save validation data
+                        for (DataObject valData : validationData)
+                        {
+                            // save number of datapoints
+                            out.write(valData.data.length + "\n");
+
+                            for (int j = 0; j < valData.data.length; j++)
+                            {
+                                for (int k = 0; k < fieldLength; k++)
+                                {
+                                    if (k != fieldLength - 1)
+                                        out.write(valData.data[j][k] + ",");
+                                    else
+                                        out.write(valData.data[j][k] + "\n");
+                                }
+                            }
+                        }
+                    }
+
+                    // close file
+                    out.close();
+                }
+            }
+            catch(IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+        else
+        {
+            JOptionPane.showMessageDialog(
+                    mainFrame,
+                    "Please create a project before saving.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not create project save",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 
