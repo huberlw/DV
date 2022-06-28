@@ -69,6 +69,24 @@ public class ColorOptionsMenu extends JPanel
         });
         colors.add(thresholdLineColorBtn);
 
+        // set background color
+        JButton backgroundColorBtn = new JButton("Background Color");
+        backgroundColorBtn.setToolTipText("Sets color of graph background");
+        backgroundColorBtn.addActionListener(e ->
+        {
+            Color newColor = JColorChooser.showDialog(
+                    colorOptionsFrame,
+                    "Chose Background Color",
+                    colorOptionsFrame.getBackground());
+
+            if (newColor != null)
+                DV.background = newColor;
+
+            if (DV.data != null)
+                DataVisualization.drawGraphs(0);
+        });
+        colors.add(backgroundColorBtn);
+
         // set upper graph color
         JButton upperGraphColorBtn = new JButton("Upper Graph Color");
         upperGraphColorBtn.setToolTipText("Sets color of upperGraph");

@@ -52,13 +52,14 @@ public class DV extends JFrame
      *************************************************/
     // line colors
     static Color domainLines = Color.BLACK;
-    static Color overlapLines = Color.ORANGE;
-    static Color thresholdLine = Color.GREEN;
+    static Color overlapLines = Color.GREEN;
+    static Color thresholdLine = Color.ORANGE;
+    static Color background = Color.WHITE;
 
     // graph colors
     static Color[] graphColors = new Color[] {
-            new Color(102, 34, 139),   // upper graph (purple)
-            new Color(84, 133, 145)    // lower graph (dark cyan)
+            new Color(	147, 112, 219),   // upper graph (purple)
+            new Color(84, 133, 145)       // lower graph (dark cyan)
     };
 
     // show bars instead of endpoints for graphs
@@ -724,7 +725,7 @@ public class DV extends JFrame
         plot.setRangeGridlinesVisible(false);
         plot.setDomainPannable(true);
         plot.setRangePannable(true);
-        plot.setBackgroundPaint(Color.WHITE);
+        plot.setBackgroundPaint(background);
         plot.setDomainGridlinePaint(Color.GRAY);
         chart.removeLegend();
         chart.setBorderVisible(false);

@@ -39,8 +39,9 @@ public class ConfusionMatrices
         // get current classes being visualized
         getCurClasses();
 
-        // remove old confusion matrices
+        // remove old analytics
         DV.confusionMatrixPanel.removeAll();
+        DV.crossValidationPanel.removeAll();
 
         // add confusion matrices from previous splits
         AddOldConfusionMatrices oldCM = new AddOldConfusionMatrices();
@@ -88,10 +89,7 @@ public class ConfusionMatrices
 
         // run k-fold cross validation
         if (DV.crossValidationChecked)
-        {
-            DV.crossValidationPanel.removeAll();
             runKFoldCrossValidation();
-        }
 
         // wait for threads to finish
         try

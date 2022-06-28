@@ -675,7 +675,7 @@ public class DataVisualization
         XYSeries thresholdLine = new XYSeries(0, false, true);
 
         // get domain line height
-        double domainOverlapLineHeight = DV.fieldLength / 10.0;
+        double domainOverlapLineHeight = DV.fieldLength;
 
         // set domain lines
         if (upperOrLower == 1)
@@ -701,7 +701,7 @@ public class DataVisualization
         overlap.addSeries(overlapMinLine);
 
         // get threshold line height
-        double thresholdLineHeight = DV.fieldLength / 13.0;
+        double thresholdLineHeight = DV.fieldLength;
 
         if (upperOrLower == 1)
             thresholdLineHeight *= -1;
@@ -808,7 +808,7 @@ public class DataVisualization
         plot.setInsets(RectangleInsets.ZERO_INSETS);
         plot.setDomainPannable(true);
         plot.setRangePannable(true);
-        plot.setBackgroundPaint(Color.WHITE);
+        plot.setBackgroundPaint(DV.background);
         plot.setDomainGridlinePaint(Color.GRAY);
         plot.setRangeGridlinePaint(Color.GRAY);
 
@@ -890,8 +890,8 @@ public class DataVisualization
         {
             case 1 -> // threshold line is active
                     {
-                        BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
-                        BasicStroke inactiveOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
+                        BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
+                        BasicStroke inactiveOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
                         BasicStroke inactiveDomainStroke = new BasicStroke(2f);
 
                         thresholdRenderer.setSeriesStroke(0, activeStroke);
@@ -902,7 +902,7 @@ public class DataVisualization
                     }
             case 2 -> // domain lines are active
                     {
-                        BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
+                        BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
                         BasicStroke activeStroke = new BasicStroke(4f);
 
                         thresholdRenderer.setSeriesStroke(0, inactiveStroke);
@@ -913,8 +913,8 @@ public class DataVisualization
                     }
             case 3 -> // overlap lines are active
                     {
-                        BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
-                        BasicStroke inactiveThresholdStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{4f}, 0.0f);
+                        BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
+                        BasicStroke inactiveThresholdStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
                         BasicStroke inactiveDomainStroke = new BasicStroke(2f);
 
                         thresholdRenderer.setSeriesStroke(0, inactiveThresholdStroke);
@@ -925,7 +925,7 @@ public class DataVisualization
                     }
             default -> // nothing is active
                     {
-                        BasicStroke thresholdOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {8f}, 0.0f);
+                        BasicStroke thresholdOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
                         BasicStroke domainStroke = new BasicStroke(2f);
 
                         thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
