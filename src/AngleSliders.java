@@ -64,7 +64,7 @@ public class AngleSliders
                 }
 
                 // redraw graphs
-                DataVisualization.drawGraphs(0, true);
+                DataVisualization.drawGraphs(0);
             }
         });
 
@@ -91,7 +91,7 @@ public class AngleSliders
             }
 
             // redraw graphs
-            DataVisualization.drawGraphs(0, true);
+            DataVisualization.drawGraphs(0);
         });
 
         // main panel for angle

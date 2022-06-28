@@ -311,7 +311,7 @@ public class DV extends JFrame
         resetScreenBtn.setToolTipText("Resets rendered zoom area");
         resetScreenBtn.addActionListener(e ->
         {
-            DataVisualization.drawGraphs(0, false);
+            DataVisualization.drawGraphs(0);
             repaint();
             revalidate();
         });
@@ -338,7 +338,7 @@ public class DV extends JFrame
         barLineBtn.addActionListener(e ->
         {
             showBars = !showBars;
-            DataVisualization.drawGraphs(0, false);
+            DataVisualization.drawGraphs(0);
         });
         toolBar.add(barLineBtn);
         toolBar.addSeparator();
@@ -418,7 +418,7 @@ public class DV extends JFrame
                     domainArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
                     domainArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
 
-                    DataVisualization.drawGraphs(2, false);
+                    DataVisualization.drawGraphs(2);
                     repaint();
                     revalidate();
                 }
@@ -435,7 +435,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(2, false);
+                    DataVisualization.drawGraphs(2);
                     repaint();
                     revalidate();
                 }
@@ -449,7 +449,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(0, false);
+                    DataVisualization.drawGraphs(0);
                     repaint();
                     revalidate();
                 }
@@ -508,7 +508,7 @@ public class DV extends JFrame
                     overlapArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
                     overlapArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
 
-                    DataVisualization.drawGraphs(3, false);
+                    DataVisualization.drawGraphs(3);
                     repaint();
                     revalidate();
                 }
@@ -525,7 +525,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(3, false);
+                    DataVisualization.drawGraphs(3);
                     repaint();
                     revalidate();
                 }
@@ -539,7 +539,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(0, false);
+                    DataVisualization.drawGraphs(0);
                     repaint();
                     revalidate();
                 }
@@ -596,7 +596,7 @@ public class DV extends JFrame
 
                     threshold = (slider.getValue() - 200) * fieldLength / 200.0;
 
-                    DataVisualization.drawGraphs(1, false);
+                    DataVisualization.drawGraphs(1);
                     repaint();
                     revalidate();
                 }
@@ -613,7 +613,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(1, false);
+                    DataVisualization.drawGraphs(1);
                     repaint();
                     revalidate();
                 }
@@ -627,7 +627,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(0, false);
+                    DataVisualization.drawGraphs(0);
                     repaint();
                     revalidate();
                 }
@@ -806,7 +806,7 @@ public class DV extends JFrame
                     DataVisualization.optimizeSetup();
                     angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
 
-                    DataVisualization.drawGraphs(0, true);
+                    DataVisualization.drawGraphs(0);
                 }
                 else
                 {
@@ -874,7 +874,7 @@ public class DV extends JFrame
                         DataVisualization.optimizeSetup();
                         angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
 
-                        DataVisualization.drawGraphs(0, true);
+                        DataVisualization.drawGraphs(0);
                     }
                     else
                     {
