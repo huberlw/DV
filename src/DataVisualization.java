@@ -306,7 +306,7 @@ public class DataVisualization
             }
 
             // redraw graphs
-            drawGraphs(0);
+            drawGraphs(0, true);
             DV.mainFrame.repaint();
             DV.mainFrame.revalidate();
 
@@ -331,7 +331,7 @@ public class DataVisualization
             }
 
             // redraw graphs
-            drawGraphs(0);
+            drawGraphs(0, true);
             DV.mainFrame.repaint();
             DV.mainFrame.revalidate();
 
@@ -366,7 +366,7 @@ public class DataVisualization
         }
 
         // redraw graphs
-        drawGraphs(0);
+        drawGraphs(0, true);
         DV.mainFrame.repaint();
         DV.mainFrame.revalidate();
     }
@@ -587,13 +587,14 @@ public class DataVisualization
     /**
      * Draws graphs for specified visualization*
      * @param active domain, overlap, or threshold line that is actively changing
+     * @param angleChange whether the angles are being changed or not
      */
-    public static void drawGraphs(int active)
+    public static void drawGraphs(int active, boolean angleChange)
     {
         DV.graphPanel.removeAll();
 
         // check for scaling and graph upper class
-        boolean upperScaling = addGraph(new ArrayList<>(List.of(DV.data.get(DV.upperClass))), 0, active);
+        boolean upperScaling = addGraph(new ArrayList<>(List.of(DV.data.get(DV.upperClass))), 0, active, angleChange);
         boolean lowerScaling = false;
 
         // graph lower classes
@@ -608,7 +609,7 @@ public class DataVisualization
                     dataObjects.add(DV.data.get(j));
             }
 
-            lowerScaling = addGraph(dataObjects, 1, active);
+            lowerScaling = addGraph(dataObjects, 1, active, angleChange);
         }
 
         // regenerate confusion matrices
@@ -640,20 +641,24 @@ public class DataVisualization
      * @param dataObjects classes to draw
      * @param upperOrLower draw up when upper (0) and down when lower (1)
      * @param active domain, overlap, or threshold line that is actively changing
+     * @param angleChange whether the angles are being changed or not
      */
-    public static boolean addGraph(ArrayList<DataObject> dataObjects, int upperOrLower, int active)
+    public static boolean addGraph(ArrayList<DataObject> dataObjects, int upperOrLower, int active, boolean angleChange)
     {
         // used to scale graph
         double graphScaler = 1;
 
-        // get coordinates
-        for (DataObject dataObject : dataObjects)
+        // get coordinates if changed
+        if (angleChange)
         {
-            double tmpScale = dataObject.updateCoordinates(DV.angles);
+            for (DataObject dataObject : dataObjects)
+            {
+                double tmpScale = dataObject.updateCoordinates(DV.angles);
 
-            // check for greater scaler
-            if (tmpScale > graphScaler)
-                graphScaler = tmpScale;
+                // check for greater scaler
+                if (tmpScale > graphScaler)
+                    graphScaler = tmpScale;
+            }
         }
 
         // create main renderer and dataset

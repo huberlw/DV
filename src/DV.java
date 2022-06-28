@@ -131,7 +131,7 @@ public class DV extends JFrame
      ***********************************************/
     // angles and initial angles (store angles before optimizing)
     public static double[] angles;
-    public static double[] prevAngles; // ASK KOVALERCHUK ABOUT CHANGING TO LDA ANGLES
+    public static double[] prevAngles;
 
     // normalized and original data
     static ArrayList<DataObject> data;
@@ -311,7 +311,7 @@ public class DV extends JFrame
         resetScreenBtn.setToolTipText("Resets rendered zoom area");
         resetScreenBtn.addActionListener(e ->
         {
-            DataVisualization.drawGraphs(0);
+            DataVisualization.drawGraphs(0, false);
             repaint();
             revalidate();
         });
@@ -338,7 +338,7 @@ public class DV extends JFrame
         barLineBtn.addActionListener(e ->
         {
             showBars = !showBars;
-            DataVisualization.drawGraphs(0);
+            DataVisualization.drawGraphs(0, false);
         });
         toolBar.add(barLineBtn);
         toolBar.addSeparator();
@@ -418,7 +418,7 @@ public class DV extends JFrame
                     domainArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
                     domainArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
 
-                    DataVisualization.drawGraphs(2);
+                    DataVisualization.drawGraphs(2, false);
                     repaint();
                     revalidate();
                 }
@@ -435,7 +435,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(2);
+                    DataVisualization.drawGraphs(2, false);
                     repaint();
                     revalidate();
                 }
@@ -449,7 +449,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(0);
+                    DataVisualization.drawGraphs(0, false);
                     repaint();
                     revalidate();
                 }
@@ -508,7 +508,7 @@ public class DV extends JFrame
                     overlapArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
                     overlapArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
 
-                    DataVisualization.drawGraphs(3);
+                    DataVisualization.drawGraphs(3, false);
                     repaint();
                     revalidate();
                 }
@@ -525,7 +525,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(3);
+                    DataVisualization.drawGraphs(3, false);
                     repaint();
                     revalidate();
                 }
@@ -539,7 +539,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(0);
+                    DataVisualization.drawGraphs(0, false);
                     repaint();
                     revalidate();
                 }
@@ -596,7 +596,7 @@ public class DV extends JFrame
 
                     threshold = (slider.getValue() - 200) * fieldLength / 200.0;
 
-                    DataVisualization.drawGraphs(1);
+                    DataVisualization.drawGraphs(1, false);
                     repaint();
                     revalidate();
                 }
@@ -613,7 +613,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(1);
+                    DataVisualization.drawGraphs(1, false);
                     repaint();
                     revalidate();
                 }
@@ -627,7 +627,7 @@ public class DV extends JFrame
             {
                 if (data != null)
                 {
-                    DataVisualization.drawGraphs(0);
+                    DataVisualization.drawGraphs(0, false);
                     repaint();
                     revalidate();
                 }
@@ -732,111 +732,58 @@ public class DV extends JFrame
      */
     private void createNewProject()
     {
-        // check for ID column
-        int choice = JOptionPane.showConfirmDialog(
-                mainFrame,
-                "Does this project use the first column to designate ID?",
-                "ID Column",
-                JOptionPane.YES_NO_OPTION);
-
-        if (choice == 0) hasID = true;
-        else if (choice == -1) return;
-
-        // check for class column
-        choice = JOptionPane.showConfirmDialog(
-                mainFrame,
-                "Does this project use the last column to designate classes?",
-                "Classes",
-                JOptionPane.YES_NO_OPTION);
-
-        if (choice == 0) hasClasses = true;
-        else if (choice == -1) return;
-
-        // buttons for JOptionPane
-        Object[] normStyleButtons = { "z-Score Min-Max", "Min-Max", "Help" };
-        boolean notChosen = true;
-
-        // ask for normalization style and repeat if user asks for help
-        while (notChosen)
+        try
         {
-            choice = JOptionPane.showOptionDialog(mainFrame,
-                    "Choose a normalization style or click " +
-                            "\"Help\" for more information on normalization styles.",
-                    "Normalization Style",
-                    JOptionPane.YES_NO_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    normStyleButtons,
-                    normStyleButtons[0]);
-
-            switch (choice)
-            {
-                case 0 ->
-                        {
-                            zScoreMinMax = true;
-                            notChosen = false;
-                        }
-                case 1 -> notChosen = false;
-                case 2 -> normalizationInfoPopup();
-                default -> { return; }
-            }
-        }
-
-        // set filter on file chooser
-        JFileChooser fileDialog = new JFileChooser();
-        fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
-
-        // open file dialog
-        if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
-        {
-            File dataFile = fileDialog.getSelectedFile();
-
-            // reset program
-            resetProgram();
-
-            // parse data from file into classes
-            boolean success = DataSetup.setupWithData(dataFile);
-
-            // create graphs
-            if (success)
-            {
-                // optimize data setup with Linear Discriminant Analysis
-                DataVisualization.optimizeSetup();
-                angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
-
-                DataVisualization.drawGraphs(0);
-            }
-            else
-            {
-                // reset program
-                resetProgram();
-
-                // add blank graph
-                graphPanel.add(blankGraph());
-            }
-        }
-        else
-        {
-            JOptionPane.showMessageDialog(
+            // check for ID column
+            int choice = JOptionPane.showConfirmDialog(
                     mainFrame,
-                    "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not open file",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+                    "Does this project use the first column to designate ID?",
+                    "ID Column",
+                    JOptionPane.YES_NO_OPTION);
 
-        // repaint and revalidate DV
-        repaint();
-        revalidate();
-    }
+            if (choice == 0) hasID = true;
+            else if (choice == -1) return;
 
+            // check for class column
+            choice = JOptionPane.showConfirmDialog(
+                    mainFrame,
+                    "Does this project use the last column to designate classes?",
+                    "Classes",
+                    JOptionPane.YES_NO_OPTION);
 
-    /**
-     * Imports new data into current project
-     */
-    private void importData()
-    {
-        if (data.size() > 0)
-        {
+            if (choice == 0) hasClasses = true;
+            else if (choice == -1) return;
+
+            // buttons for JOptionPane
+            Object[] normStyleButtons = { "z-Score Min-Max", "Min-Max", "Help" };
+            boolean notChosen = true;
+
+            // ask for normalization style and repeat if user asks for help
+            while (notChosen)
+            {
+                choice = JOptionPane.showOptionDialog(mainFrame,
+                        "Choose a normalization style or click " +
+                                "\"Help\" for more information on normalization styles.",
+                        "Normalization Style",
+                        JOptionPane.YES_NO_CANCEL_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        normStyleButtons,
+                        normStyleButtons[0]);
+
+                switch (choice)
+                {
+                    case 0 ->
+                    {
+                        zScoreMinMax = true;
+                        notChosen = false;
+                    }
+                    case 1 -> notChosen = false;
+                    case 2 -> normalizationInfoPopup();
+                    default -> { return; }
+                }
+            }
+
             // set filter on file chooser
             JFileChooser fileDialog = new JFileChooser();
             fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
@@ -844,13 +791,13 @@ public class DV extends JFrame
             // open file dialog
             if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
             {
-                File importFile = fileDialog.getSelectedFile();
+                File dataFile = fileDialog.getSelectedFile();
 
                 // reset program
                 resetProgram();
 
-                // check if import was successful
-                boolean success = DataSetup.setupImportData(importFile);
+                // parse data from file into classes
+                boolean success = DataSetup.setupWithData(dataFile);
 
                 // create graphs
                 if (success)
@@ -859,7 +806,7 @@ public class DV extends JFrame
                     DataVisualization.optimizeSetup();
                     angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
 
-                    DataVisualization.drawGraphs(0);
+                    DataVisualization.drawGraphs(0, true);
                 }
                 else
                 {
@@ -879,14 +826,91 @@ public class DV extends JFrame
                         JOptionPane.ERROR_MESSAGE);
             }
 
-
+            // repaint and revalidate DV
+            repaint();
+            revalidate();
         }
-        else
+        catch (Exception e)
+        {
+            // add blank graph if data was bad
+            graphPanel.add(blankGraph());
+
+            // repaint and revalidate DV
+            repaint();
+            revalidate();
+        }
+    }
+
+
+    /**
+     * Imports new data into current project
+     */
+    private void importData()
+    {
+
+        try
+        {
+            if (data.size() > 0)
+            {
+                // set filter on file chooser
+                JFileChooser fileDialog = new JFileChooser();
+                fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
+
+                // open file dialog
+                if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+                {
+                    File importFile = fileDialog.getSelectedFile();
+
+                    // reset program
+                    resetProgram();
+
+                    // check if import was successful
+                    boolean success = DataSetup.setupImportData(importFile);
+
+                    // create graphs
+                    if (success)
+                    {
+                        // optimize data setup with Linear Discriminant Analysis
+                        DataVisualization.optimizeSetup();
+                        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
+
+                        DataVisualization.drawGraphs(0, true);
+                    }
+                    else
+                    {
+                        // reset program
+                        resetProgram();
+
+                        // add blank graph
+                        graphPanel.add(blankGraph());
+                    }
+                }
+                else
+                {
+                    JOptionPane.showMessageDialog(
+                            mainFrame,
+                            "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                            "Error: could not open file",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+
+            }
+            else
+            {
+                JOptionPane.showMessageDialog(
+                        mainFrame,
+                        "Please create a project before importing data.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: could not import data",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        catch (Exception e)
         {
             JOptionPane.showMessageDialog(
                     mainFrame,
-                    "Please create a project before importing data.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not import data",
+                    "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not open file",
                     JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -924,64 +948,76 @@ public class DV extends JFrame
      */
     private void createUserValidationSet()
     {
-        if (data.size() > 0)
+
+        try
         {
-            // set filter on file chooser
-            JFileChooser fileDialog = new JFileChooser();
-            fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
-
-            // open file dialog
-            if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+            if (data.size() > 0)
             {
-                File valFile = fileDialog.getSelectedFile();
+                // set filter on file chooser
+                JFileChooser fileDialog = new JFileChooser();
+                fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
-                // check if validation set was successful
-                boolean success = DataSetup.setupValidationData(valFile);
-
-                // informs of validation data status
-                if (success)
+                // open file dialog
+                if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
                 {
-                    JOptionPane.showMessageDialog(
-                            mainFrame,
-                            "Validation set has been successfully created.\nCreating confusion matrices.",
-                            "Success: validation set has been created",
-                            JOptionPane.INFORMATION_MESSAGE);
+                    File valFile = fileDialog.getSelectedFile();
 
-                    // regenerate confusion matrices
-                    ConfusionMatrices.generateConfusionMatrices();
+                    // check if validation set was successful
+                    userValidationImported = DataSetup.setupValidationData(valFile);
 
-                    // revalidate graphs and confusion matrices
-                    DV.graphPanel.repaint();
-                    DV.confusionMatrixPanel.repaint();
-                    DV.graphPanel.revalidate();
-                    DV.confusionMatrixPanel.revalidate();
+                    // informs of validation data status
+                    if (userValidationImported)
+                    {
+                        JOptionPane.showMessageDialog(
+                                mainFrame,
+                                "Validation set has been successfully created.\nCreating confusion matrices.",
+                                "Success: validation set has been created",
+                                JOptionPane.INFORMATION_MESSAGE);
+
+                        // regenerate confusion matrices
+                        ConfusionMatrices.generateConfusionMatrices();
+
+                        // revalidate graphs and confusion matrices
+                        DV.graphPanel.repaint();
+                        DV.confusionMatrixPanel.repaint();
+                        DV.graphPanel.revalidate();
+                        DV.confusionMatrixPanel.revalidate();
+                    }
+                    else
+                    {
+                        JOptionPane.showMessageDialog(
+                                mainFrame,
+                                "The validation set was not able to be created.\nPlease ensure the validation data's file has the same format as the original data file.",
+                                "Error: failed to create validation set",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
                 }
                 else
                 {
                     JOptionPane.showMessageDialog(
                             mainFrame,
-                            "The validation set was not able to be created.\nPlease ensure the validation data's file has the same format as the original data file.",
-                            "Error: failed to create validation set",
+                            "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                            "Error: could not open file",
                             JOptionPane.ERROR_MESSAGE);
                 }
+
+
             }
             else
             {
                 JOptionPane.showMessageDialog(
                         mainFrame,
-                        "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                        "Error: could not open file",
+                        "Please create a project before creating a validation set.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: could not create validation set",
                         JOptionPane.ERROR_MESSAGE);
             }
-
-
         }
-        else
+        catch (Exception e)
         {
             JOptionPane.showMessageDialog(
                     mainFrame,
-                    "Please create a project before creating a validation set.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not create validation set",
+                    "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not open file",
                     JOptionPane.ERROR_MESSAGE);
         }
     }

@@ -463,13 +463,18 @@ public class DataSetup
             }
         }
 
-        // convert numericalData to double[][]
-        double[][] outputData = new double[numericalData.size()][];
+        if (numericalData.size() > 0)
+        {
+            // convert numericalData to double[][]
+            double[][] outputData = new double[numericalData.size()][];
 
-        for (int i = 0; i < numericalData.size(); i++)
-            outputData[i] = numericalData.get(i).stream().mapToDouble(m -> m).toArray();
+            for (int i = 0; i < numericalData.size(); i++)
+                outputData[i] = numericalData.get(i).stream().mapToDouble(m -> m).toArray();
 
-        return outputData;
+            return outputData;
+        }
+        else
+            return null;
     }
 
 

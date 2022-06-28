@@ -838,6 +838,10 @@ public class ConfusionMatrices
         }
     }
 
+
+    /**
+     * Runs k-fold cross validation on dataset
+     */
     static void runKFoldCrossValidation()
     {
         // store datapoints in upper and lower graphs
