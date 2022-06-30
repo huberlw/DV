@@ -502,13 +502,20 @@ public class DataSetup
             while(fileReader.hasNextLine())
                 rowData.add(fileReader.nextLine());
 
-            String[][] data = new String[rowData.size()][];
+            ArrayList<String[]> data = new ArrayList<>();
 
             // split rows by ","
-            for (int i = 0; i < rowData.size(); i++)
-                data[i] = rowData.get(i).split(",");
+            for (String rowDatum : rowData)
+            {
+                if (!rowDatum.equals(""))
+                    data.add(rowDatum.split(","));
+            }
 
-            return data;
+            // arraylist to array
+            String[][] outputData = new String[data.size()][];
+            outputData = data.toArray(outputData);
+
+            return outputData;
         }
         catch(IOException ioe) { return null; }
     }
@@ -728,7 +735,7 @@ public class DataSetup
             for (int i = 0; i < data[0].length; i++)
             {
                 // perform z-Score then set max and min
-                data[i][0] = (data[0][i] - mean[i]) / sd[i];
+                data[0][i] = (data[0][i] - mean[i]) / sd[i];
                 maxValues[i] = data[0][i];
                 minValues[i] = data[0][i];
 
@@ -770,18 +777,7 @@ public class DataSetup
             if (maxValues[i] != minValues[i])
             {
                 for (int j = 0; j < data.length; j++)
-                {
-                    if (data[j][i] > maxValues[i] || data[j][i] < minValues[i])
-                    {
-                        System.out.println("\nIndex: " + j + ", " + i);
-                        System.out.println("Data: " + data[j][i]);
-                        System.out.println("Max: " + maxValues[i]);
-                        System.out.println("Min: " + minValues[i]);
-                    }
-
-
                     data[j][i] = (data[j][i] - minValues[i]) / (maxValues[i] - minValues[i]);
-                }
 
             }
             else

@@ -107,6 +107,12 @@ public class DV extends JFrame
     // previous all data confusion matrices (only applicable if 3+ classes)
     static ArrayList<String> prevCM;
 
+    // current all data correct and total
+    static int[] allDataClassifications;
+
+    // previous all data correct and total
+    static ArrayList<int[]> prevAllDataClassifications;
+
     // display confusion matrices
     static boolean prevAllDataChecked = true;
     static boolean allDataChecked = true;
@@ -826,6 +832,12 @@ public class DV extends JFrame
                 }
                 else
                 {
+                    JOptionPane.showMessageDialog(
+                            mainFrame,
+                            "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                            "Error: could not open file",
+                            JOptionPane.ERROR_MESSAGE);
+
                     // add blank graph
                     graphPanel.add(blankGraph());
                 }
@@ -848,6 +860,12 @@ public class DV extends JFrame
         }
         catch (Exception e)
         {
+            JOptionPane.showMessageDialog(
+                    mainFrame,
+                    "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                    "Error: could not open file",
+                    JOptionPane.ERROR_MESSAGE);
+
             // add blank graph if data was bad
             graphPanel.add(blankGraph());
 
@@ -1597,8 +1615,14 @@ public class DV extends JFrame
         angleSliderPanel.removeAll();
         graphPanel.removeAll();
 
+        // reset classes
+        uniqueClasses = null;
+
         // reset previous confusion matrices
         prevCM = new ArrayList<>();
+
+        // reset previous all data classifications
+        prevAllDataClassifications = new ArrayList<>();
 
         // reset graphs
         drawOverlap = false;

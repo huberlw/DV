@@ -178,9 +178,8 @@ public class ConfusionMatrices
         @Override
         protected Boolean doInBackground()
         {
+            DV.allDataClassifications = new int[]{ 0, 0 };
             int totalPoints = 0;
-            int totalPointsUsed = 0;
-            int correctPoints = 0;
 
             // get point distribution
             int[][] pntDist = new int[2][2];
@@ -205,12 +204,12 @@ public class ConfusionMatrices
                                 if (endpoint < DV.threshold)
                                 {
                                     pntDist[0][0]++;
-                                    totalPointsUsed++;
-                                    correctPoints++;
+                                    DV.allDataClassifications[1]++;
+                                    DV.allDataClassifications[0]++;
                                 }
                                 else
                                 {
-                                    totalPointsUsed++;
+                                    DV.allDataClassifications[1]++;
                                     pntDist[0][1]++;
                                 }
                             }
@@ -220,12 +219,12 @@ public class ConfusionMatrices
                                 if (endpoint > DV.threshold)
                                 {
                                     pntDist[0][0]++;
-                                    totalPointsUsed++;
-                                    correctPoints++;
+                                    DV.allDataClassifications[1]++;
+                                    DV.allDataClassifications[0]++;
                                 }
                                 else
                                 {
-                                    totalPointsUsed++;
+                                    DV.allDataClassifications[1]++;
                                     pntDist[0][1]++;
                                 }
                             }
@@ -235,12 +234,12 @@ public class ConfusionMatrices
                                 if (endpoint > DV.threshold)
                                 {
                                     pntDist[1][1]++;
-                                    totalPointsUsed++;
-                                    correctPoints++;
+                                    DV.allDataClassifications[1]++;
+                                    DV.allDataClassifications[0]++;
                                 }
                                 else
                                 {
-                                    totalPointsUsed++;
+                                    DV.allDataClassifications[1]++;
                                     pntDist[1][0]++;
                                 }
                             }
@@ -250,12 +249,12 @@ public class ConfusionMatrices
                                 if (endpoint < DV.threshold)
                                 {
                                     pntDist[1][1]++;
-                                    totalPointsUsed++;
-                                    correctPoints++;
+                                    DV.allDataClassifications[1]++;
+                                    DV.allDataClassifications[0]++;
                                 }
                                 else
                                 {
-                                    totalPointsUsed++;
+                                    DV.allDataClassifications[1]++;
                                     pntDist[1][0]++;
                                 }
                             }
@@ -281,10 +280,25 @@ public class ConfusionMatrices
             }
 
             // append accuracy
-            cm.append(String.format("\nAccuracy: %.2f%%", 100.0 * correctPoints / totalPointsUsed));
+            cm.append(String.format("\nAccuracy: %.2f%%", 100.0 * DV.allDataClassifications[0] / DV.allDataClassifications[1]));
+
+            // add overall accuracy if applicable
+            if (DV.prevAllDataClassifications.size() > 0)
+            {
+                int correct = DV.allDataClassifications[0];
+                int used = DV.allDataClassifications[1];
+
+                for (int i = 0; i < DV.prevAllDataClassifications.size(); i++)
+                {
+                    correct += DV.prevAllDataClassifications.get(i)[0];
+                    used += DV.prevAllDataClassifications.get(i)[1];
+                }
+
+                cm.append(String.format("\nOverall Accuracy: %.2f%%", 100.0 * correct  / used));
+            }
 
             // append percentage of total points used
-            cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
+            cm.append(String.format("\nData Used: %.2f%%", 100.0 * DV.allDataClassifications[1] / totalPoints));
 
             // set current all data confusion matrix string
             DV.allDataCM = cm.toString();
