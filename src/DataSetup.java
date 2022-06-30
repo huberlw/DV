@@ -209,9 +209,8 @@ public class DataSetup
     /**
      * Sets up DV with saved project
      * @param projectFile .csv file holding project info
-     * @return whether setupProjectData was successful
      */
-    public static boolean setupProjectData(File projectFile)
+    public static void setupProjectData(File projectFile)
     {
         // data string[][] representation of project file
         String[][] stringData = getStringFromCSV(projectFile);
@@ -223,6 +222,7 @@ public class DataSetup
             // get graph colors
             DV.graphColors[0] = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
             DV.graphColors[1] = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
+            DV.background = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
 
             // get line colors
             DV.domainLines = new Color(Integer.parseInt(stringData[buffer][0]), Integer.parseInt(stringData[buffer][1]), Integer.parseInt(stringData[buffer++][2]));
@@ -395,8 +395,6 @@ public class DataSetup
                 DV.validationData = createDataObjects(classData);
             }
         }
-
-        return true;
     }
 
 
@@ -730,19 +728,20 @@ public class DataSetup
             for (int i = 0; i < data[0].length; i++)
             {
                 // perform z-Score then set max and min
-                maxValues[i] = (data[i][0] - mean[i]) / sd[i];
-                minValues[i] = (data[i][0] - mean[i]) / sd[i];
+                data[i][0] = (data[0][i] - mean[i]) / sd[i];
+                maxValues[i] = data[0][i];
+                minValues[i] = data[0][i];
 
                 for (int j = 1; j < data.length; j++)
                 {
                     // z-Score of value
-                    double tmpValue = (data[j][i] - mean[i]) / sd[i];
+                    data[j][i] = (data[j][i] - mean[i]) / sd[i];
 
                     // check for better max or min
-                    if (tmpValue > maxValues[i])
-                        maxValues[i] = tmpValue;
-                    else if (tmpValue < minValues[i])
-                        minValues[i] = tmpValue;
+                    if (data[j][i] > maxValues[i])
+                        maxValues[i] = data[j][i];
+                    else if (data[j][i] < minValues[i])
+                        minValues[i] = data[j][i];
                 }
             }
         }
@@ -752,8 +751,8 @@ public class DataSetup
             for (int i = 0; i < data[0].length; i++)
             {
                 // set max and min
-                maxValues[i] = data[i][0];
-                minValues[i] = data[i][0];
+                maxValues[i] = data[0][i];
+                minValues[i] = data[0][i];
 
                 for (int j = 1; j < data.length; j++)
                 {
@@ -771,7 +770,19 @@ public class DataSetup
             if (maxValues[i] != minValues[i])
             {
                 for (int j = 0; j < data.length; j++)
+                {
+                    if (data[j][i] > maxValues[i] || data[j][i] < minValues[i])
+                    {
+                        System.out.println("\nIndex: " + j + ", " + i);
+                        System.out.println("Data: " + data[j][i]);
+                        System.out.println("Max: " + maxValues[i]);
+                        System.out.println("Min: " + minValues[i]);
+                    }
+
+
                     data[j][i] = (data[j][i] - minValues[i]) / (maxValues[i] - minValues[i]);
+                }
+
             }
             else
             {

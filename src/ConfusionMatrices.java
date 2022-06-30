@@ -360,11 +360,13 @@ public class ConfusionMatrices
                 }
             }
 
+            String fileName = System.getProperty("user.dir") + "\\src\\LDA\\DWO_CM.csv";
+
             // create file for python process
-            createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), "\\src\\LDA\\DWO_CM.csv");
+            createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
 
             // get confusion matrix with LDA
-            ArrayList<String> cmValues = LDAForConfusionMatrices(true, "\\src\\LDA\\DWO_CM.csv");
+            ArrayList<String> cmValues = LDAForConfusionMatrices(true, fileName);
 
             if (DV.withoutOverlapChecked)
             {
@@ -471,11 +473,13 @@ public class ConfusionMatrices
 
             if (DV.overlapChecked)
             {
+                String fileName = System.getProperty("user.dir") + "\\src\\LDA\\OL_CM.csv";
+
                 // create file for python process
-                createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), "\\src\\LDA\\OL_CM.csv");
+                createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
 
                 // get confusion matrix with LDA
-                ArrayList<String> cmValues = LDAForConfusionMatrices(false, "\\src\\LDA\\OL_CM.csv");
+                ArrayList<String> cmValues = LDAForConfusionMatrices(false, fileName);
 
                 if (cmValues != null && cmValues.size() > 0)
                 {
@@ -822,7 +826,7 @@ public class ConfusionMatrices
         try
         {
             // write to csv file
-            Writer out = new FileWriter(System.getProperty("user.dir") + fileName, false);
+            Writer out = new FileWriter(fileName, false);
 
             // create header for file
             for (int i = 0; i < DV.fieldLength; i++)
@@ -876,7 +880,7 @@ public class ConfusionMatrices
         // create LDA (python) process
         ProcessBuilder lda = new ProcessBuilder(System.getProperty("user.dir") + "\\venv\\Scripts\\python",
                 System.getProperty("user.dir") + "\\src\\LDA\\ConfusionMatrixGenerator.py",
-                System.getProperty("user.dir") + fileName,
+                fileName,
                 pyBool);
 
         try
@@ -913,7 +917,7 @@ public class ConfusionMatrices
             }
 
             // delete created file
-            File fileToDelete = new File(System.getProperty("user.dir") + fileName);
+            File fileToDelete = new File(fileName);
             Files.deleteIfExists(fileToDelete.toPath());
 
             // return confusion matrix
@@ -973,13 +977,15 @@ public class ConfusionMatrices
             }
         }
 
+        String fileName = System.getProperty("user.dir") + "\\src\\LDA\\k_fold.csv";
+
         // create file for python process
-        createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), "\\src\\LDA\\k_fold.csv");
+        createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
 
         // create k-fold (python) process
         ProcessBuilder cv = new ProcessBuilder(System.getProperty("user.dir") + "\\venv\\Scripts\\python",
                 System.getProperty("user.dir") + "\\src\\LDA\\kFoldCrossValidation.py",
-                System.getProperty("user.dir") + "\\src\\LDA\\k_fold.csv",
+                fileName,
                 String.valueOf(DV.kFolds));
 
         try
@@ -1010,6 +1016,10 @@ public class ConfusionMatrices
                     table.append("\n").append(row);
                 }
 
+                // delete created file
+                File fileToDelete = new File(fileName);
+                Files.deleteIfExists(fileToDelete.toPath());
+
                 // set overlap confusion matrix
                 JTextArea cross_validate = new JTextArea(table.toString());
                 cross_validate.setFont(cross_validate.getFont().deriveFont(Font.BOLD, 12f));
@@ -1021,7 +1031,5 @@ public class ConfusionMatrices
         {
             JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run k-Fold Cross Validation", "Error", JOptionPane.ERROR_MESSAGE);
         }
-        // get output
-        // display output
     }
 }

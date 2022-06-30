@@ -1,4 +1,6 @@
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 import pandas as pd
 import numpy as np
 import math
@@ -10,15 +12,15 @@ path = sys.argv[1]
 
 if os.path.exists(path):
     # create dataframe from file
-    dataframe = pd.read_csv(path)
+    df = pd.read_csv(path)
 
     # get data and labels
-    labels = dataframe['class'].values.reshape(-1, 1)
-    data = dataframe.drop(['class'], axis=1)
+    labels = df['class'].values.reshape(-1, 1)
+    data = df.drop(['class'], axis=1)
 
     # get LDA
     lda = LinearDiscriminantAnalysis(n_components=1)
-
+    # lda = SVC(kernel='linear')  #
     # train
     lda.fit(data, labels.ravel())
 
@@ -42,8 +44,10 @@ if os.path.exists(path):
     weights = weights / max(abs(weights))
 
     # apply weights to class means
+    # means = [df[df['class'] == 0].groupby('class')[list(df)[1:]].mean(),
+    #          df[df['class'] == 1].groupby('class')[list(df)[1:]].mean()]
     weightedMeans = lda.means_ * weights
-
+    # weightedMeans = means * weights
     # get sum of feature values for each class
     weightedMeanSum1 = sum(weightedMeans[0])
     weightedMeanSum2 = sum(weightedMeans[1])

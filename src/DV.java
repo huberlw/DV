@@ -124,11 +124,11 @@ public class DV extends JFrame
      * FOR INPUT DATA
      ***********************************************/
     // input data info
-    static boolean hasID = false;
-    static boolean hasClasses = false;
+    static boolean hasID;
+    static boolean hasClasses;
 
     // min-max or zScore min-max normalization
-    static boolean zScoreMinMax = false;
+    static boolean zScoreMinMax;
 
     /************************************************
      * FOR DATA
@@ -752,6 +752,7 @@ public class DV extends JFrame
                     JOptionPane.YES_NO_OPTION);
 
             if (choice == 0) hasID = true;
+            else if (choice == 1) hasID = false;
             else if (choice == -1) return;
 
             // check for class column
@@ -762,6 +763,7 @@ public class DV extends JFrame
                     JOptionPane.YES_NO_OPTION);
 
             if (choice == 0) hasClasses = true;
+            else if (choice == 1) hasClasses = false;
             else if (choice == -1) return;
 
             // buttons for JOptionPane
@@ -788,7 +790,11 @@ public class DV extends JFrame
                         zScoreMinMax = true;
                         notChosen = false;
                     }
-                    case 1 -> notChosen = false;
+                    case 1 ->
+                    {
+                        zScoreMinMax = false;
+                        notChosen = false;
+                    }
                     case 2 -> normalizationInfoPopup();
                     default -> { return; }
                 }
@@ -888,7 +894,11 @@ public class DV extends JFrame
                     else
                     {
                         // add blank graph
-                        graphPanel.add(blankGraph());
+                        JOptionPane.showMessageDialog(
+                                mainFrame,
+                                "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                                "Error: could not open file",
+                                JOptionPane.ERROR_MESSAGE);
                     }
                 }
                 else
@@ -901,6 +911,8 @@ public class DV extends JFrame
 
                     // add blank graph
                     graphPanel.add(blankGraph());
+                    DV.graphPanel.repaint();
+                    DV.graphPanel.revalidate();
                 }
             }
             else
@@ -913,6 +925,8 @@ public class DV extends JFrame
 
                 // add blank graph
                 graphPanel.add(blankGraph());
+                DV.graphPanel.repaint();
+                DV.graphPanel.revalidate();
             }
         }
         catch (Exception e)
@@ -925,6 +939,8 @@ public class DV extends JFrame
 
             // add blank graph
             graphPanel.add(blankGraph());
+            DV.graphPanel.repaint();
+            DV.graphPanel.revalidate();
         }
     }
 
@@ -949,20 +965,11 @@ public class DV extends JFrame
                 resetProgram();
 
                 // check if import was successful
-                boolean success = DataSetup.setupProjectData(projectFile);
+                DataSetup.setupProjectData(projectFile);
 
                 // create graphs
-                if (success)
-                {
-                    angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
-
-                    DataVisualization.drawGraphs(0);
-                }
-                else
-                {
-                    // add blank graph
-                    graphPanel.add(blankGraph());
-                }
+                angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
+                DataVisualization.drawGraphs(0);
             }
             else
             {
@@ -974,6 +981,10 @@ public class DV extends JFrame
 
                 // add blank graph
                 graphPanel.add(blankGraph());
+                DV.graphPanel.repaint();
+                DV.crossValidationPanel.repaint();
+                DV.graphPanel.revalidate();
+                DV.crossValidationPanel.revalidate();
             }
         }
         catch (Exception e)
@@ -986,6 +997,10 @@ public class DV extends JFrame
 
             // add blank graph
             graphPanel.add(blankGraph());
+            DV.graphPanel.repaint();
+            DV.crossValidationPanel.repaint();
+            DV.graphPanel.revalidate();
+            DV.crossValidationPanel.revalidate();
         }
     }
 
@@ -1009,6 +1024,9 @@ public class DV extends JFrame
                 out.write(graphColors[1].getRed() + ",");
                 out.write(graphColors[1].getGreen() + ",");
                 out.write(graphColors[1].getBlue() + "\n");
+                out.write(background.getRed() + ",");
+                out.write(background.getGreen() + ",");
+                out.write(background.getBlue() + "\n");
 
                 // save line colors
                 out.write(domainLines.getRed() + ",");

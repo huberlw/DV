@@ -675,16 +675,16 @@ public class DataVisualization
         XYSeries thresholdLine = new XYSeries(0, false, true);
 
         // get domain line height
-        double domainOverlapLineHeight = DV.fieldLength;
+        double lineHeight = DV.fieldLength;
 
         // set domain lines
         if (upperOrLower == 1)
-            domainOverlapLineHeight *= -1;
+            lineHeight *= -1;
 
         domainMaxLine.add(DV.domainArea[0], 0);
-        domainMaxLine.add(DV.domainArea[0], domainOverlapLineHeight);
+        domainMaxLine.add(DV.domainArea[0], lineHeight);
         domainMinLine.add(DV.domainArea[1], 0);
-        domainMinLine.add(DV.domainArea[1], domainOverlapLineHeight);
+        domainMinLine.add(DV.domainArea[1], lineHeight);
 
         // add domain series to collection
         domain.addSeries(domainMaxLine);
@@ -692,23 +692,17 @@ public class DataVisualization
 
         // set overlap lines
         overlapMaxLine.add(DV.overlapArea[0], 0);
-        overlapMaxLine.add(DV.overlapArea[0], domainOverlapLineHeight);
+        overlapMaxLine.add(DV.overlapArea[0], lineHeight);
         overlapMinLine.add(DV.overlapArea[1], 0);
-        overlapMinLine.add(DV.overlapArea[1], domainOverlapLineHeight);
+        overlapMinLine.add(DV.overlapArea[1], lineHeight);
 
         // add overlap series to collection
         overlap.addSeries(overlapMaxLine);
         overlap.addSeries(overlapMinLine);
 
-        // get threshold line height
-        double thresholdLineHeight = DV.fieldLength;
-
-        if (upperOrLower == 1)
-            thresholdLineHeight *= -1;
-
         // get threshold line
         thresholdLine.add(DV.threshold, 0);
-        thresholdLine.add(DV.threshold, thresholdLineHeight);
+        thresholdLine.add(DV.threshold, lineHeight);
 
         // add threshold series to collection
         threshold.addSeries(thresholdLine);

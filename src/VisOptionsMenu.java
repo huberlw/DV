@@ -145,8 +145,7 @@ public class VisOptionsMenu extends JPanel
         visOptions.add(chooseUpperClassPanel);
 
         // if there are more than two classes
-        if (DV.classNumber > 2)
-            visOptions.add(specifyVisPanel);
+        visOptions.add(specifyVisPanel);
 
         // check if not drawing overlap
         if (DV.classNumber > 1 && !DV.drawOverlap)
