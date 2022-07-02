@@ -327,9 +327,12 @@ public class DV extends JFrame
         resetScreenBtn.setToolTipText("Resets rendered zoom area");
         resetScreenBtn.addActionListener(e ->
         {
-            DataVisualization.drawGraphs(0);
-            repaint();
-            revalidate();
+            if (data != null)
+            {
+                DataVisualization.drawGraphs(0);
+                repaint();
+                revalidate();
+            }
         });
         toolBar.add(resetScreenBtn);
         toolBar.addSeparator();
@@ -353,8 +356,11 @@ public class DV extends JFrame
         barLineBtn.setToolTipText("Toggle for showing bar-line graph of endpoint placement");
         barLineBtn.addActionListener(e ->
         {
-            showBars = !showBars;
-            DataVisualization.drawGraphs(0);
+            if (data != null)
+            {
+                showBars = !showBars;
+                DataVisualization.drawGraphs(0);
+            }
         });
         toolBar.add(barLineBtn);
         toolBar.addSeparator();
