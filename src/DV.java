@@ -267,7 +267,7 @@ public class DV extends JFrame
             // try opening DVManual
             try
             {
-               Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\DVManual.pdf"));
+               Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\src\\documentation\\DVManual.pdf"));
             }
             catch (IOException ioe)
             {
