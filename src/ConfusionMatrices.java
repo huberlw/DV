@@ -374,7 +374,7 @@ public class ConfusionMatrices
                 }
             }
 
-            String fileName = System.getProperty("user.dir") + "\\src\\LDA\\DWO_CM.csv";
+            String fileName = System.getProperty("user.dir") + "\\src\\Python\\DWO_CM.csv";
 
             // create file for python process
             createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
@@ -487,7 +487,7 @@ public class ConfusionMatrices
 
             if (DV.overlapChecked)
             {
-                String fileName = System.getProperty("user.dir") + "\\src\\LDA\\OL_CM.csv";
+                String fileName = System.getProperty("user.dir") + "\\src\\Python\\OL_CM.csv";
 
                 // create file for python process
                 createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
@@ -892,8 +892,8 @@ public class ConfusionMatrices
             pyBool = "";
 
         // create LDA (python) process
-        ProcessBuilder lda = new ProcessBuilder(System.getProperty("user.dir") + "\\venv\\Scripts\\python",
-                System.getProperty("user.dir") + "\\src\\LDA\\ConfusionMatrixGenerator.py",
+        ProcessBuilder lda = new ProcessBuilder("cmd", "/c",
+                System.getProperty("user.dir") + "\\src\\Python\\ConfusionMatrixGenerator\\ConfusionMatrixGenerator.exe",
                 fileName,
                 pyBool);
 
@@ -939,7 +939,7 @@ public class ConfusionMatrices
         }
         catch (IOException e)
         {
-            JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Linear Discriminant Analysis", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not create confusion matrix", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
         }
     }
@@ -991,14 +991,14 @@ public class ConfusionMatrices
             }
         }
 
-        String fileName = System.getProperty("user.dir") + "\\src\\LDA\\k_fold.csv";
+        String fileName = System.getProperty("user.dir") + "\\src\\Python\\k_fold.csv";
 
         // create file for python process
         createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
 
         // create k-fold (python) process
-        ProcessBuilder cv = new ProcessBuilder(System.getProperty("user.dir") + "\\venv\\Scripts\\python",
-                System.getProperty("user.dir") + "\\src\\LDA\\kFoldCrossValidation.py",
+        ProcessBuilder cv = new ProcessBuilder("cmd", "/c",
+                System.getProperty("user.dir") + "\\src\\Python\\kFoldCrossValidation\\kFoldCrossValidation.exe",
                 fileName,
                 String.valueOf(DV.kFolds));
 
