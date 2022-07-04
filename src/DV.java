@@ -418,7 +418,7 @@ public class DV extends JFrame
             @Override
             public void updateUI()
             {
-                setUI(new RangeSliderUI(this, Color.BLACK, Color.LIGHT_GRAY, Color.DARK_GRAY));
+                setUI(new RangeSliderUI(this, Color.BLACK, Color.GRAY, Color.DARK_GRAY));
                 updateLabelUIs();
             }
         };
@@ -500,7 +500,7 @@ public class DV extends JFrame
             @Override
             public void updateUI()
             {
-                setUI(new RangeSliderUI(this, Color.ORANGE, Color.LIGHT_GRAY, Color.DARK_GRAY));
+                setUI(new RangeSliderUI(this, Color.ORANGE, new Color(255, 165, 0), new Color(215,107,0)));
                 updateLabelUIs();
             }
         };

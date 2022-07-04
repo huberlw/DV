@@ -14,6 +14,10 @@ public class ThresholdSliderUI extends BasicSliderUI
         super(b);
     }
 
+
+    /**
+     * Calculates the track size and position
+     */
     @Override
     protected void calculateTrackRect()
     {
@@ -32,6 +36,10 @@ public class ThresholdSliderUI extends BasicSliderUI
         thumbRect.y = trackRect.y + (trackRect.height - thumbRect.height) / 2;
     }
 
+
+    /**
+     * Returns the size of a thumb.
+     */
     @Override
     protected Dimension getThumbSize()
     {

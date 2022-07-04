@@ -1,16 +1,15 @@
 package Sliders;
 
 import javax.swing.JSlider;
-import java.awt.*;
 
 /**
  * An extension of JSlider to select a range of values using two thumb controls.
  * The thumb controls are used to select the lower and upper value of a range
  * with predetermined minimum and maximum values.
  *
- * <p>Note that RangeSlider makes use of the default BoundedRangeModel, which
+ * Note that RangeSlider makes use of the default BoundedRangeModel, which
  * supports an inner range defined by a value and an extent.  The upper value
- * returned by RangeSlider is simply the lower value plus the extent.</p>
+ * returned by RangeSlider is simply the lower value plus the extent.
  */
 public class RangeSlider extends JSlider
 {
@@ -41,6 +40,7 @@ public class RangeSlider extends JSlider
         return super.getValue();
     }
 
+
     /**
      * Sets the lower value in the range.
      */
@@ -51,6 +51,7 @@ public class RangeSlider extends JSlider
                 getMaximum(), getValueIsAdjusting());
     }
 
+
     /**
      * Returns the upper value in the range.
      */
@@ -58,6 +59,7 @@ public class RangeSlider extends JSlider
     {
         return getValue() + getExtent();
     }
+
 
     /**
      * Sets the upper value in the range.
