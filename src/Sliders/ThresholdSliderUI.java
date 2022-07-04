@@ -9,6 +9,10 @@ public class ThresholdSliderUI extends BasicSliderUI
 {
     private final RoundRectangle2D.Float trackShape = new RoundRectangle2D.Float();
 
+    /**
+     * Constructs a ThresholdSliderUI for the specified slider component.
+     * @param b JSlider
+     */
     public ThresholdSliderUI(final JSlider b)
     {
         super(b);
@@ -29,6 +33,9 @@ public class ThresholdSliderUI extends BasicSliderUI
         trackShape.setRoundRect(trackRect.x, trackRect.y, trackRect.width, trackRect.height, 5, 5);
     }
 
+    /**
+     * Calculates the thumb position
+     */
     @Override
     protected void calculateThumbLocation()
     {
@@ -46,6 +53,16 @@ public class ThresholdSliderUI extends BasicSliderUI
         return new Dimension(20, 20);
     }
 
+
+    /**
+     * Paints the slider.
+     * @param g the Graphics context in which to paint
+     * @param c the component being painted;
+     *          this argument is often ignored,
+     *          but might be used if the UI object is stateless
+     *          and shared by multiple components
+     *
+     */
     @Override
     public void paint(final Graphics g, final JComponent c)
     {
@@ -54,6 +71,11 @@ public class ThresholdSliderUI extends BasicSliderUI
         super.paint(g, c);
     }
 
+
+    /**
+     * Paints the track
+     * @param g the graphics
+     */
     @Override
     public void paintTrack(final Graphics g)
     {
@@ -75,6 +97,11 @@ public class ThresholdSliderUI extends BasicSliderUI
         g2.setClip(clip);
     }
 
+
+    /**
+     * Paints thumb
+     * @param g the graphics
+     */
     @Override
     public void paintThumb(final Graphics g)
     {

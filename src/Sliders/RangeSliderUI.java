@@ -32,6 +32,9 @@ public class RangeSliderUI extends BasicSliderUI
     /**
      * Constructs a RangeSliderUI for the specified slider component.
      * @param rs RangeSlider
+     * @param track color of track
+     * @param left color of left thumb
+     * @param right color of right thumb
      */
     public RangeSliderUI(RangeSlider rs, Color track, Color left, Color right)
     {
@@ -44,6 +47,7 @@ public class RangeSliderUI extends BasicSliderUI
 
     /**
      * Installs this UI delegate on the specified component.
+     * @param c upper thumb component
      */
     @Override
     public void installUI(JComponent c)
@@ -55,6 +59,7 @@ public class RangeSliderUI extends BasicSliderUI
 
     /**
      * Creates a listener to handle track events in the specified slider.
+     * @param slider JSlider for listener
      */
     @Override
     protected TrackListener createTrackListener(JSlider slider)
@@ -65,6 +70,7 @@ public class RangeSliderUI extends BasicSliderUI
 
     /**
      * Creates a listener to handle change events in the specified slider.
+     * @param slider slider for listener
      */
     @Override
     protected ChangeListener createChangeListener(JSlider slider)
@@ -131,6 +137,8 @@ public class RangeSliderUI extends BasicSliderUI
 
     /**
      * Sets the location of the upper thumb, and repaints the slider
+     * @param x x location
+     * @param y y location
      */
     private void setUpperThumbLocation(int x, int y)
     {
@@ -143,8 +151,13 @@ public class RangeSliderUI extends BasicSliderUI
 
 
     /**
-     * Paints the slider.  The selected thumb is always painted on top of the
-     * other thumb.
+     * Paints the slider and thumbs.
+     * @param g the Graphics context in which to paint
+     * @param c the component being painted;
+     *          this argument is often ignored,
+     *          but might be used if the UI object is stateless
+     *          and shared by multiple components
+     *
      */
     @Override
     public void paint(Graphics g, JComponent c)
@@ -176,7 +189,8 @@ public class RangeSliderUI extends BasicSliderUI
 
 
     /**
-     * Paints the track.
+     * Paints the track
+     * @param g the graphics
      */
     @Override
     public void paintTrack(Graphics g)
@@ -203,13 +217,15 @@ public class RangeSliderUI extends BasicSliderUI
 
     /**
      * Override to do nothing. Thumbs painted by paint method.
+     * @param g the graphics
      */
     @Override
     public void paintThumb(Graphics g) {}
 
 
     /**
-     * Paints upper thumb.
+     * Paints lower thumb
+     * @param g the graphics
      */
     public void paintLowerThumb(Graphics g)
     {
@@ -219,7 +235,8 @@ public class RangeSliderUI extends BasicSliderUI
 
 
     /**
-     * Paints lower thumb.
+     * Paints upper thumb
+     * @param g the graphics
      */
     public void paintUpperThumb(Graphics g)
     {
@@ -251,6 +268,10 @@ public class RangeSliderUI extends BasicSliderUI
      */
     public class RangeTrackListener extends TrackListener
     {
+        /**
+         * Gets which thumb is being pressed
+         * @param e the event to be processed
+         */
         @Override
         public void mousePressed(MouseEvent e)
         {
@@ -298,6 +319,11 @@ public class RangeSliderUI extends BasicSliderUI
             lowerDragging = false;
         }
 
+
+        /**
+         * Unselects thumbs
+         * @param e the event to be processed
+         */
         @Override
         public void mouseReleased(MouseEvent e)
         {
@@ -307,6 +333,11 @@ public class RangeSliderUI extends BasicSliderUI
             super.mouseReleased(e);
         }
 
+
+        /**
+         * Redraws thumb being dragged in new mouse location
+         * @param e the event to be processed
+         */
         @Override
         public void mouseDragged(MouseEvent e)
         {
