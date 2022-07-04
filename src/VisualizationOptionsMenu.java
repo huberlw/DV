@@ -3,13 +3,13 @@ import java.awt.*;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 
-public class VisOptionsMenu extends JPanel
+public class VisualizationOptionsMenu extends JPanel
 {
     /**
      * Creates Visualization Options Menu on mouseLocation
      * @param mouseLocation location to create menu on
      */
-    public VisOptionsMenu(Point mouseLocation)
+    public VisualizationOptionsMenu(Point mouseLocation)
     {
         super(new BorderLayout());
 

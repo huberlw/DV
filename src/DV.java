@@ -113,7 +113,7 @@ public class DV extends JFrame
     // previous all data correct and total
     static ArrayList<int[]> prevAllDataClassifications;
 
-    // display confusion matrices
+    // display analytics
     static boolean prevAllDataChecked = true;
     static boolean allDataChecked = true;
     static boolean withoutOverlapChecked = true;
@@ -122,6 +122,7 @@ public class DV extends JFrame
     static boolean userValidationChecked = true;
     static boolean userValidationImported = false;
     static boolean crossValidationChecked = true;
+    static boolean crossValidationNotGenerated = true;
 
     // number of folds for k-fold cross validation
     static int kFolds = 10;
@@ -311,14 +312,14 @@ public class DV extends JFrame
         // visualization options
         JButton visOptionsBtn = new JButton("Visualization Options");
         visOptionsBtn.setToolTipText("Open the visualization options menu");
-        visOptionsBtn.addActionListener(e -> new VisOptionsMenu(MouseInfo.getPointerInfo().getLocation()));
+        visOptionsBtn.addActionListener(e -> new VisualizationOptionsMenu(MouseInfo.getPointerInfo().getLocation()));
         toolBar.add(visOptionsBtn);
         toolBar.addSeparator();
 
         // confusion matrix options
         JButton CMOptionsBtn = new JButton("Analytic Options");
         CMOptionsBtn.setToolTipText("Open the analytics options menu");
-        CMOptionsBtn.addActionListener(e -> new ConfusionMatrixMenu(MouseInfo.getPointerInfo().getLocation()));
+        CMOptionsBtn.addActionListener(e -> new AnalyticsMenu(MouseInfo.getPointerInfo().getLocation()));
         toolBar.add(CMOptionsBtn);
         toolBar.addSeparator();
 
@@ -453,15 +454,7 @@ public class DV extends JFrame
         domainSlider.addMouseListener(new MouseListener()
         {
             @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                if (data != null)
-                {
-                    DataVisualization.drawGraphs(2);
-                    repaint();
-                    revalidate();
-                }
-            }
+            public void mouseClicked(MouseEvent e) {}
 
             @Override
             public void mousePressed(MouseEvent e) {}
@@ -543,15 +536,7 @@ public class DV extends JFrame
         overlapSlider.addMouseListener(new MouseListener()
         {
             @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                if (data != null)
-                {
-                    DataVisualization.drawGraphs(3);
-                    repaint();
-                    revalidate();
-                }
-            }
+            public void mouseClicked(MouseEvent e) {}
 
             @Override
             public void mousePressed(MouseEvent e) {}
@@ -631,15 +616,7 @@ public class DV extends JFrame
         thresholdSlider.addMouseListener(new MouseListener()
         {
             @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                if (data != null)
-                {
-                    DataVisualization.drawGraphs(1);
-                    repaint();
-                    revalidate();
-                }
-            }
+            public void mouseClicked(MouseEvent e) {}
 
             @Override
             public void mousePressed(MouseEvent e) {}
@@ -1309,6 +1286,9 @@ public class DV extends JFrame
                     out.write(graphColors[1].getRed() + ",");
                     out.write(graphColors[1].getGreen() + ",");
                     out.write(graphColors[1].getBlue() + "\n");
+                    out.write(background.getRed() + ",");
+                    out.write(background.getGreen() + ",");
+                    out.write(background.getBlue() + "\n");
 
                     // save line colors
                     out.write(domainLines.getRed() + ",");
@@ -1519,7 +1499,6 @@ public class DV extends JFrame
      */
     private void createUserValidationSet()
     {
-
         try
         {
             if (data.size() > 0)
@@ -1546,7 +1525,8 @@ public class DV extends JFrame
                                 JOptionPane.INFORMATION_MESSAGE);
 
                         // regenerate confusion matrices
-                        ConfusionMatrices.generateConfusionMatrices();
+                        Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                        analytics.execute();
 
                         // revalidate graphs and confusion matrices
                         DV.graphPanel.repaint();

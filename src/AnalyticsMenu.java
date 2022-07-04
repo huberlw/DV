@@ -1,13 +1,13 @@
 import javax.swing.*;
 import java.awt.*;
 
-public class ConfusionMatrixMenu extends JPanel
+public class AnalyticsMenu extends JPanel
 {
     /**
      * Creates Confusion Matrix Menu on mouseLocation
      * @param mouseLocation location to create menu on
      */
-    public ConfusionMatrixMenu(Point mouseLocation)
+    public AnalyticsMenu(Point mouseLocation)
     {
         super(new BorderLayout());
 
@@ -27,7 +27,8 @@ public class ConfusionMatrixMenu extends JPanel
             DV.prevAllDataChecked = !DV.prevAllDataChecked;
 
             // regenerate confusion matrices
-            ConfusionMatrices.generateConfusionMatrices();
+            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+            analytics.execute();
 
             // revalidate graphs and confusion matrices
             DV.graphPanel.repaint();
@@ -46,7 +47,8 @@ public class ConfusionMatrixMenu extends JPanel
             DV.allDataChecked = !DV.allDataChecked;
 
             // regenerate confusion matrices
-            ConfusionMatrices.generateConfusionMatrices();
+            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+            analytics.execute();
 
             // revalidate graphs and confusion matrices
             DV.graphPanel.repaint();
@@ -65,7 +67,8 @@ public class ConfusionMatrixMenu extends JPanel
             DV.withoutOverlapChecked = !DV.withoutOverlapChecked;
 
             // regenerate confusion matrices
-            ConfusionMatrices.generateConfusionMatrices();
+            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+            analytics.execute();
 
             // revalidate graphs and confusion matrices
             DV.graphPanel.repaint();
@@ -84,7 +87,8 @@ public class ConfusionMatrixMenu extends JPanel
             DV.overlapChecked = !DV.overlapChecked;
 
             // regenerate confusion matrices
-            ConfusionMatrices.generateConfusionMatrices();
+            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+            analytics.execute();
 
             // revalidate graphs and confusion matrices
             DV.graphPanel.repaint();
@@ -103,7 +107,8 @@ public class ConfusionMatrixMenu extends JPanel
             DV.worstCaseChecked = !DV.worstCaseChecked;
 
             // regenerate confusion matrices
-            ConfusionMatrices.generateConfusionMatrices();
+            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+            analytics.execute();
 
             // revalidate graphs and confusion matrices
             DV.graphPanel.repaint();
@@ -122,7 +127,8 @@ public class ConfusionMatrixMenu extends JPanel
             DV.userValidationChecked = !DV.userValidationChecked;
 
             // regenerate confusion matrices
-            ConfusionMatrices.generateConfusionMatrices();
+            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+            analytics.execute();
 
             // revalidate graphs and confusion matrices
             DV.graphPanel.repaint();
@@ -141,7 +147,8 @@ public class ConfusionMatrixMenu extends JPanel
             DV.crossValidationChecked = !DV.crossValidationChecked;
 
             // regenerate confusion matrices
-            ConfusionMatrices.generateConfusionMatrices();
+            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+            analytics.execute();
 
             // revalidate graphs and confusion matrices
             DV.graphPanel.repaint();
@@ -188,8 +195,12 @@ public class ConfusionMatrixMenu extends JPanel
                             // set folds
                             DV.kFolds = folds;
 
+                            // reset k-fold generation
+                            DV.crossValidationNotGenerated = true;
+
                             // regenerate confusion matrices
-                            ConfusionMatrices.generateConfusionMatrices();
+                            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                            analytics.execute();
 
                             // revalidate graphs and confusion matrices
                             DV.graphPanel.repaint();
