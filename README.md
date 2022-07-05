@@ -36,7 +36,7 @@ Please refer to the user manual for specifics on any of the information above.
 
 ---
 
-Java 17
+Java 17 - [download](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)
 <br/>
 Windows
 
