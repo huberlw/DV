@@ -13,15 +13,6 @@ public class RangeSlider extends JSlider
      */
     public RangeSlider()
     {
-        initSlider();
-    }
-
-
-    /**
-     * Initializes the slider by setting default properties.
-     */
-    private void initSlider()
-    {
         setOrientation(HORIZONTAL);
     }
 
@@ -38,6 +29,7 @@ public class RangeSlider extends JSlider
 
     /**
      * Sets the lower value in the range.
+     * @param value new value for lower thumb
      */
     @Override
     public void setValue(int value)
@@ -58,6 +50,7 @@ public class RangeSlider extends JSlider
 
     /**
      * Sets the upper value in the range.
+     * @param value new value for upper thumb
      */
     public void setUpperValue(int value)
     {

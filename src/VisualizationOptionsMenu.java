@@ -36,7 +36,7 @@ public class VisualizationOptionsMenu extends JPanel
             if (chosen != -1)
             {
                 // remove past accuracies and classifications
-                DV.prevCM.clear();
+                DV.prevAllDataCM.clear();
                 DV.prevAllDataClassifications.clear();
 
                 // set upper class
@@ -96,7 +96,7 @@ public class VisualizationOptionsMenu extends JPanel
                 if (choice == 0)
                 {
                     // add previous analytics
-                    DV.prevCM.add(DV.allDataCM);
+                    DV.prevAllDataCM.add(DV.allDataCM);
                     DV.prevAllDataClassifications.add(DV.allDataClassifications);
 
                     // get class to be removed

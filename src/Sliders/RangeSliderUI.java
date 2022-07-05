@@ -11,12 +11,12 @@ import java.awt.geom.RoundRectangle2D;
 public class RangeSliderUI extends BasicSliderUI
 {
     // colors for track and thumbs
-    private final Color trackColor;
-    private final Color leftThumbColor;
-    private final Color rightThumbColor;
+    private final Color TRACK_COLOR;
+    private final Color LEFT_THUMB_COLOR;
+    private final Color RIGHT_THUMB_COLOR;
 
     // shape of track
-    private final RoundRectangle2D.Float trackShape = new RoundRectangle2D.Float();
+    private final RoundRectangle2D.Float TRACK_SHAPE = new RoundRectangle2D.Float();
 
     // upper thumb
     private Rectangle upperThumbRect;
@@ -39,9 +39,9 @@ public class RangeSliderUI extends BasicSliderUI
     public RangeSliderUI(RangeSlider rs, Color track, Color left, Color right)
     {
         super(rs);
-        trackColor = track;
-        leftThumbColor = left;
-        rightThumbColor = right;
+        TRACK_COLOR = track;
+        LEFT_THUMB_COLOR = left;
+        RIGHT_THUMB_COLOR = right;
     }
 
 
@@ -90,7 +90,7 @@ public class RangeSliderUI extends BasicSliderUI
         trackRect.y = trackRect.y + (trackRect.height - 8) / 2;
         trackRect.height = 8;
 
-        trackShape.setRoundRect(trackRect.x, trackRect.y, trackRect.width, trackRect.height, 5, 5);
+        TRACK_SHAPE.setRoundRect(trackRect.x, trackRect.y, trackRect.width, trackRect.height, 5, 5);
     }
 
 
@@ -201,14 +201,14 @@ public class RangeSliderUI extends BasicSliderUI
 
         // Paint track grey
         g2.setColor(new Color(200, 200 ,200));
-        g2.fill(trackShape);
+        g2.fill(TRACK_SHAPE);
 
         // paint selected track
         int lowerThumbPos = thumbRect.x + thumbRect.width / 2;
         int width = (upperThumbRect.x + upperThumbRect.width / 2) - lowerThumbPos;
         g2.clipRect(lowerThumbPos, 0, width, slider.getHeight());
-        g2.setColor(trackColor);
-        g2.fill(trackShape);
+        g2.setColor(TRACK_COLOR);
+        g2.fill(TRACK_SHAPE);
 
         // reset clip to full track
         g2.setClip(clip);
@@ -229,7 +229,7 @@ public class RangeSliderUI extends BasicSliderUI
      */
     public void paintLowerThumb(Graphics g)
     {
-        g.setColor(leftThumbColor);
+        g.setColor(LEFT_THUMB_COLOR);
         g.fillOval(thumbRect.x, thumbRect.y, thumbRect.width, thumbRect.height);
     }
 
@@ -240,7 +240,7 @@ public class RangeSliderUI extends BasicSliderUI
      */
     public void paintUpperThumb(Graphics g)
     {
-        g.setColor(rightThumbColor);
+        g.setColor(RIGHT_THUMB_COLOR);
         g.fillOval(upperThumbRect.x, upperThumbRect.y, upperThumbRect.width, upperThumbRect.height);
     }
 

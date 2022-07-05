@@ -13,10 +13,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,12 +34,12 @@ public class DV extends JFrame
     static JPanel crossValidationPanel;
     static JPanel analyticsPanel;
     static JPanel graphPanel;
-    static JPanel graphDomainPanel;
+    static JPanel sliderPanel;
 
     // scroll areas
     JScrollPane graphPane;
     JScrollPane anglesPane;
-    JScrollPane confusionMatrixPane;
+    JScrollPane analyticsPane;
 
     // main frame for DV
     static JFrame mainFrame;
@@ -93,7 +90,7 @@ public class DV extends JFrame
     static double threshold;
 
     // threshold before optimizing
-    public static double prevThreshold;
+    static double prevThreshold;
 
     // true if upper class has lower mean
     static boolean upperIsLower = true;
@@ -105,7 +102,7 @@ public class DV extends JFrame
     static String allDataCM;
 
     // previous all data confusion matrices (only applicable if 3+ classes)
-    static ArrayList<String> prevCM;
+    static ArrayList<String> prevAllDataCM;
 
     // current all data correct and total
     static int[] allDataClassifications;
@@ -141,8 +138,8 @@ public class DV extends JFrame
      * FOR DATA
      ***********************************************/
     // angles and initial angles (store angles before optimizing)
-    public static double[] angles;
-    public static double[] prevAngles;
+    static double[] angles;
+    static double[] prevAngles;
 
     // normalized and original data
     static ArrayList<DataObject> data;
@@ -268,9 +265,9 @@ public class DV extends JFrame
             // try opening DVManual
             try
             {
-               Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\src\\documentation\\DVManual.pdf"));
+               Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\documentation\\user\\DV_User_Manual.pdf"));
             }
-            catch (IOException ioe)
+            catch (IOException | IllegalArgumentException ioe)
             {
                 JOptionPane.showMessageDialog(
                         mainFrame,
@@ -283,10 +280,63 @@ public class DV extends JFrame
         helpMenu.add(manualItem);
 
         // help manu item: normalization info
-        // keyboard shortcut: alt + u
+        // keyboard shortcut: alt + z
         JMenuItem normalizationInfoItem = new JMenuItem("Normalization Info");
-        normalizationInfoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.ALT_DOWN_MASK));
+        normalizationInfoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.ALT_DOWN_MASK));
         normalizationInfoItem.addActionListener(e -> normalizationInfoPopup());
+        helpMenu.add(normalizationInfoItem);
+
+        // help menu item: code help menu
+        // keyboard shortcut: N/A
+        JMenu codeHelpMenu = new JMenu("Code");
+        codeHelpMenu.setMnemonic(KeyEvent.VK_E);
+        helpMenu.add(codeHelpMenu);
+
+        // code help menu item: UML diagram
+        // keyboard shortcut: alt + u
+        JMenuItem umlItem = new JMenuItem("UML Diagram");
+        umlItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.ALT_DOWN_MASK));
+        umlItem.addActionListener(e ->
+        {
+            // try opening DV_UML
+            try
+            {
+                Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\documentation\\code\\DV_UML.png"));
+            }
+            catch (IOException | IllegalArgumentException ioe)
+            {
+                JOptionPane.showMessageDialog(
+                        mainFrame,
+                        "Error opening UML diagram.\n" +
+                                ioe,
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        codeHelpMenu.add(umlItem);
+
+        // code help menu: UML descriptions
+        // keyboard shortcut: alt + l
+        JMenuItem umlDescriptionItem = new JMenuItem("UML Descriptions");
+        umlDescriptionItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.ALT_DOWN_MASK));
+        umlDescriptionItem.addActionListener(e ->
+        {
+            // try opening DV_UML_Descriptions
+            try
+            {
+                Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\documentation\\code\\DV_UML_Descriptions.pdf"));
+            }
+            catch (IOException | IllegalArgumentException ioe)
+            {
+                JOptionPane.showMessageDialog(
+                        mainFrame,
+                        "Error opening UML descriptions.\n" +
+                                ioe,
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        codeHelpMenu.add(umlDescriptionItem);
     }
 
 
@@ -383,7 +433,7 @@ public class DV extends JFrame
      * Create main panel for DV program
      * @return main panel for DV
      */
-    public JPanel uiPanel()
+    private JPanel uiPanel()
     {
         // create main panel for program
         JPanel mainPanel = new JPanel(new GridBagLayout());
@@ -403,11 +453,11 @@ public class DV extends JFrame
         graphPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
         // set layout and size
-        graphDomainPanel = new JPanel();
-        graphDomainPanel.setLayout(new BoxLayout(graphDomainPanel, BoxLayout.Y_AXIS));
-        graphDomainPanel.setPreferredSize(new Dimension(Resolutions.graphDomainPanel[0], Resolutions.graphDomainPanel[1]));
+        sliderPanel = new JPanel();
+        sliderPanel.setLayout(new BoxLayout(sliderPanel, BoxLayout.Y_AXIS));
+        sliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], Resolutions.sliderPanel[1]));
 
-        graphDomainPanel.add(graphPane);
+        sliderPanel.add(graphPane);
 
         // create domain slider
         JPanel domainSliderPanel = new JPanel();
@@ -483,13 +533,13 @@ public class DV extends JFrame
 
         // add to panels
         domainSliderPanel.add(domainSlider);
-        graphDomainPanel.add(domainSliderPanel);
+        sliderPanel.add(domainSliderPanel);
 
         // add label
         JPanel domainSliderLabel = new JPanel();
         domainSliderLabel.add(new JLabel("Subset of Utilized Data for All Classes"));
         domainSliderLabel.setToolTipText("Control visible range of graph");
-        graphDomainPanel.add(domainSliderLabel);
+        sliderPanel.add(domainSliderLabel);
 
         // create overlap slider
         JPanel overlapSliderPanel = new JPanel();
@@ -566,13 +616,13 @@ public class DV extends JFrame
 
         // add to panels
         overlapSliderPanel.add(overlapSlider);
-        graphDomainPanel.add(overlapSliderPanel);
+        sliderPanel.add(overlapSliderPanel);
 
         // add label
         JPanel overlapSliderLabel = new JPanel();
         overlapSliderLabel.add(new JLabel("Overlap Area for All Classes"));
         overlapSliderLabel.setToolTipText("Control overlap Area of graph");
-        graphDomainPanel.add(overlapSliderLabel);
+        sliderPanel.add(overlapSliderLabel);
 
         // create threshold slider
         JPanel thresholdSliderPanel = new JPanel();
@@ -645,23 +695,23 @@ public class DV extends JFrame
 
         // add to panels
         thresholdSliderPanel.add(thresholdSlider);
-        graphDomainPanel.add(thresholdSliderPanel);
+        sliderPanel.add(thresholdSliderPanel);
 
         // add label
         JPanel thresholdSliderLabel = new JPanel();
         thresholdSliderLabel.add(new JLabel("Control for Threshold Interval for Visualization"));
         thresholdSliderLabel.setToolTipText("Change threshold value for visualization");
-        graphDomainPanel.add(thresholdSliderLabel);
+        sliderPanel.add(thresholdSliderLabel);
 
         // finalize domain panel
         constraints.weightx = 0.7;
         constraints.gridx = 0;
         constraints.gridy = 0;
-        mainPanel.add(graphDomainPanel, constraints);
+        mainPanel.add(sliderPanel, constraints);
 
         // create angles scroll pane
         angleSliderPanel = new JPanel(new GridLayout(1, 0));
-        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], Resolutions.sliderPanel[1]));
+        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], Resolutions.angleSliderPanel[1]));
         anglesPane = new JScrollPane(angleSliderPanel);
         anglesPane.setPreferredSize(new Dimension(Resolutions.anglesPane[0], Resolutions.anglesPane[1]));
 
@@ -681,15 +731,15 @@ public class DV extends JFrame
         analyticsPanel.add(crossValidationPanel);
 
         // create confusion matrix pane
-        confusionMatrixPane = new JScrollPane(analyticsPanel);
-        confusionMatrixPane.setPreferredSize(new Dimension(Resolutions.confusionMatrixPane[0], Resolutions.confusionMatrixPane[1]));
-        confusionMatrixPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        analyticsPane = new JScrollPane(analyticsPanel);
+        analyticsPane.setPreferredSize(new Dimension(Resolutions.analyticsPane[0], Resolutions.analyticsPane[1]));
+        analyticsPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
         constraints.weightx = 1;
         constraints.gridx = 0;
         constraints.gridy = 1;
         constraints.gridwidth = 2;
-        mainPanel.add(confusionMatrixPane, constraints);
+        mainPanel.add(analyticsPane, constraints);
 
         return mainPanel;
     }
@@ -794,7 +844,9 @@ public class DV extends JFrame
             fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
             // open file dialog
-            if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+            int results = fileDialog.showOpenDialog(mainFrame);
+
+            if (results == JFileChooser.APPROVE_OPTION)
             {
                 File dataFile = fileDialog.getSelectedFile();
 
@@ -809,7 +861,7 @@ public class DV extends JFrame
                 {
                     // optimize data setup with Linear Discriminant Analysis
                     DataVisualization.optimizeSetup();
-                    angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
+                    angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
 
                     DataVisualization.drawGraphs(0);
                 }
@@ -825,7 +877,7 @@ public class DV extends JFrame
                     graphPanel.add(blankGraph());
                 }
             }
-            else
+            else if (results != JFileChooser.CANCEL_OPTION)
             {
                 JOptionPane.showMessageDialog(
                         mainFrame,
@@ -873,7 +925,9 @@ public class DV extends JFrame
                 fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
                 // open file dialog
-                if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+                int results = fileDialog.showOpenDialog(mainFrame);
+
+                if (results == JFileChooser.APPROVE_OPTION)
                 {
                     File importFile = fileDialog.getSelectedFile();
 
@@ -888,7 +942,7 @@ public class DV extends JFrame
                     {
                         // optimize data setup with Linear Discriminant Analysis
                         DataVisualization.optimizeSetup();
-                        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
+                        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
 
                         DataVisualization.drawGraphs(0);
                     }
@@ -902,7 +956,7 @@ public class DV extends JFrame
                                 JOptionPane.ERROR_MESSAGE);
                     }
                 }
-                else
+                else if (results != JFileChooser.CANCEL_OPTION)
                 {
                     JOptionPane.showMessageDialog(
                             mainFrame,
@@ -958,7 +1012,9 @@ public class DV extends JFrame
             fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
             // open file dialog
-            if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
+            int results = fileDialog.showOpenDialog(mainFrame);
+
+            if (results == JFileChooser.APPROVE_OPTION)
             {
                 File projectFile = fileDialog.getSelectedFile();
 
@@ -969,10 +1025,10 @@ public class DV extends JFrame
                 DataSetup.setupProjectData(projectFile);
 
                 // create graphs
-                angleSliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], (100 * fieldLength)));
+                angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
                 DataVisualization.drawGraphs(0);
             }
-            else
+            else if (results != JFileChooser.CANCEL_OPTION)
             {
                 JOptionPane.showMessageDialog(
                         mainFrame,
@@ -1090,13 +1146,13 @@ public class DV extends JFrame
                 else out.write("0\n");
 
                 // are there previous confusion matrices
-                if (prevCM.size() > 0)
-                    out.write(prevCM.size() + "\n");
+                if (prevAllDataCM.size() > 0)
+                    out.write(prevAllDataCM.size() + "\n");
                 else
                     out.write("0\n");
 
                 // save previous confusion matrices
-                for (String s : prevCM)
+                for (String s : prevAllDataCM)
                 {
                     char[] cm = s.toCharArray();
 
@@ -1351,13 +1407,13 @@ public class DV extends JFrame
                     else out.write("0\n");
 
                     // are there previous confusion matrices
-                    if (prevCM.size() > 0)
-                        out.write(prevCM.size() + "\n");
+                    if (prevAllDataCM.size() > 0)
+                        out.write(prevAllDataCM.size() + "\n");
                     else
                         out.write("0\n");
 
                     // save previous confusion matrices
-                    for (String s : prevCM)
+                    for (String s : prevAllDataCM)
                     {
                         char[] cm = s.toCharArray();
 
@@ -1605,7 +1661,7 @@ public class DV extends JFrame
         uniqueClasses = null;
 
         // reset previous confusion matrices
-        prevCM = new ArrayList<>();
+        prevAllDataCM = new ArrayList<>();
 
         // reset previous all data classifications
         prevAllDataClassifications = new ArrayList<>();

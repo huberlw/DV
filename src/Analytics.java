@@ -24,7 +24,7 @@ public class Analytics
     static ArrayList<String> curClasses;
 
     // holds confusion matrices in order
-    final static Map<Integer, JTextArea> confusionMatrices = new HashMap<>();
+    final static Map<Integer, JTextArea> CONFUSION_MATRICES = new HashMap<>();
 
 
     /**
@@ -37,7 +37,7 @@ public class Analytics
         protected Boolean doInBackground()
         {
             // remove old confusion matrices
-            confusionMatrices.clear();
+            CONFUSION_MATRICES.clear();
 
             // get current classes being visualized
             getCurClasses();
@@ -120,10 +120,10 @@ public class Analytics
             }
 
             // add confusion matrices in order
-            for (int i = 0; i < DV.prevCM.size() + 6; i++)
+            for (int i = 0; i < DV.prevAllDataCM.size() + 6; i++)
             {
-                if (confusionMatrices.containsKey(i))
-                    DV.confusionMatrixPanel.add(confusionMatrices.get(i));
+                if (CONFUSION_MATRICES.containsKey(i))
+                    DV.confusionMatrixPanel.add(CONFUSION_MATRICES.get(i));
             }
 
             return true;
@@ -132,7 +132,7 @@ public class Analytics
 
 
     /**
-     * Gets current classes being used
+     * Gets current classes being visualized
      */
     private static void getCurClasses()
     {
@@ -168,14 +168,14 @@ public class Analytics
         protected Boolean doInBackground()
         {
             // set all previous confusion matrices
-            for (int i = 0; i < DV.prevCM.size(); i++)
+            for (int i = 0; i < DV.prevAllDataCM.size(); i++)
             {
-                JTextArea confusionMatrix = new JTextArea(DV.prevCM.get(i));
+                JTextArea confusionMatrix = new JTextArea(DV.prevAllDataCM.get(i));
                 confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix.setEditable(false);
-                synchronized (confusionMatrices)
+                synchronized (CONFUSION_MATRICES)
                 {
-                    confusionMatrices.put(i, confusionMatrix);
+                    CONFUSION_MATRICES.put(i, confusionMatrix);
                 }
             }
 
@@ -323,9 +323,9 @@ public class Analytics
             JTextArea confusionMatrix = new JTextArea(DV.allDataCM);
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
-            synchronized (confusionMatrices)
+            synchronized (CONFUSION_MATRICES)
             {
-                confusionMatrices.put(DV.prevCM.size(), confusionMatrix);
+                CONFUSION_MATRICES.put(DV.prevAllDataCM.size(), confusionMatrix);
             }
 
             return true;
@@ -431,9 +431,9 @@ public class Analytics
                     JTextArea confusionMatrix = new JTextArea(cm.toString());
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
-                    synchronized (confusionMatrices)
+                    synchronized (CONFUSION_MATRICES)
                     {
-                        confusionMatrices.put(DV.prevCM.size() + 1, confusionMatrix);
+                        CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 1, confusionMatrix);
                     }
                 }
             }
@@ -545,9 +545,9 @@ public class Analytics
                     JTextArea confusionMatrix = new JTextArea(cm.toString());
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
-                    synchronized (confusionMatrices)
+                    synchronized (CONFUSION_MATRICES)
                     {
-                        confusionMatrices.put(DV.prevCM.size() + 2, confusionMatrix);
+                        CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 2, confusionMatrix);
                     }
                 }
                 else if (cmValues != null)
@@ -578,9 +578,9 @@ public class Analytics
                     JTextArea confusionMatrix = new JTextArea(cm.toString());
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
-                    synchronized (confusionMatrices)
+                    synchronized (CONFUSION_MATRICES)
                     {
-                        confusionMatrices.put(DV.prevCM.size() + 3, confusionMatrix);
+                        CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 3, confusionMatrix);
                     }
                 }
             }
@@ -708,9 +708,9 @@ public class Analytics
             JTextArea confusionMatrix = new JTextArea(cm.toString());
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
-            synchronized (confusionMatrices)
+            synchronized (CONFUSION_MATRICES)
             {
-                confusionMatrices.put(DV.prevCM.size() + 4, confusionMatrix);
+                CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 4, confusionMatrix);
             }
 
             return true;
@@ -853,9 +853,9 @@ public class Analytics
             JTextArea confusionMatrix = new JTextArea( cm.toString());
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
-            synchronized (confusionMatrices)
+            synchronized (CONFUSION_MATRICES)
             {
-                confusionMatrices.put(DV.prevCM.size() + 5, confusionMatrix);
+                CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 5, confusionMatrix);
             }
 
             return true;

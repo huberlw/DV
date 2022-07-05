@@ -1,0 +1,410 @@
+@startuml
++class Analytics
+{
+    {static} percentageOverlapPointsUsed: String
+
+    {static} upper: ArrayList<double[]>
+    {static} lower: ArrayList<double[]>
+
+    {static} LDAFunction: ArrayList<Double>
+
+    {static} curClasses: ArrayList<String>
+
+    {static} CONFUSION_MATRICES: Map<Integer, JTextArea>
+
+    -{static} getCurClasses(): void
+    -{static} createCSVFileForConfusionMatrix(data: ArrayList<ArrayList<double[]>>, fileName: String): void
+    -{static} LDAForConfusionMatrices(storeFunction: boolean, fileName: String): ArrayList<String>
+}
+
++class SwingWorker<T, V>
+{
+    #{abstract} T doInBackground()
+}
+
++class GenerateAnalytics extends SwingWorker
+{
+    <<static>>
+    #Boolean doInBackground()
+}
+
+-class AddOldConfusionMatrices extends SwingWorker
+{
+    <<static>>
+    #Boolean doInBackground()
+}
+
+-class GetAllDataConfusionMatrix extends SwingWorker
+{
+    <<static>>
+    #Boolean doInBackground()
+}
+
+-class GetDataWithoutOverlapConfusionMatrix extends SwingWorker
+{
+    <<static>>
+    #Boolean doInBackground()
+}
+
+-class GetOverlapConfusionMatrix extends SwingWorker
+{
+    <<static>>
+    #Boolean doInBackground()
+}
+
+-class GetWorstCaseConfusionMatrix extends SwingWorker
+{
+    <<static>>
+    #Boolean doInBackground()
+}
+
+-class GetUserValidationConfusionMatrix extends SwingWorker
+{
+    <<static>>
+    #Boolean doInBackground()
+}
+
+-class GetKFoldCrossValidation extends SwingWorker
+{
+    <<static>>
+    #Boolean doInBackground()
+}
+
+Analytics +-- GenerateAnalytics
+Analytics +-- AddOldConfusionMatrices
+Analytics +-- GetAllDataConfusionMatrix
+Analytics +-- GetDataWithoutOverlapConfusionMatrix
+Analytics +-- GetOverlapConfusionMatrix
+Analytics +-- GetWorstCaseConfusionMatrix
+Analytics +-- GetUserValidationConfusionMatrix
+Analytics +-- GetKFoldCrossValidation
+
++class JPanel {
+}
+
++class AnalyticsMenu extends JPanel
+{
+    +AnalyticsMenu(mouseLocation: Point)
+}
+
++class AngleSliders
+{
+    +{static} createSliderPanel(fieldName: String, angle: int, index: int): void
+}
+
++class ColorOptionsMenu extends JPanel
+{
+    +ColorOptionsMenu(mouseLocation: Point)
+}
+
++class DataObject
+{
+    className: String:
+    data: double[][]
+    coordinates: double[][][]
+
+    +DataObject(name: String, dataValues: double[][])
+    +updateCoordinates(angles: double[]): double
+    -generateCoordinates(dataPoint: double[], angles: double[]): double[][]
+    -getXYPoint(value: double, angle: double): double[]
+}
+
++class DataSetup
+{
+    {static} allClasses: ArrayList<String>
+    {static} validationClasses: ArrayList<String>
+
+    +{static} setupWithData(dataFile: File): boolean
+    +{static} setupValidationData(valFile: File): boolean
+    +{static} setupImportData(importFile: File): boolean
+    +{static} setupProjectData(projectFile): File): void
+
+    -{static} checkFormat(stringData: String[][]): boolean
+    -{static} getClasses(stringData: String[][]): ArrayList<String>
+    -{static} checkAllClasses(stringData: String[][]): boolean
+
+    -{static} getStringFromCSV(stringData: String[][]): String[][]
+    -{static} purgeID(stringData: String[][]): String[][]
+    -{static} purgeClasses(stringData: String[][]): String[][]
+    -{static} getFieldNames(stringData: String[][]): ArrayList<String>
+
+    -{static} stringToNumerical(stringData: String[][]): double[][]
+    -{static} normalizeData(data: double[][]): double[][]
+
+    -{static} separateByClass(data: double[][], classes: ArrayList<String>): ArrayList<double[][]>
+    -{static} createDataObjects(data: ArrayList<double[][]>): ArrayList<DataObject>
+    -{static} addImportedData(data: ArrayList<double[][]>, original: boolean): ArrayList<DataObject>
+
+    -{static} manualMinMaxEntry(message: String): double[]
+}
+
++class DataVisualization
+{
+    {static} GRAPHS: Map<Integer, JPanel>
+
+    +{static} optimizeSetup(): void
+    +{static} optimizeThreshold(bestAccuracy: double): void
+    +{static} optimizeVisualization(): void
+    +{static} undoOptimization(): void
+
+    -{static} createCSVFile(): void
+    -{static} LDA(): void
+
+    +{static} getAccuracy(): void
+    +{static} getOverlap(): void
+
+    +{static} drawGraphs(active: int): void
+    +{static} getCoordinates(dataObjects: ArrayList<DataObject>): double
+}
+
+-class AddGraph extends SwingWorker
+{
+    <<static>>
+    DATA_OBJECTS: ArrayList<DataObject>
+    UPPER_OR_LOWER: int
+    ACTIVE: int
+    GRAPH_SCALER: double
+
+    AddGraph(dataObjects: ArrayList<DataObject>, upperOrLower: int, active: int, graphScaler: double)
+    #Boolean doInBackground()
+}
+
+DataVisualization +-- AddGraph
+
++class Main
+{
+    +{static} main(args: String[]): void
+}
+
++class Resolutions
+{
+    +{static} dvWindow: int[]
+    +{static} angleSliderPanel: int[]
+    +{static} chartPanel: int[]
+    +{static} sliderPanel: int[]
+    +{static} anglesPane: int[]
+    +{static} domainSlider: int[]
+    +{static} analyticsPane: int[]
+    +{static} singleChartPanel: int[]
+
+    +{static} setResolution(resolution: int): void
+}
+
++class VisualizationOptionsMenu extends JPanel
+{
+    +VisualizationOptionsMenu(mouseLocation: Point)
+}
+
++class JSlider
+{
+    +getValue(): int
+    +setValue(): void
+}
+
++class RangeSlider extends JSlider
+{
+    +RangeSlider()
+
+    +getValue(): int
+    +setValue(): void
+    +getUpperValue(): int
+    +setUpperValue(): int
+}
+
++class BasicSliderUI
+{
+    +installUI(c: JComponent): void
+
+    #createTrackListener(slider: JSlider): TrackListener
+    #createChangeListener(slider: JSlider): ChangeListener
+
+    #calculateTrackRect(): void
+    #calculateThumbSize(): void
+    #calculateThumbLocation(): void
+    #getThumbSize(): Dimension
+
+    +paint(g: Graphics, c: JComponent): void
+    +paintTrack(g: Graphics): void
+    +paintThumb(g: Graphics): void
+}
+
++class RangeSliderUI extends BasicSliderUI
+{
+    -TRACK_COLOR: Color
+    -LEFT_THUMB_COLOR: Color
+    -RIGHT_THUMB_COLOR: Color
+
+    -TRACK_SHAPE: RoundRectangle2D.Float
+    -upperThumbRect: Rectangle
+
+    -lowerDragging: boolean
+    -upperDragging: boolean
+    -upperThumbSelected: boolean
+
+    +RangeSliderUI(rs: RangeSlider, track: Color, left: Color, right: Color)
+    +installUI(c: JComponent): void
+
+    #createTrackListener(slider: JSlider): TrackListener
+    #createChangeListener(slider: JSlider): ChangeListener
+
+    #calculateTrackRect(): void
+    #calculateThumbSize(): void
+    #calculateThumbLocation(): void
+    #getThumbSize(): Dimension
+    -setUpperThumbLocation(x: int, y: int): void
+
+    +paint(g: Graphics, c: JComponent): void
+    +paintTrack(g: Graphics): void
+    +paintThumb(g: Graphics): void
+    +paintLowerThumb(g: Graphics): void
+    +paintUpperThumb(g: Graphics): void
+}
+
++class ChangeListener{
+}
+
++class ChangeHandler implements ChangeListener
+{
+    +stateChanged(arg0: ChangeEvent): void
+}
+
+RangeSliderUI +-- ChangeHandler
+
++class TrackListener
+{
+    +mousePressed(e: MouseEvent): void
+    +mouseReleased(e: MouseEvent): void
+    +mouseDragged(e: MouseEvent): void
+}
+
++class RangeTrackListener extends TrackListener
+{
+    +mousePressed(e: MouseEvent): void
+    +mouseReleased(e: MouseEvent): void
+    +mouseDragged(e: MouseEvent): void
+
+    -moveLowerThumb(): void
+    -moseUpperThumb(): void
+}
+RangeSliderUI +-- RangeTrackListener
+
++class ThresholdSliderUI extends BasicSliderUI
+{
+    -TRACK_SHAPE: RoundRectangle2D.Float
+
+    +ThresholdSliderUI(b: JSlider)
+
+    #calculateTrackRect(): void
+    #calculateThumbLocation(): void
+    #getThumbSize(): Dimension
+
+    +paint(g: Graphics, c: JComponent): void
+    +paintTrack(g: Graphics): void
+    +paintThumb(g: graphics): void
+}
+
++class JFrame{
+}
+
++class DV extends JFrame
+{
+    {static} domainSlider: RangeSlider
+    {static} overlapSlider: RangeSlider
+    {static} thresholdSlider: JSlider
+
+    {static} angleSliderPanel: JPanel
+    {static} confusionMatrixPanel: JPanel
+    {static} crossValidationPanel: JPanel
+    {static} analyticsPanel: JPanel
+    {static} graphPanel: JPanel
+    {static} sliderPanel: JPanel
+
+    graphPane: JScrollPane
+    anglesPane: JScrollPane
+    analyticsPane: JScrollPane
+
+    {static} mainFrame: JFrame
+
+    {static} domainLines: Color
+    {static} overlapLines: Color
+    {static} thresholdLine: Color
+    {static} background: Color
+    {static} graphColors: Color[]
+
+    {static} showBars: boolean
+    {static} drawOverlap: boolean
+
+    {static} domainActive: boolean
+    {static} domainArea: double[]
+    {static} overlapArea: double[]
+    {static} threshold: double
+    {static} prevThreshold: double
+
+    {static} upperClass: int
+    {static} lowerClasses: ArrayList<Boolean>
+
+    {static} showPopup: boolean
+
+    {static} upperIsLower: boolean
+    {static} accuracy: double
+
+    {static} allDataCM: String
+    {static} prevAllDataCM: ArrayList<String>
+    {static} allDataClassifications: int[]
+    {static} prevAllDataClassifications: ArrayList<int[]>
+
+    {static} prevAllDataChecked: boolean
+    {static} allDataChecked: boolean
+    {static} withoutOverlapChecked: boolean
+    {static} overlapChecked: boolean
+    {static} worstCaseChecked: boolean
+    {static} userValidationChecked: boolean
+    {static} userValidationImported: boolean
+    {static} crossValidationChecked: boolean
+    {static} crossValidationNotGenerated: boolean
+    {static} kFolds: int
+
+    {static} hasID: boolean
+    {static} hasClasses: boolean
+    {static} zScoreMinMax: boolean
+
+    {static} angles: double[]
+    {static} prevAngles: double[]
+
+    {static} data: ArrayList<DataObject>
+    {static} originalData: ArrayList<DataObject>
+    {static} validationData: ArrayList<DataObject>
+
+    {static} uniqueClasses: ArrayList<String>
+    {static} classNumber: int
+
+    {static} fieldNames: ArrayList<String>
+    {static} fieldLength: int
+
+    {static} projectSaveName: String
+
+    +DV()
+    -createMenuBar(): void
+    -createToolBar(): void
+    -uiPanel(): JPanel
+
+    -blankGraph:() ChartPanel
+
+    -createNewProject(): void
+    -createUserValidationSet(): void
+    -importData(): void
+
+    -openSavedProject(): void
+    -saveProject(): void
+    -saveProjectAs(): void
+
+    -normalizationInfoPopup(): void
+    -resetProgram(): void
+}
+
+DV "1" *-- "many" RangeSlider
+DV "1" *-- "1" JSlider
+DV "1" *-- "many" DataObject
+DV "1" *-- "many" JPanel
+DV "1" *-- "1" JFrame
+@enduml

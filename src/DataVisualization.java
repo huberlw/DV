@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutionException;
 public class DataVisualization
 {
     // holds upper and lower graphs
-    final static Map<Integer, JPanel> graphs = new HashMap<>();
+    final static Map<Integer, JPanel> GRAPHS = new HashMap<>();
 
 
     /**
@@ -594,7 +594,7 @@ public class DataVisualization
     public static void drawGraphs(int active)
     {
         // remove old graphs
-        graphs.clear();
+        GRAPHS.clear();
 
         // remove old graphs
         DV.graphPanel.removeAll();
@@ -653,10 +653,10 @@ public class DataVisualization
         }
 
         // add graphs in order
-        for (int i = 0; i < graphs.size(); i++)
+        for (int i = 0; i < GRAPHS.size(); i++)
         {
-            if (graphs.containsKey(i))
-                DV.graphPanel.add(graphs.get(i));
+            if (GRAPHS.containsKey(i))
+                DV.graphPanel.add(GRAPHS.get(i));
         }
 
         // revalidate graphs and confusion matrices
@@ -708,10 +708,10 @@ public class DataVisualization
      */
     private static class AddGraph extends SwingWorker<Boolean, Void>
     {
-        final ArrayList<DataObject> dataObjects;
-        final int upperOrLower;
-        final int active;
-        final double graphScaler;
+        final ArrayList<DataObject> DATA_OBJECTS;
+        final int UPPER_OR_LOWER;
+        final int ACTIVE;
+        final double GRAPH_SCALER;
 
         /**
          * Initializes parameters
@@ -721,10 +721,10 @@ public class DataVisualization
          */
         AddGraph(ArrayList<DataObject> dataObjects, int upperOrLower, int active, double graphScaler)
         {
-            this.dataObjects = dataObjects;
-            this.upperOrLower = upperOrLower;
-            this.active = active;
-            this.graphScaler = graphScaler;
+            this.DATA_OBJECTS = dataObjects;
+            this.UPPER_OR_LOWER = upperOrLower;
+            this.ACTIVE = active;
+            this.GRAPH_SCALER = graphScaler;
         }
 
         @Override
@@ -752,7 +752,7 @@ public class DataVisualization
             double lineHeight = DV.fieldLength;
 
             // set domain lines
-            if (upperOrLower == 1)
+            if (UPPER_OR_LOWER == 1)
                 lineHeight *= -1;
 
             domainMaxLine.add(DV.domainArea[0], 0);
@@ -796,7 +796,7 @@ public class DataVisualization
             int lineCnt = 0;
 
             // populate series
-            for (DataObject data : dataObjects)
+            for (DataObject data : DATA_OBJECTS)
             {
                 for (int i = 0; i < data.data.length; i++, lineCnt++) {
                     // start line at (0, 0)
@@ -812,7 +812,7 @@ public class DataVisualization
                         // add points to lines
                         for (int j = 0; j < DV.fieldLength; j++) {
                             int upOrDown;
-                            if (upperOrLower == 1)
+                            if (UPPER_OR_LOWER == 1)
                                 upOrDown = -1;
                             else
                                 upOrDown = 1;
@@ -824,7 +824,7 @@ public class DataVisualization
 
                             // add endpoint and timeline
                             if (j == DV.fieldLength - 1) {
-                                if (upperOrLower == 1)
+                                if (UPPER_OR_LOWER == 1)
                                     endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
                                 else
                                     endpointSeries.add(data.coordinates[i][j][0], data.coordinates[i][j][1]);
@@ -864,7 +864,7 @@ public class DataVisualization
 
             // format plot
             plot.setDrawingSupplier(new DefaultDrawingSupplier(
-                    new Paint[] { DV.graphColors[upperOrLower] },
+                    new Paint[] { DV.graphColors[UPPER_OR_LOWER] },
                     DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
                     DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
                     DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
@@ -881,7 +881,7 @@ public class DataVisualization
             plot.setRangeGridlinePaint(Color.GRAY);
 
             // set domain and range of graph
-            double bound = graphScaler * DV.fieldLength;
+            double bound = GRAPH_SCALER * DV.fieldLength;
             double tick = DV.fieldLength / 10.0;
 
             // set domain
@@ -896,7 +896,7 @@ public class DataVisualization
             yAxis.setTickUnit(new NumberTickUnit(tick));
 
             // set range up or down
-            if (upperOrLower == 1)
+            if (UPPER_OR_LOWER == 1)
                 rangeView.setRange(-bound * 0.4, 0);
             else
                 rangeView.setRange(0, bound * 0.4);
@@ -912,7 +912,7 @@ public class DataVisualization
                 double memberCnt = 0;
 
                 // get bar lengths
-                for (DataObject dataObj : dataObjects)
+                for (DataObject dataObj : DATA_OBJECTS)
                 {
                     // get member count
                     memberCnt += dataObj.data.length;
@@ -941,7 +941,7 @@ public class DataVisualization
 
                     // bar width = interval
                     // bar height = (total endpoints on bar) / (total endpoints)
-                    if (upperOrLower == 1)
+                    if (UPPER_OR_LOWER == 1)
                         bar.add(interval, minBound, maxBound, -barRanges[i] / memberCnt, -maxBarHeight, 0);
                     else
                         bar.add(interval, minBound, maxBound, barRanges[i] / memberCnt, 0, maxBarHeight);
@@ -954,7 +954,7 @@ public class DataVisualization
             }
 
             // set strokes for active and inactive lines
-            switch (active)
+            switch (ACTIVE)
             {
                 case 1 -> // threshold line is active
                 {
@@ -1040,7 +1040,7 @@ public class DataVisualization
             }
             else
             {
-                if (upperOrLower == 1)
+                if (UPPER_OR_LOWER == 1)
                     timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
                 else
                     timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
@@ -1076,7 +1076,7 @@ public class DataVisualization
 
                         // if upper class than curClass is upperClass
                         // otherwise search for class
-                        if (upperOrLower == 1)
+                        if (UPPER_OR_LOWER == 1)
                         {
                             // -1 because index start at 0, not 1
                             int cnt = -1;
@@ -1150,9 +1150,9 @@ public class DataVisualization
             });
 
             // add graph to graph panel
-            synchronized (graphs)
+            synchronized (GRAPHS)
             {
-                graphs.put(upperOrLower, chartPanel);
+                GRAPHS.put(UPPER_OR_LOWER, chartPanel);
             }
 
             return true;

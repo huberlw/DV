@@ -7,7 +7,7 @@ import java.awt.geom.RoundRectangle2D;
 
 public class ThresholdSliderUI extends BasicSliderUI
 {
-    private final RoundRectangle2D.Float trackShape = new RoundRectangle2D.Float();
+    private final RoundRectangle2D.Float TRACK_SHAPE = new RoundRectangle2D.Float();
 
     /**
      * Constructs a ThresholdSliderUI for the specified slider component.
@@ -30,7 +30,7 @@ public class ThresholdSliderUI extends BasicSliderUI
         trackRect.y = trackRect.y + (trackRect.height - 8) / 2;
         trackRect.height = 8;
 
-        trackShape.setRoundRect(trackRect.x, trackRect.y, trackRect.width, trackRect.height, 5, 5);
+        TRACK_SHAPE.setRoundRect(trackRect.x, trackRect.y, trackRect.width, trackRect.height, 5, 5);
     }
 
     /**
@@ -85,13 +85,13 @@ public class ThresholdSliderUI extends BasicSliderUI
 
         // Paint track grey
         g2.setColor(new Color(200, 200 ,200));
-        g2.fill(trackShape);
+        g2.fill(TRACK_SHAPE);
 
         // Paint selected track green
         int thumbPos = thumbRect.x + thumbRect.width / 2;
         g2.clipRect(0, 0, thumbPos, slider.getHeight());
         g2.setColor(new Color(0, 200 ,0));
-        g2.fill(trackShape);
+        g2.fill(TRACK_SHAPE);
 
         // reset clip to full track
         g2.setClip(clip);

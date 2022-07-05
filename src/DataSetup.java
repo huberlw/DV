@@ -284,7 +284,7 @@ public class DataSetup
                      cm[j] = '\n';
              }
 
-                DV.prevCM.add(Arrays.toString(cm));
+                DV.prevAllDataCM.add(Arrays.toString(cm));
             }
 
             // get k-folds
