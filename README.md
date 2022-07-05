@@ -20,11 +20,11 @@ Please refer to the user manual for specifics on any of the information above.
 
 ---
 
-Dataset must be in .csv format
-Dataset must include a header row
-If there is an ID column, it must be first
-If there is a class column it must be last
-Dataset features besides "class" must be numeric
+- Dataset must be in .csv format
+- Dataset must include a header row
+- If there is an ID column, it must be first
+- If there is a class column it must be last
+- Dataset features besides "class" must be numeric
 
 ### Example Dataset:
 
