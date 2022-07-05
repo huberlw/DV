@@ -1,5 +1,5 @@
 # TODO
-1. Finish documentation
+1. Stabilize program when data has 0 or 1 classes
 2. Creates separate window for analytics
 3. Create more than 1 projection line
 4. Substitute linear function by a weighted sum of functions
