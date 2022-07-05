@@ -46,7 +46,8 @@ Windows
 
 1. Clone repository and open in explorer
 2. Open "run" directory
-3. Run "run_dv.bat"
+3. Unzip DV.zip
+4. Run "run.bat"
 
 ### Build and Run from Source:
 
