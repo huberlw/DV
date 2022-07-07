@@ -205,7 +205,7 @@ public class DataVisualization
             }
 
             // delete created file
-            File fileToDelete = new File("src\\Python\\DV_data.csv");
+            File fileToDelete = new File(System.getProperty("user.dir") + "\\Python\\DV_data.csv");
             Files.deleteIfExists(fileToDelete.toPath());
         }
         catch (IOException e)
