@@ -107,7 +107,7 @@ public class DataVisualization
         try
         {
             // create csv file
-            File csv = new File(System.getProperty("user.dir") + "\\Python\\DV_data.csv");
+            File csv = new File("Python\\DV_data.csv");
             Files.deleteIfExists(csv.toPath());
 
             // write to csv file
@@ -165,8 +165,8 @@ public class DataVisualization
     {
         // create LDA (python) process
         ProcessBuilder lda = new ProcessBuilder("cmd", "/c",
-                System.getProperty("user.dir") + "\\Python\\LinearDiscriminantAnalysis\\LinearDiscriminantAnalysis.exe",
-                System.getProperty("user.dir") + "\\Python\\DV_data.csv");
+                "Python\\LinearDiscriminantAnalysis\\LinearDiscriminantAnalysis.exe",
+                "Python\\DV_data.csv");
 
         try
         {
@@ -205,7 +205,7 @@ public class DataVisualization
             }
 
             // delete created file
-            File fileToDelete = new File(System.getProperty("user.dir") + "\\Python\\DV_data.csv");
+            File fileToDelete = new File("Python\\DV_data.csv");
             Files.deleteIfExists(fileToDelete.toPath());
         }
         catch (IOException e)

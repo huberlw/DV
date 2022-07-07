@@ -265,7 +265,7 @@ public class DV extends JFrame
             // try opening DVManual
             try
             {
-               Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\documentation\\user\\DV_User_Manual.pdf"));
+               Desktop.getDesktop().open(new File("documentation\\user\\DV_User_Manual.pdf"));
             }
             catch (IOException | IllegalArgumentException ioe)
             {
@@ -301,7 +301,7 @@ public class DV extends JFrame
             // try opening DV_UML
             try
             {
-                Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\documentation\\code\\DV_UML.png"));
+                Desktop.getDesktop().open(new File("documentation\\code\\DV_UML.png"));
             }
             catch (IOException | IllegalArgumentException ioe)
             {
@@ -324,7 +324,7 @@ public class DV extends JFrame
             // try opening DV_UML_Descriptions
             try
             {
-                Desktop.getDesktop().open(new File(System.getProperty("user.dir") + "\\documentation\\code\\DV_UML_Descriptions.pdf"));
+                Desktop.getDesktop().open(new File("documentation\\code\\DV_UML_Descriptions.pdf"));
             }
             catch (IOException | IllegalArgumentException ioe)
             {

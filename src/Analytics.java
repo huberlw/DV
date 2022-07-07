@@ -396,7 +396,7 @@ public class Analytics
                 }
             }
 
-            String fileName = System.getProperty("user.dir") + "\\Python\\DWO_CM.csv";
+            String fileName = "Python\\DWO_CM.csv";
 
             // create file for python process
             createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
@@ -544,7 +544,7 @@ public class Analytics
 
             if (DV.overlapChecked)
             {
-                String fileName = System.getProperty("user.dir") + "\\Python\\OL_CM.csv";
+                String fileName = "Python\\OL_CM.csv";
 
                 // create file for python process
                 createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
@@ -983,14 +983,14 @@ public class Analytics
                 }
             }
 
-            String fileName = System.getProperty("user.dir") + "\\Python\\k_fold.csv";
+            String fileName = "Python\\k_fold.csv";
 
             // create file for python process
             createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
 
             // create k-fold (python) process
             ProcessBuilder cv = new ProcessBuilder("cmd", "/c",
-                    System.getProperty("user.dir") + "\\Python\\kFoldCrossValidation\\kFoldCrossValidation.exe",
+                    "Python\\kFoldCrossValidation\\kFoldCrossValidation.exe",
                     fileName,
                     String.valueOf(DV.kFolds));
 
@@ -1112,7 +1112,7 @@ public class Analytics
 
         // create LDA (python) process
         ProcessBuilder lda = new ProcessBuilder("cmd", "/c",
-                System.getProperty("user.dir") + "\\Python\\ConfusionMatrixGenerator\\ConfusionMatrixGenerator.exe",
+                "Python\\ConfusionMatrixGenerator\\ConfusionMatrixGenerator.exe",
                 fileName,
                 pyBool);
 
