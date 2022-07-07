@@ -48,6 +48,7 @@ Windows
 2. Open "run" directory
 3. Unzip DV.zip
 4. Run "DV.exe"
+5. Follow instructions in "Run Instructions" for additional help
 
 ### Build and Run from Source:
 

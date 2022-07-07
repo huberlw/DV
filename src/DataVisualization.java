@@ -31,7 +31,7 @@ public class DataVisualization
     final static Map<Integer, JPanel> GRAPHS = new HashMap<>();
 
     // vertical scale of graphs
-    static double VERTICAL_SCALE;
+    static double verticalScale;
 
 
     /**
@@ -44,7 +44,7 @@ public class DataVisualization
         if (DV.classNumber > 1)
         {
             // setup vertical scaling
-            VERTICAL_SCALE = 0.4;
+            verticalScale = 0.4;
 
             // get optimal angles and threshold
             LDA();
@@ -71,7 +71,7 @@ public class DataVisualization
         else
         {
             // setup vertical scaling
-            VERTICAL_SCALE = 0.8;
+            verticalScale = 0.8;
 
             // set overlap to right end of graph
             getOverlap();
@@ -951,9 +951,9 @@ public class DataVisualization
 
             // set range up or down
             if (UPPER_OR_LOWER == 1)
-                rangeView.setRange(-bound * VERTICAL_SCALE, 0);
+                rangeView.setRange(-bound * verticalScale, 0);
             else
-                rangeView.setRange(0, bound * VERTICAL_SCALE);
+                rangeView.setRange(0, bound * verticalScale);
 
             // renderer for bars
             XYIntervalSeriesCollection bars = new XYIntervalSeriesCollection();

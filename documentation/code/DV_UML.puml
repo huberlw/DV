@@ -141,6 +141,7 @@ Analytics +-- GetKFoldCrossValidation
 +class DataVisualization
 {
     {static} GRAPHS: Map<Integer, JPanel>
+    {static} verticalScale: double
 
     +{static} optimizeSetup(): void
     +{static} optimizeThreshold(bestAccuracy: double): void
