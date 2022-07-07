@@ -30,7 +30,10 @@ public class DataSetup
                 stringData = purgeClasses(stringData);
             }
             else
+            {
                 DV.classNumber = 1;
+                DV.uniqueClasses = new ArrayList<>(List.of("N/A"));
+            }
 
             // remove ID
             if (DV.hasID)
@@ -49,9 +52,14 @@ public class DataSetup
 
             // initializes angles to 45 degrees
             DV.angles = new double[DV.fieldLength];
+            DV.prevAngles = new double[DV.fieldLength];
 
             for (int i = 0; i < DV.fieldLength; i++)
+            {
                 DV.angles[i] = 45;
+                DV.prevAngles[i] = 45;
+            }
+
 
             // get numerical data from string data
             double[][] numericalData = stringToNumerical(stringData);
@@ -68,13 +76,21 @@ public class DataSetup
                 // normalize data
                 double[][] normalizedNumericalData = normalizeData(numericalData);
 
-                // separate by class
-                ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, allClasses);
-                ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
+                if (DV.hasClasses)
+                {
+                    // separate by class
+                    ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, allClasses);
+                    ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
 
-                // transform classes into data objects
-                DV.data = createDataObjects(splitByClass);
-                DV.originalData = createDataObjects(originalByClass);
+                    // transform classes into data objects
+                    DV.data = createDataObjects(splitByClass);
+                    DV.originalData = createDataObjects(originalByClass);
+                }
+                else
+                {
+                    DV.data = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
+                    DV.originalData = createDataObjects(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])));
+                }
 
                 return true;
             }
@@ -185,13 +201,22 @@ public class DataSetup
                     // normalize data
                     double[][] normalizedNumericalData = normalizeData(numericalData);
 
-                    // separate by class
-                    ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, allClasses);
-                    ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
+                    if (DV.hasClasses)
+                    {
+                        // separate by class
+                        ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, allClasses);
+                        ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
 
-                    // add new data
-                    DV.data = addImportedData(splitByClass,  false);
-                    DV.originalData = addImportedData(originalByClass, true);
+                        // add new data
+                        DV.data = addImportedData(splitByClass, false);
+                        DV.originalData = addImportedData(originalByClass, true);
+                    }
+                    else
+                    {
+                        // add new data
+                        DV.data = addImportedData(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])), false);
+                        DV.originalData = addImportedData(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])), true);
+                    }
 
                     return true;
                 }
@@ -407,11 +432,11 @@ public class DataSetup
     private static boolean checkFormat(String[][] stringData)
     {
         // get number of columns for data
-        int cols = DV.classNumber;
+        int cols = DV.fieldLength;
         if (DV.hasID) cols++;
         if (DV.hasClasses) cols++;
 
-        return stringData.length == cols;
+        return stringData[0].length == cols;
     }
 
 
@@ -638,25 +663,27 @@ public class DataSetup
                         askedToKeep = true;
                     }
 
-                    // remove invalid from allClasses
-                    String invalidData = allClasses.get(i - invalids);
-                    allClasses.remove(i - invalids);
-
-                    // check if class still exists
-                    for (int k = 0; k < allClasses.size(); k++)
+                    if (DV.hasClasses)
                     {
-                        if (invalidData.equals(allClasses.get(k)))
-                            break;
-                        else if (k == allClasses.size() - 1)
+                        // remove invalid from allClasses
+                        String invalidData = allClasses.get(i - invalids);
+                        allClasses.remove(i - invalids);
+
+                        // check if class still exists
+                        for (int k = 0; k < allClasses.size(); k++)
                         {
-                            DV.uniqueClasses.remove(invalidData);
-                            DV.classNumber--;
+                            if (invalidData.equals(allClasses.get(k)))
+                                break;
+                            else if (k == allClasses.size() - 1)
+                            {
+                                DV.uniqueClasses.remove(invalidData);
+                                DV.classNumber--;
+                            }
                         }
                     }
 
                     // remove invalid ArrayList from numerical data
-                    numericalData.remove(i - invalids);
-                    invalids++;
+                    numericalData.remove(i - invalids++);
                     break;
                 }
             }
@@ -881,11 +908,19 @@ public class DataSetup
             for (int i = 0; i < DV.classNumber; i++)
             {
                 // create DataObject with previous points
-                if (data.get(i).length > 0)
+                if (data.get(i).length > 0 && i < DV.originalData.size())
                 {
                     // get all datapoints
                     ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(DV.originalData.get(i).data));
                     tmpData.addAll(Arrays.asList(data.get(i)));
+
+                    // create object
+                    dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
+                }
+                else if (data.get(i).length > 0)
+                {
+                    // get all datapoints
+                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(data.get(i)));
 
                     // create object
                     dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
@@ -899,7 +934,7 @@ public class DataSetup
             for (int i = 0; i < DV.classNumber; i++)
             {
                 // create DataObject with previous points
-                if (data.get(i).length > 0)
+                if (data.get(i).length > 0 && i < DV.data.size())
                 {
                     // get all datapoints
                     ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(DV.data.get(i).data));
@@ -907,6 +942,17 @@ public class DataSetup
 
                     // create object
                     dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
+                }
+                else if (data.get(i).length > 0)
+                {
+                    // get all datapoints
+                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(data.get(i)));
+
+                    // create object
+                    dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
+
+                    // add new lower class
+                    DV.lowerClasses.add(true);
                 }
                 else
                     dataObjects.add(DV.data.get(i));

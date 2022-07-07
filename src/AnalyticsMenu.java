@@ -1,5 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
+import java.util.concurrent.ExecutionException;
 
 public class AnalyticsMenu extends JPanel
 {
@@ -30,11 +31,21 @@ public class AnalyticsMenu extends JPanel
             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
             analytics.execute();
 
-            // revalidate graphs and confusion matrices
-            DV.graphPanel.repaint();
-            DV.confusionMatrixPanel.repaint();
-            DV.graphPanel.revalidate();
-            DV.confusionMatrixPanel.revalidate();
+            // wait before repainting and revalidating
+            try
+            {
+                analytics.get();
+
+                // revalidate graphs and confusion matrices
+                DV.graphPanel.repaint();
+                DV.confusionMatrixPanel.repaint();
+                DV.graphPanel.revalidate();
+                DV.confusionMatrixPanel.revalidate();
+            }
+            catch (InterruptedException | ExecutionException ex)
+            {
+                ex.printStackTrace();
+            }
         });
         analyticsPanel.add(prevAllDataCheckBox);
 
@@ -50,17 +61,27 @@ public class AnalyticsMenu extends JPanel
             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
             analytics.execute();
 
-            // revalidate graphs and confusion matrices
-            DV.graphPanel.repaint();
-            DV.confusionMatrixPanel.repaint();
-            DV.graphPanel.revalidate();
-            DV.confusionMatrixPanel.revalidate();
+            // wait before repainting and revalidating
+            try
+            {
+                analytics.get();
+
+                // revalidate graphs and confusion matrices
+                DV.graphPanel.repaint();
+                DV.confusionMatrixPanel.repaint();
+                DV.graphPanel.revalidate();
+                DV.confusionMatrixPanel.revalidate();
+            }
+            catch (InterruptedException | ExecutionException ex)
+            {
+                ex.printStackTrace();
+            }
         });
         analyticsPanel.add(allDataCheckBox);
 
         // set data without overlap confusion matrix
-        JCheckBox withoutOverlapCheckBox = new JCheckBox("Without Overlap CM", DV.withoutOverlapChecked);
-        withoutOverlapCheckBox.setToolTipText("Toggle without overlap confusion matrix");
+        JCheckBox withoutOverlapCheckBox = new JCheckBox("Data Without Overlap CM", DV.withoutOverlapChecked);
+        withoutOverlapCheckBox.setToolTipText("Toggle data without overlap confusion matrix");
         withoutOverlapCheckBox.addActionListener(e->
         {
             // reverse check
@@ -70,16 +91,26 @@ public class AnalyticsMenu extends JPanel
             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
             analytics.execute();
 
-            // revalidate graphs and confusion matrices
-            DV.graphPanel.repaint();
-            DV.confusionMatrixPanel.repaint();
-            DV.graphPanel.revalidate();
-            DV.confusionMatrixPanel.revalidate();
+            // wait before repainting and revalidating
+            try
+            {
+                analytics.get();
+
+                // revalidate graphs and confusion matrices
+                DV.graphPanel.repaint();
+                DV.confusionMatrixPanel.repaint();
+                DV.graphPanel.revalidate();
+                DV.confusionMatrixPanel.revalidate();
+            }
+            catch (InterruptedException | ExecutionException ex)
+            {
+                ex.printStackTrace();
+            }
         });
         analyticsPanel.add(withoutOverlapCheckBox);
 
         // set overlap confusion matrix
-        JCheckBox overlapCheckBox = new JCheckBox("Overlap CM", DV.overlapChecked);
+        JCheckBox overlapCheckBox = new JCheckBox("Overlap Data CM", DV.overlapChecked);
         overlapCheckBox.setToolTipText("Toggle overlap confusion matrix");
         overlapCheckBox.addActionListener(e->
         {
@@ -90,11 +121,21 @@ public class AnalyticsMenu extends JPanel
             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
             analytics.execute();
 
-            // revalidate graphs and confusion matrices
-            DV.graphPanel.repaint();
-            DV.confusionMatrixPanel.repaint();
-            DV.graphPanel.revalidate();
-            DV.confusionMatrixPanel.revalidate();
+            // wait before repainting and revalidating
+            try
+            {
+                analytics.get();
+
+                // revalidate graphs and confusion matrices
+                DV.graphPanel.repaint();
+                DV.confusionMatrixPanel.repaint();
+                DV.graphPanel.revalidate();
+                DV.confusionMatrixPanel.revalidate();
+            }
+            catch (InterruptedException | ExecutionException ex)
+            {
+                ex.printStackTrace();
+            }
         });
         analyticsPanel.add(overlapCheckBox);
 
@@ -110,11 +151,21 @@ public class AnalyticsMenu extends JPanel
             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
             analytics.execute();
 
-            // revalidate graphs and confusion matrices
-            DV.graphPanel.repaint();
-            DV.confusionMatrixPanel.repaint();
-            DV.graphPanel.revalidate();
-            DV.confusionMatrixPanel.revalidate();
+            // wait before repainting and revalidating
+            try
+            {
+                analytics.get();
+
+                // revalidate graphs and confusion matrices
+                DV.graphPanel.repaint();
+                DV.confusionMatrixPanel.repaint();
+                DV.graphPanel.revalidate();
+                DV.confusionMatrixPanel.revalidate();
+            }
+            catch (InterruptedException | ExecutionException ex)
+            {
+                ex.printStackTrace();
+            }
         });
         analyticsPanel.add(worstCaseCheckBox);
 
@@ -130,11 +181,21 @@ public class AnalyticsMenu extends JPanel
             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
             analytics.execute();
 
-            // revalidate graphs and confusion matrices
-            DV.graphPanel.repaint();
-            DV.confusionMatrixPanel.repaint();
-            DV.graphPanel.revalidate();
-            DV.confusionMatrixPanel.revalidate();
+            // wait before repainting and revalidating
+            try
+            {
+                analytics.get();
+
+                // revalidate graphs and confusion matrices
+                DV.graphPanel.repaint();
+                DV.confusionMatrixPanel.repaint();
+                DV.graphPanel.revalidate();
+                DV.confusionMatrixPanel.revalidate();
+            }
+            catch (InterruptedException | ExecutionException ex)
+            {
+                ex.printStackTrace();
+            }
         });
         analyticsPanel.add(userValCheckBox);
 
@@ -150,11 +211,21 @@ public class AnalyticsMenu extends JPanel
             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
             analytics.execute();
 
-            // revalidate graphs and confusion matrices
-            DV.graphPanel.repaint();
-            DV.crossValidationPanel.repaint();
-            DV.graphPanel.revalidate();
-            DV.crossValidationPanel.revalidate();
+            // wait before repainting and revalidating
+            try
+            {
+                analytics.get();
+
+                // revalidate graphs and confusion matrices
+                DV.graphPanel.repaint();
+                DV.confusionMatrixPanel.repaint();
+                DV.graphPanel.revalidate();
+                DV.confusionMatrixPanel.revalidate();
+            }
+            catch (InterruptedException | ExecutionException ex)
+            {
+                ex.printStackTrace();
+            }
         });
         analyticsPanel.add(crossValCheckBox);
 
@@ -202,11 +273,21 @@ public class AnalyticsMenu extends JPanel
                             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
                             analytics.execute();
 
-                            // revalidate graphs and confusion matrices
-                            DV.graphPanel.repaint();
-                            DV.crossValidationPanel.repaint();
-                            DV.graphPanel.revalidate();
-                            DV.crossValidationPanel.revalidate();
+                            // wait before repainting and revalidating
+                            try
+                            {
+                                analytics.get();
+
+                                // revalidate graphs and confusion matrices
+                                DV.graphPanel.repaint();
+                                DV.confusionMatrixPanel.repaint();
+                                DV.graphPanel.revalidate();
+                                DV.confusionMatrixPanel.revalidate();
+                            }
+                            catch (InterruptedException | ExecutionException ex)
+                            {
+                                ex.printStackTrace();
+                            }
                         }
                         else
                         {

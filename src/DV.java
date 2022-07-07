@@ -113,9 +113,9 @@ public class DV extends JFrame
     // display analytics
     static boolean prevAllDataChecked = true;
     static boolean allDataChecked = true;
-    static boolean withoutOverlapChecked = true;
-    static boolean overlapChecked = true;
-    static boolean worstCaseChecked = true;
+    static boolean withoutOverlapChecked = false;
+    static boolean overlapChecked = false;
+    static boolean worstCaseChecked = false;
     static boolean userValidationChecked = true;
     static boolean userValidationImported = false;
     static boolean crossValidationChecked = true;
@@ -170,7 +170,7 @@ public class DV extends JFrame
     public DV()
     {
         // set DV properties
-        super("DV Program");
+        super("DV");
         this.setSize(Resolutions.dvWindow[0], Resolutions.dvWindow[1]);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setExtendedState(this.getExtendedState() & (~JFrame.ICONIFIED));
@@ -537,7 +537,7 @@ public class DV extends JFrame
 
         // add label
         JPanel domainSliderLabel = new JPanel();
-        domainSliderLabel.add(new JLabel("Subset of Utilized Data for All Classes"));
+        domainSliderLabel.add(new JLabel("Setting up Subset of Utilized Data for All Classes"));
         domainSliderLabel.setToolTipText("Control visible range of graph");
         sliderPanel.add(domainSliderLabel);
 
@@ -620,7 +620,7 @@ public class DV extends JFrame
 
         // add label
         JPanel overlapSliderLabel = new JPanel();
-        overlapSliderLabel.add(new JLabel("Overlap Area for All Classes"));
+        overlapSliderLabel.add(new JLabel("Setting up Overlap Area for All Classes"));
         overlapSliderLabel.setToolTipText("Control overlap Area of graph");
         sliderPanel.add(overlapSliderLabel);
 
@@ -699,7 +699,7 @@ public class DV extends JFrame
 
         // add label
         JPanel thresholdSliderLabel = new JPanel();
-        thresholdSliderLabel.add(new JLabel("Control for Threshold Interval for Visualization"));
+        thresholdSliderLabel.add(new JLabel("Setting up Area of the Class Threshold"));
         thresholdSliderLabel.setToolTipText("Change threshold value for visualization");
         sliderPanel.add(thresholdSliderLabel);
 
@@ -843,6 +843,10 @@ public class DV extends JFrame
             JFileChooser fileDialog = new JFileChooser();
             fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
+            // set to current directory
+            File workingDirectory = new File(System.getProperty("user.dir"));
+            fileDialog.setCurrentDirectory(workingDirectory);
+
             // open file dialog
             int results = fileDialog.showOpenDialog(mainFrame);
 
@@ -851,7 +855,7 @@ public class DV extends JFrame
                 File dataFile = fileDialog.getSelectedFile();
 
                 // reset program
-                resetProgram();
+                resetProgram(true);
 
                 // parse data from file into classes
                 boolean success = DataSetup.setupWithData(dataFile);
@@ -924,6 +928,10 @@ public class DV extends JFrame
                 JFileChooser fileDialog = new JFileChooser();
                 fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
+                // set to current directory
+                File workingDirectory = new File(System.getProperty("user.dir"));
+                fileDialog.setCurrentDirectory(workingDirectory);
+
                 // open file dialog
                 int results = fileDialog.showOpenDialog(mainFrame);
 
@@ -932,7 +940,7 @@ public class DV extends JFrame
                     File importFile = fileDialog.getSelectedFile();
 
                     // reset program
-                    resetProgram();
+                    resetProgram(false);
 
                     // check if import was successful
                     boolean success = DataSetup.setupImportData(importFile);
@@ -954,6 +962,9 @@ public class DV extends JFrame
                                 "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
                                 "Error: could not open file",
                                 JOptionPane.ERROR_MESSAGE);
+
+                        // add blank graph
+                        graphPanel.add(blankGraph());
                     }
                 }
                 else if (results != JFileChooser.CANCEL_OPTION)
@@ -966,8 +977,6 @@ public class DV extends JFrame
 
                     // add blank graph
                     graphPanel.add(blankGraph());
-                    DV.graphPanel.repaint();
-                    DV.graphPanel.revalidate();
                 }
             }
             else
@@ -980,9 +989,11 @@ public class DV extends JFrame
 
                 // add blank graph
                 graphPanel.add(blankGraph());
-                DV.graphPanel.repaint();
-                DV.graphPanel.revalidate();
             }
+
+            // repaint and revalidate graph
+            DV.graphPanel.repaint();
+            DV.graphPanel.revalidate();
         }
         catch (Exception e)
         {
@@ -1011,6 +1022,10 @@ public class DV extends JFrame
             JFileChooser fileDialog = new JFileChooser();
             fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
+            // set to current directory
+            File workingDirectory = new File(System.getProperty("user.dir"));
+            fileDialog.setCurrentDirectory(workingDirectory);
+
             // open file dialog
             int results = fileDialog.showOpenDialog(mainFrame);
 
@@ -1019,7 +1034,7 @@ public class DV extends JFrame
                 File projectFile = fileDialog.getSelectedFile();
 
                 // reset program
-                resetProgram();
+                resetProgram(true);
 
                 // check if import was successful
                 DataSetup.setupProjectData(projectFile);
@@ -1311,6 +1326,10 @@ public class DV extends JFrame
                 fileSaver.setAcceptAllFileFilterUsed(false);
                 fileSaver.addChoosableFileFilter(new FileNameExtensionFilter("CSV file", "csv"));
 
+                // set to current directory
+                File workingDirectory = new File(System.getProperty("user.dir"));
+                fileSaver.setCurrentDirectory(workingDirectory);
+
                 if (fileSaver.showSaveDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
                 {
                     // get file
@@ -1557,11 +1576,15 @@ public class DV extends JFrame
     {
         try
         {
-            if (data.size() > 0)
+            if (data.size() > 0 && DV.classNumber > 1)
             {
                 // set filter on file chooser
                 JFileChooser fileDialog = new JFileChooser();
                 fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
+
+                // set to current directory
+                File workingDirectory = new File(System.getProperty("user.dir"));
+                fileDialog.setCurrentDirectory(workingDirectory);
 
                 // open file dialog
                 if (fileDialog.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION)
@@ -1610,6 +1633,14 @@ public class DV extends JFrame
 
 
             }
+            else if (DV.classNumber == 1)
+            {
+                JOptionPane.showMessageDialog(
+                        mainFrame,
+                        "Not enough classes to create validation set.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: could not create validation set",
+                        JOptionPane.ERROR_MESSAGE);
+            }
             else
             {
                 JOptionPane.showMessageDialog(
@@ -1650,21 +1681,26 @@ public class DV extends JFrame
 
     /**
      * Resets DV program
+     * @param remove_classes whether to keep unique classes or not
      */
-    private void resetProgram()
+    private void resetProgram(boolean remove_classes)
     {
         // reset panels
         angleSliderPanel.removeAll();
         graphPanel.removeAll();
 
         // reset classes
-        uniqueClasses = null;
+        if (remove_classes)
+            uniqueClasses = null;
 
         // reset previous confusion matrices
         prevAllDataCM = new ArrayList<>();
 
         // reset previous all data classifications
         prevAllDataClassifications = new ArrayList<>();
+
+        // reset cross validation
+        crossValidationNotGenerated = true;
 
         // reset graphs
         drawOverlap = false;

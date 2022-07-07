@@ -41,11 +41,17 @@ public class DataObject
                 highest = coordinates[i][DV.fieldLength-1][1];
         }
 
-        // only save the highest if greater than field length * 0.4
-        if (highest < DV.fieldLength * 0.4)
+        // get vertical scaling
+        double vertical_scale = 0.4;
+
+        if (DV.classNumber == 1)
+            vertical_scale *= 2;
+
+        // only save the highest if greater than field length * vertical_scale
+        if (highest < DV.fieldLength * vertical_scale)
             highest = 1;
         else
-            highest = (highest + 0.1) / (DV.fieldLength * 0.4);
+            highest = (highest + 0.1) / (DV.fieldLength * vertical_scale);
 
         return highest;
     }

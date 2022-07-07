@@ -1,3 +1,0 @@
-# Auto detect text files and perform LF normalization
-* text=auto
-out/artifacts/DV_jar/DV.jar filter=lfs diff=lfs merge=lfs -text

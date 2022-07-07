@@ -14,7 +14,7 @@ public class VisualizationOptionsMenu extends JPanel
         super(new BorderLayout());
 
         // create popup window
-        JFrame visOptionsFrame = new JFrame("Color Options");
+        JFrame visOptionsFrame = new JFrame("Visualization Options");
         visOptionsFrame.setLocation(mouseLocation);
 
         // choose class to visualize as main
@@ -157,11 +157,11 @@ public class VisualizationOptionsMenu extends JPanel
         visOptions.add(specifyVisPanel);
 
         // check if not drawing overlap
-        if (DV.classNumber > 1 && !DV.drawOverlap)
+        if (!DV.drawOverlap)
             visOptions.add(visOverlapPanel);
 
         // if drawing overlap
-        if (DV.classNumber > 1 && DV.drawOverlap)
+        if (DV.drawOverlap)
             visOptions.add(stopOverlapVisPanel);
 
         visOptionsFrame.add(visOptions);
