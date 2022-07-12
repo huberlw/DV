@@ -532,8 +532,11 @@ public class DataSetup
             // split rows by ","
             for (String rowDatum : rowData)
             {
-                if (!rowDatum.equals(""))
-                    data.add(rowDatum.split(","));
+                String[] tmp = rowDatum.split(",");
+
+                // only add if there is data
+                if (tmp.length > 0)
+                    data.add(tmp);
             }
 
             // arraylist to array
