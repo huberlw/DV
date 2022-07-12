@@ -49,8 +49,8 @@ public class DV extends JFrame
      *************************************************/
     // line colors
     static Color domainLines = Color.BLACK;
-    static Color overlapLines = Color.GREEN;
-    static Color thresholdLine = Color.ORANGE;
+    static Color overlapLines = Color.ORANGE;
+    static Color thresholdLine = Color.GREEN;
     static Color background = Color.WHITE;
 
     // graph colors
@@ -616,7 +616,7 @@ public class DV extends JFrame
         constraints.gridy = 2;
         constraints.gridwidth = 2;
         constraints.insets = new Insets(5, 12, 0, 0);
-        constraints.anchor = GridBagConstraints.LINE_START;
+        constraints.anchor = GridBagConstraints.WEST;
         mainPanel.add(controlPanel, constraints);
 
         return mainPanel;
