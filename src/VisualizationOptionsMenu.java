@@ -53,7 +53,7 @@ public class VisualizationOptionsMenu extends JPanel
 
                 // optimize setup then draw graphs
                 DataVisualization.optimizeSetup();
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
 
                 visOptionsFrame.dispatchEvent(new WindowEvent(visOptionsFrame, WindowEvent.WINDOW_CLOSING));
             }
@@ -112,7 +112,7 @@ public class VisualizationOptionsMenu extends JPanel
 
                     // optimize setup then draw graphs
                     DataVisualization.optimizeSetup();
-                    DataVisualization.drawGraphs(0);
+                    DataVisualization.drawGraphs();
                 }
             }
             else
@@ -131,7 +131,7 @@ public class VisualizationOptionsMenu extends JPanel
             if (DV.classNumber > 1 && DV.accuracy < 100)
             {
                 DV.drawOverlap = true;
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
             }
             else
                 JOptionPane.showMessageDialog(visOptionsFrame, "No overlap area");
@@ -145,7 +145,7 @@ public class VisualizationOptionsMenu extends JPanel
         stopOverlapVisBtn.addActionListener(e ->
         {
             DV.drawOverlap = false;
-            DataVisualization.drawGraphs(0);
+            DataVisualization.drawGraphs();
         });
         stopOverlapVisPanel.add(stopOverlapVisBtn);
 

@@ -70,7 +70,7 @@ public class AngleSliders
                 }
 
                 // redraw graphs
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
             }
         });
 
@@ -97,7 +97,7 @@ public class AngleSliders
             }
 
             // redraw graphs
-            DataVisualization.drawGraphs(0);
+            DataVisualization.drawGraphs();
         });
 
         // main panel for angle

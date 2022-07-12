@@ -380,7 +380,7 @@ public class DV extends JFrame
         {
             if (data != null)
             {
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
                 repaint();
                 revalidate();
             }
@@ -410,7 +410,7 @@ public class DV extends JFrame
             if (data != null)
             {
                 showBars = !showBars;
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
             }
         });
         toolBar.add(barLineBtn);
@@ -479,54 +479,6 @@ public class DV extends JFrame
         domainSlider.setUpperValue(400);
         domainSlider.setToolTipText("Control visible range of graph");
 
-        // Add listeners to update display
-        domainSlider.addMouseMotionListener(new MouseMotionListener()
-        {
-            @Override
-            public void mouseDragged(MouseEvent e)
-            {
-                if (data != null)
-                {
-                    RangeSlider slider = (RangeSlider) e.getSource();
-                    domainArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
-                    domainArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
-
-                    DataVisualization.drawGraphs(2);
-                    repaint();
-                    revalidate();
-                }
-            }
-
-            @Override
-            public void mouseMoved(MouseEvent e) {}
-        });
-
-        domainSlider.addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e) {}
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e)
-            {
-                if (data != null)
-                {
-                    DataVisualization.drawGraphs(0);
-                    repaint();
-                    revalidate();
-                }
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {}
-
-            @Override
-            public void mouseExited(MouseEvent e) {}
-        });
-
         // set preferred size and alignment
         domainSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
         domainSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -561,55 +513,6 @@ public class DV extends JFrame
         overlapSlider.setUpperValue(400);
         overlapSlider.setToolTipText("Control overlap area of graph");
 
-        // Add listener to update display
-        overlapSlider.addMouseMotionListener(new MouseMotionListener()
-        {
-            @Override
-            public void mouseDragged(MouseEvent e)
-            {
-                if (data != null)
-                {
-                    RangeSlider slider = (RangeSlider) e.getSource();
-                    overlapArea[0] = (slider.getValue() - 200) * fieldLength / 200.0;
-                    overlapArea[1] = (slider.getUpperValue() - 200) * fieldLength / 200.0;
-
-                    DataVisualization.drawGraphs(3);
-                    repaint();
-                    revalidate();
-                }
-            }
-
-            @Override
-            public void mouseMoved(MouseEvent e) {}
-        });
-
-        overlapSlider.addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e) {}
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e)
-            {
-                if (data != null)
-                {
-                    DataVisualization.drawGraphs(0);
-                    repaint();
-                    revalidate();
-                }
-
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {}
-
-            @Override
-            public void mouseExited(MouseEvent e) {}
-        });
-
         // set preferred size and alignment
         overlapSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
         overlapSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -641,53 +544,6 @@ public class DV extends JFrame
         thresholdSlider.setMajorTickSpacing(1);
         thresholdSlider.setValue(200);
         thresholdSlider.setToolTipText("Change threshold value for visualization");
-
-        // Add listener to update display
-        thresholdSlider.addMouseMotionListener(new MouseMotionListener()
-        {
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                if (data != null)
-                {
-                    JSlider slider = (JSlider) e.getSource();
-
-                    threshold = (slider.getValue() - 200) * fieldLength / 200.0;
-
-                    DataVisualization.drawGraphs(1);
-                    repaint();
-                    revalidate();
-                }
-            }
-
-            @Override
-            public void mouseMoved(MouseEvent e) {}
-        });
-
-        thresholdSlider.addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e) {}
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e)
-            {
-                if (data != null)
-                {
-                    DataVisualization.drawGraphs(0);
-                    repaint();
-                    revalidate();
-                }
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {}
-
-            @Override
-            public void mouseExited(MouseEvent e) {}
-        });
 
         // set preferred size and alignment
         thresholdSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
@@ -867,7 +723,7 @@ public class DV extends JFrame
                     DataVisualization.optimizeSetup();
                     angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
 
-                    DataVisualization.drawGraphs(0);
+                    DataVisualization.drawGraphs();
                 }
                 else
                 {
@@ -952,7 +808,7 @@ public class DV extends JFrame
                         DataVisualization.optimizeSetup();
                         angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
 
-                        DataVisualization.drawGraphs(0);
+                        DataVisualization.drawGraphs();
                     }
                     else
                     {
@@ -1041,7 +897,7 @@ public class DV extends JFrame
 
                 // create graphs
                 angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
             }
             else if (results != JFileChooser.CANCEL_OPTION)
             {

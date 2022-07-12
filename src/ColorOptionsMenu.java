@@ -29,7 +29,7 @@ public class ColorOptionsMenu extends JPanel
                 DV.domainLines = newColor;
 
             if (DV.data != null)
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
         });
         colors.add(domainLineColorBtn);
 
@@ -47,7 +47,7 @@ public class ColorOptionsMenu extends JPanel
                 DV.overlapLines = newColor;
 
             if (DV.data != null)
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
         });
         colors.add(overlapLineColorBtn);
 
@@ -65,7 +65,7 @@ public class ColorOptionsMenu extends JPanel
                 DV.thresholdLine = newColor;
 
             if (DV.data != null)
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
         });
         colors.add(thresholdLineColorBtn);
 
@@ -83,7 +83,7 @@ public class ColorOptionsMenu extends JPanel
                 DV.background = newColor;
 
             if (DV.data != null)
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
         });
         colors.add(backgroundColorBtn);
 
@@ -101,7 +101,7 @@ public class ColorOptionsMenu extends JPanel
                 DV.graphColors[0] = newColor;
 
             if (DV.data != null)
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
         });
         colors.add(upperGraphColorBtn);
 
@@ -119,7 +119,7 @@ public class ColorOptionsMenu extends JPanel
                 DV.graphColors[1] = newColor;
 
             if (DV.data != null)
-                DataVisualization.drawGraphs(0);
+                DataVisualization.drawGraphs();
         });
         colors.add(lowerGraphColorBtn);
 
