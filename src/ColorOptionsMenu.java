@@ -26,10 +26,12 @@ public class ColorOptionsMenu extends JPanel
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
+            {
                 DV.domainLines = newColor;
 
-            if (DV.data != null)
-                DataVisualization.drawGraphs();
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+            }
         });
         colors.add(domainLineColorBtn);
 
@@ -44,10 +46,12 @@ public class ColorOptionsMenu extends JPanel
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
+            {
                 DV.overlapLines = newColor;
 
-            if (DV.data != null)
-                DataVisualization.drawGraphs();
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+            }
         });
         colors.add(overlapLineColorBtn);
 
@@ -62,10 +66,12 @@ public class ColorOptionsMenu extends JPanel
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
+            {
                 DV.thresholdLine = newColor;
 
-            if (DV.data != null)
-                DataVisualization.drawGraphs();
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+            }
         });
         colors.add(thresholdLineColorBtn);
 
@@ -80,10 +86,12 @@ public class ColorOptionsMenu extends JPanel
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
+            {
                 DV.background = newColor;
 
-            if (DV.data != null)
-                DataVisualization.drawGraphs();
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+            }
         });
         colors.add(backgroundColorBtn);
 
@@ -98,10 +106,12 @@ public class ColorOptionsMenu extends JPanel
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
+            {
                 DV.graphColors[0] = newColor;
 
-            if (DV.data != null)
-                DataVisualization.drawGraphs();
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+            }
         });
         colors.add(upperGraphColorBtn);
 
@@ -116,10 +126,12 @@ public class ColorOptionsMenu extends JPanel
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
+            {
                 DV.graphColors[1] = newColor;
 
-            if (DV.data != null)
-                DataVisualization.drawGraphs();
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+            }
         });
         colors.add(lowerGraphColorBtn);
 
