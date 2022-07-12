@@ -1200,6 +1200,24 @@ public class DataVisualization
 
                     // update graph
                     chart.setNotify(true);
+
+                    // generate analytics
+                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                    analytics.execute();
+
+                    // wait for generation
+                    try
+                    {
+                        analytics.get();
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        ex.printStackTrace();
+                    }
+
+                    // revalidate graphs and confusion matrices
+                    DV.analyticsPanel.repaint();
+                    DV.analyticsPanel.revalidate();
                 }
 
                 @Override
@@ -1266,6 +1284,24 @@ public class DataVisualization
 
                     // update graph
                     chart.setNotify(true);
+
+                    // generate analytics
+                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                    analytics.execute();
+
+                    // wait for generation
+                    try
+                    {
+                        analytics.get();
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        ex.printStackTrace();
+                    }
+
+                    // revalidate graphs and confusion matrices
+                    DV.analyticsPanel.repaint();
+                    DV.analyticsPanel.revalidate();
                 }
 
                 @Override
@@ -1328,6 +1364,24 @@ public class DataVisualization
 
                     // update graph
                     chart.setNotify(true);
+
+                    // generate analytics
+                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                    analytics.execute();
+
+                    // wait for generation
+                    try
+                    {
+                        analytics.get();
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        ex.printStackTrace();
+                    }
+
+                    // revalidate graphs and confusion matrices
+                    DV.analyticsPanel.repaint();
+                    DV.analyticsPanel.revalidate();
                 }
 
                 @Override

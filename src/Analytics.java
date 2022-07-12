@@ -159,6 +159,9 @@ public class Analytics
         }
 
         curClasses.add(lowerClasses.toString());
+
+        for (int i = 0; i < curClasses.size(); i++)
+            System.out.println(curClasses.get(i));
     }
 
 
