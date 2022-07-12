@@ -597,6 +597,28 @@ public class DV extends JFrame
         constraints.gridwidth = 2;
         mainPanel.add(analyticsPane, constraints);
 
+        // add control panel to mainPanel
+        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel mouseControls = new JLabel("Mouse Controls:    ");
+        mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 16f));
+        controlPanel.add(mouseControls);
+
+        JLabel controls = new JLabel("panning = ctrl + drag click,    " +
+                "zooming = scroll wheel,    " +
+                "scaled zoom-in = drag click down and right,    " +
+                "scaled zoom-out = drag click left or up");
+        controls.setFont(controls.getFont().deriveFont(16f));
+
+        controlPanel.add(controls);
+
+        constraints.weightx = 1;
+        constraints.gridx = 0;
+        constraints.gridy = 2;
+        constraints.gridwidth = 2;
+        constraints.insets = new Insets(5, 12, 0, 0);
+        constraints.anchor = GridBagConstraints.LINE_START;
+        mainPanel.add(controlPanel, constraints);
+
         return mainPanel;
     }
 
