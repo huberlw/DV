@@ -674,12 +674,15 @@ public class DataVisualization
         double upperScaler = getCoordinates(upperObjects);
         double lowerScaler = getCoordinates(lowerObjects);
 
+        // get scaler
+        double graphScaler = Math.max(upperScaler, lowerScaler);
+
         // generate analytics
         Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
         analytics.execute();
 
         // add upper graph
-        AddGraph upperGraph = new AddGraph(upperObjects, 0, upperScaler);
+        AddGraph upperGraph = new AddGraph(upperObjects, 0, graphScaler);
         upperGraph.execute();
 
         // add lower graph
@@ -687,7 +690,7 @@ public class DataVisualization
 
         if (lowerObjects.size() > 0)
         {
-            lowerGraph = new AddGraph(lowerObjects, 1, lowerScaler);
+            lowerGraph = new AddGraph(lowerObjects, 1, graphScaler);
             lowerGraph.execute();
         }
 
@@ -726,9 +729,9 @@ public class DataVisualization
         {
             JOptionPane.showMessageDialog(DV.mainFrame,
                     """
-                            Because of the size, the graphs have been scaled.
-                            All functionality remains, but differences in threshold, overlap, or domain line positions may be noticeable.
-                            These positions are analytically the same, just not visually.
+                            Because of the size, the graphs have been zoomed out.
+                            All functionality remains, but there will be empty space on each side of the graph.
+                            Zoom in or scale the graphs to remove the white space.
                             """,
                     "Zoom Warning", JOptionPane.INFORMATION_MESSAGE);
             DV.showPopup = false;
@@ -803,13 +806,7 @@ public class DataVisualization
             XYSeries thresholdLine = new XYSeries(0, false, true);
 
             // get line height
-            final double lineHeight;
-
-            // draw up or down
-            if (UPPER_OR_LOWER == 1)
-                lineHeight = -DV.fieldLength;
-            else
-                lineHeight = DV.fieldLength;
+            final double lineHeight = UPPER_OR_LOWER == 1 ? -DV.fieldLength : DV.fieldLength;
 
             // set domain lines
             domainMinLine.add(DV.domainArea[0], 0);
