@@ -342,7 +342,6 @@ public class DV extends JFrame
 
     /**
      * Creates toolbar for DV Program
-     *
      */
     private void createToolBar()
     {
@@ -367,10 +366,10 @@ public class DV extends JFrame
         toolBar.addSeparator();
 
         // confusion matrix options
-        JButton CMOptionsBtn = new JButton("Analytic Options");
-        CMOptionsBtn.setToolTipText("Open the analytics options menu");
-        CMOptionsBtn.addActionListener(e -> new AnalyticsMenu(MouseInfo.getPointerInfo().getLocation()));
-        toolBar.add(CMOptionsBtn);
+        JButton analyticsBtn = new JButton("Analytic Options");
+        analyticsBtn.setToolTipText("Open the analytics options menu");
+        analyticsBtn.addActionListener(e -> new AnalyticsMenu(MouseInfo.getPointerInfo().getLocation()));
+        toolBar.add(analyticsBtn);
         toolBar.addSeparator();
 
         // resets screen
@@ -426,6 +425,17 @@ public class DV extends JFrame
 
         // add toolbar to mainFrame
         mainFrame.add(toolBarPanel);
+        mainFrame.pack();
+
+        // add icons
+        int offset = colorOptionsBtn.getInsets().top + colorOptionsBtn.getInsets().bottom;
+        colorOptionsBtn.setIcon(resizeIcon(new ImageIcon("icons\\color-palette.png"), colorOptionsBtn.getHeight() - offset, colorOptionsBtn.getHeight() - offset));
+        visOptionsBtn.setIcon(resizeIcon(new ImageIcon("icons\\line-chart.png"), visOptionsBtn.getHeight() - offset, visOptionsBtn.getHeight() - offset));
+        analyticsBtn.setIcon(resizeIcon(new ImageIcon("icons\\statistics.png"), analyticsBtn.getHeight() - offset, analyticsBtn.getHeight() - offset));
+        resetScreenBtn.setIcon(resizeIcon(new ImageIcon("icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
+        optimizeBtn.setIcon(resizeIcon(new ImageIcon("icons\\speedometer.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
+        undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
+        barLineBtn.setIcon(resizeIcon(new ImageIcon("icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
     }
 
 
@@ -603,10 +613,10 @@ public class DV extends JFrame
         mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 16f));
         controlPanel.add(mouseControls);
 
-        JLabel controls = new JLabel("panning = ctrl + drag click,    " +
+        JLabel controls = new JLabel("panning = ctrl + press and hold mouse button,    " +
                 "zooming = scroll wheel,    " +
-                "scaled zoom-in = drag click down and right,    " +
-                "scaled zoom-out = drag click left or up");
+                "scaled zoom-in (selected rectangle) = press and hold mouse button + drag down and right,    " +
+                "scaled zoom-out = press and hold mouse button + drag left or up");
         controls.setFont(controls.getFont().deriveFont(16f));
 
         controlPanel.add(controls);
@@ -621,6 +631,23 @@ public class DV extends JFrame
 
         return mainPanel;
     }
+
+
+    /**
+     * Resizes icon to specified width and height
+     * @param img_icon Icon to be resized
+     * @param width New width for img_icon
+     * @param height New height for img_icon
+     * @return Resized icon
+     */
+    private Icon resizeIcon(ImageIcon img_icon, int width, int height)
+    {
+        Image img = img_icon.getImage();
+        Image resized = img.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+
+        return new ImageIcon(resized);
+    }
+
 
     /**
      * Creates blank graph
