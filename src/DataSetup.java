@@ -272,18 +272,17 @@ public class DataSetup
 
             // get threshold
             DV.threshold = Double.parseDouble(stringData[buffer++][0]);
+            DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
 
             // get overlap area
-            DV.overlapArea = new double[2];
-
-            DV.overlapArea[0] = Double.parseDouble(stringData[buffer][0]);
-            DV.overlapArea[1] = Double.parseDouble(stringData[buffer++][1]);
+            DV.overlapArea = new double[]{ Double.parseDouble(stringData[buffer][0]), Double.parseDouble(stringData[buffer++][1]) };
+            DV.overlapSlider.setValue((int) (DV.overlapArea[0] / DV.fieldLength * 200) + 200);
+            DV.overlapSlider.setUpperValue((int) (DV.overlapArea[1] / DV.fieldLength * 200) + 200);
 
             // get domain area
-            DV.domainArea = new double[2];
-
-            DV.domainArea[0] = Double.parseDouble(stringData[buffer][0]);
-            DV.domainArea[1] = Double.parseDouble(stringData[buffer++][1]);
+            DV.domainArea = new double[]{ Double.parseDouble(stringData[buffer][0]), Double.parseDouble(stringData[buffer++][1]) };
+            DV.domainSlider.setValue((int) (DV.domainArea[0] / DV.fieldLength * 200) + 200);
+            DV.domainSlider.setUpperValue((int) (DV.domainArea[1] / DV.fieldLength * 200) + 200);
 
             // save analytics toggles
             DV.prevAllDataChecked = "1".equals(stringData[buffer][0]);
@@ -307,9 +306,11 @@ public class DataSetup
                  // replace placeholder character with newline
                  if (cm[j] == '~')
                      cm[j] = '\n';
+                 else if (cm[j] == '`')
+                     cm[j] = ',';
              }
 
-                DV.prevAllDataCM.add(Arrays.toString(cm));
+                DV.prevAllDataCM.add(new String(cm));
             }
 
             // get k-folds
@@ -337,12 +338,10 @@ public class DataSetup
             DV.upperIsLower = "1".equals(stringData[buffer++][0]);
 
             // get unique classes
-            DV.uniqueClasses = new ArrayList<>();
-            DV.uniqueClasses.addAll(Arrays.asList(stringData[buffer++]).subList(0, DV.classNumber));
+            DV.uniqueClasses = new ArrayList<>(Arrays.asList(stringData[buffer++]).subList(0, DV.classNumber));
 
             // get fieldNames
-            DV.fieldNames = new ArrayList<>();
-            DV.fieldNames.addAll(Arrays.asList(stringData[buffer++]).subList(0, DV.fieldLength));
+            DV.fieldNames = new ArrayList<>(Arrays.asList(stringData[buffer++]).subList(0, DV.fieldLength));
 
             // get data
             ArrayList<double[][]> classData = new ArrayList<>();

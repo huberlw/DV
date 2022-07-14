@@ -917,9 +917,22 @@ public class DV extends JFrame
                 // check if import was successful
                 DataSetup.setupProjectData(projectFile);
 
-                // create graphs
+                // set vertical scale of graphs
+                DataVisualization.verticalScale = classNumber > 1 ? 0.4 : 0.8;
+
+                // create angle sliders
                 angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
+                DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
+
+                for (int i = 0; i < fieldLength; i++)
+                    AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+
+                // create graphs
                 DataVisualization.drawGraphs();
+
+                // repaint DV
+                DV.mainFrame.repaint();
+                DV.mainFrame.revalidate();
             }
             else if (results != JFileChooser.CANCEL_OPTION)
             {
@@ -1303,11 +1316,8 @@ public class DV extends JFrame
                     if (crossValidationChecked) out.write("1\n");
                     else out.write("0\n");
 
-                    // are there previous confusion matrices
-                    if (prevAllDataCM.size() > 0)
-                        out.write(prevAllDataCM.size() + "\n");
-                    else
-                        out.write("0\n");
+                    // number of previous confusion matrices
+                    out.write(prevAllDataCM.size() + "\n");
 
                     // save previous confusion matrices
                     for (String s : prevAllDataCM)
@@ -1319,9 +1329,11 @@ public class DV extends JFrame
                             // replace newline character with placeholder
                             if (cm[j] == '\n')
                                 cm[j] = '~';
+                            else if (cm[j] == ',')
+                                cm[j] = '`';
                         }
 
-                        out.write(Arrays.toString(cm) + "\n");
+                        out.write(new String(cm) + "\n");
                     }
 
                     // save k-folds
