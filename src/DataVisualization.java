@@ -852,7 +852,8 @@ public class DataVisualization
             // populate series
             for (DataObject data : DATA_OBJECTS)
             {
-                for (int i = 0; i < data.data.length; i++, lineCnt++) {
+                for (int i = 0; i < data.data.length; i++, lineCnt++)
+                {
                     // start line at (0, 0)
                     lines.add(new XYSeries(lineCnt, false, true));
                     lines.get(lineCnt).add(0, 0);
@@ -864,12 +865,9 @@ public class DataVisualization
                             (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
                     {
                         // add points to lines
-                        for (int j = 0; j < DV.fieldLength; j++) {
-                            int upOrDown;
-                            if (UPPER_OR_LOWER == 1)
-                                upOrDown = -1;
-                            else
-                                upOrDown = 1;
+                        for (int j = 0; j < DV.fieldLength; j++)
+                        {
+                            int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
 
                             lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
@@ -877,7 +875,8 @@ public class DataVisualization
                                 midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
                             // add endpoint and timeline
-                            if (j == DV.fieldLength - 1) {
+                            if (j == DV.fieldLength - 1)
+                            {
                                 if (UPPER_OR_LOWER == 1)
                                     endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
                                 else
@@ -1185,9 +1184,16 @@ public class DataVisualization
                     domainRenderer.setSeriesStroke(0, activeStroke);
                     domainRenderer.setSeriesStroke(1, activeStroke);
 
-                    // clear old lines
+                    // clear old domain lines
                     domainMinLine.clear();
                     domainMaxLine.clear();
+
+                    // clear old lines, midpoints, endpoints, and timeline points
+                    lines.clear();
+                    graphLines.removeAllSeries();
+                    midpointSeries.clear();
+                    endpointSeries.clear();
+                    timeLineSeries.clear();
 
                     // turn notify off
                     chart.setNotify(false);
@@ -1197,6 +1203,53 @@ public class DataVisualization
                     domainMinLine.add(DV.domainArea[0], lineHeight);
                     domainMaxLine.add(DV.domainArea[1], 0);
                     domainMaxLine.add(DV.domainArea[1], lineHeight);
+
+                    // number of lines
+                    int lineCnt = 0;
+
+                    // populate series
+                    for (DataObject data : DATA_OBJECTS)
+                    {
+                        for (int i = 0; i < data.data.length; i++, lineCnt++)
+                        {
+                            // start line at (0, 0)
+                            lines.add(new XYSeries(lineCnt, false, true));
+                            lines.get(lineCnt).add(0, 0);
+                            double endpoint = data.coordinates[i][DV.fieldLength - 1][0];
+
+                            // ensure datapoint is within domain
+                            // if drawing overlap, ensure datapoint is within overlap
+                            if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
+                                    (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
+                            {
+                                // add points to lines
+                                for (int j = 0; j < DV.fieldLength; j++)
+                                {
+                                    int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
+
+                                    lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
+
+                                    if (j > 0 && j < DV.fieldLength - 1 && DV.angles[j] == DV.angles[j + 1])
+                                        midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
+
+                                    // add endpoint and timeline
+                                    if (j == DV.fieldLength - 1)
+                                    {
+                                        if (UPPER_OR_LOWER == 1)
+                                            endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
+                                        else
+                                            endpointSeries.add(data.coordinates[i][j][0], data.coordinates[i][j][1]);
+
+                                        timeLineSeries.add(data.coordinates[i][j][0], 0);
+                                    }
+                                }
+                            }
+
+                            // add to dataset if within domain
+                            if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
+                                graphLines.addSeries(lines.get(lineCnt));
+                        }
+                    }
 
                     // update graph
                     chart.setNotify(true);
