@@ -1180,7 +1180,7 @@ public class DataVisualization
                     DV.domainArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
 
                     // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
+                    BasicStroke activeStroke = new BasicStroke(4f);
                     domainRenderer.setSeriesStroke(0, activeStroke);
                     domainRenderer.setSeriesStroke(1, activeStroke);
 

@@ -388,6 +388,7 @@ RangeSliderUI +-- RangeTrackListener
     -createMenuBar(): void
     -createToolBar(): void
     -uiPanel(): JPanel
+    -resizeIcon(): Icon
 
     -blankGraph:() ChartPanel
 
