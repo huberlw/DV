@@ -111,7 +111,7 @@ public class DataVisualization
         try
         {
             // create csv file
-            File csv = new File("Python\\DV_data.csv");
+            File csv = new File("src\\Python\\DV_data.csv");
             Files.deleteIfExists(csv.toPath());
 
             // write to csv file
@@ -169,8 +169,8 @@ public class DataVisualization
     {
         // create LDA (python) process
         ProcessBuilder lda = new ProcessBuilder("cmd", "/c",
-                "Python\\LinearDiscriminantAnalysis\\LinearDiscriminantAnalysis.exe",
-                "Python\\DV_data.csv");
+                "src\\Python\\LinearDiscriminantAnalysis\\LinearDiscriminantAnalysis.exe",
+                "src\\Python\\DV_data.csv");
 
         try
         {

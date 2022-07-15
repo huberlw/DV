@@ -429,13 +429,13 @@ public class DV extends JFrame
 
         // add icons
         int offset = colorOptionsBtn.getInsets().top + colorOptionsBtn.getInsets().bottom;
-        colorOptionsBtn.setIcon(resizeIcon(new ImageIcon("icons\\color-palette.png"), colorOptionsBtn.getHeight() - offset, colorOptionsBtn.getHeight() - offset));
-        visOptionsBtn.setIcon(resizeIcon(new ImageIcon("icons\\line-chart.png"), visOptionsBtn.getHeight() - offset, visOptionsBtn.getHeight() - offset));
-        analyticsBtn.setIcon(resizeIcon(new ImageIcon("icons\\statistics.png"), analyticsBtn.getHeight() - offset, analyticsBtn.getHeight() - offset));
-        resetScreenBtn.setIcon(resizeIcon(new ImageIcon("icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
-        optimizeBtn.setIcon(resizeIcon(new ImageIcon("icons\\speedometer.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
-        undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
-        barLineBtn.setIcon(resizeIcon(new ImageIcon("icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
+        colorOptionsBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\color-palette.png"), colorOptionsBtn.getHeight() - offset, colorOptionsBtn.getHeight() - offset));
+        visOptionsBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\line-chart.png"), visOptionsBtn.getHeight() - offset, visOptionsBtn.getHeight() - offset));
+        analyticsBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\statistics.png"), analyticsBtn.getHeight() - offset, analyticsBtn.getHeight() - offset));
+        resetScreenBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
+        optimizeBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\up-right-arrow.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
+        undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
+        barLineBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
     }
 
 
@@ -609,14 +609,14 @@ public class DV extends JFrame
 
         // add control panel to mainPanel
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JLabel mouseControls = new JLabel("Mouse Controls:    ");
+        JLabel mouseControls = new JLabel("UI Controls:    ");
         mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 16f));
         controlPanel.add(mouseControls);
 
-        JLabel controls = new JLabel("panning = ctrl + press and hold mouse button,    " +
+        JLabel controls = new JLabel("panning = ctrl + press and hold any mouse button,    " +
                 "zooming = scroll wheel,    " +
-                "scaled zoom-in (selected rectangle) = press and hold mouse button + drag down and right,    " +
-                "scaled zoom-out = press and hold mouse button + drag left or up");
+                "unequal zoom in selected rectangle = press and hold any mouse button + drag down and right,    " +
+                "unequal zoom out = press and hold any mouse button + drag left or up");
         controls.setFont(controls.getFont().deriveFont(16f));
 
         controlPanel.add(controls);
@@ -625,7 +625,7 @@ public class DV extends JFrame
         constraints.gridx = 0;
         constraints.gridy = 2;
         constraints.gridwidth = 2;
-        constraints.insets = new Insets(5, 12, 0, 0);
+        constraints.insets = new Insets(5, 0, 0, 0);
         constraints.anchor = GridBagConstraints.WEST;
         mainPanel.add(controlPanel, constraints);
 

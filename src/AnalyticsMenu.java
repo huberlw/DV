@@ -36,10 +36,8 @@ public class AnalyticsMenu extends JPanel
             {
                 analytics.get();
 
-                // revalidate graphs and confusion matrices
-                DV.graphPanel.repaint();
+                // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
-                DV.graphPanel.revalidate();
                 DV.confusionMatrixPanel.revalidate();
             }
             catch (InterruptedException | ExecutionException ex)
@@ -66,10 +64,8 @@ public class AnalyticsMenu extends JPanel
             {
                 analytics.get();
 
-                // revalidate graphs and confusion matrices
-                DV.graphPanel.repaint();
+                // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
-                DV.graphPanel.revalidate();
                 DV.confusionMatrixPanel.revalidate();
             }
             catch (InterruptedException | ExecutionException ex)
@@ -96,10 +92,8 @@ public class AnalyticsMenu extends JPanel
             {
                 analytics.get();
 
-                // revalidate graphs and confusion matrices
-                DV.graphPanel.repaint();
+                // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
-                DV.graphPanel.revalidate();
                 DV.confusionMatrixPanel.revalidate();
             }
             catch (InterruptedException | ExecutionException ex)
@@ -126,10 +120,8 @@ public class AnalyticsMenu extends JPanel
             {
                 analytics.get();
 
-                // revalidate graphs and confusion matrices
-                DV.graphPanel.repaint();
+                // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
-                DV.graphPanel.revalidate();
                 DV.confusionMatrixPanel.revalidate();
             }
             catch (InterruptedException | ExecutionException ex)
@@ -156,10 +148,8 @@ public class AnalyticsMenu extends JPanel
             {
                 analytics.get();
 
-                // revalidate graphs and confusion matrices
-                DV.graphPanel.repaint();
+                // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
-                DV.graphPanel.revalidate();
                 DV.confusionMatrixPanel.revalidate();
             }
             catch (InterruptedException | ExecutionException ex)
@@ -186,10 +176,8 @@ public class AnalyticsMenu extends JPanel
             {
                 analytics.get();
 
-                // revalidate graphs and confusion matrices
-                DV.graphPanel.repaint();
+                // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
-                DV.graphPanel.revalidate();
                 DV.confusionMatrixPanel.revalidate();
             }
             catch (InterruptedException | ExecutionException ex)
@@ -216,11 +204,9 @@ public class AnalyticsMenu extends JPanel
             {
                 analytics.get();
 
-                // revalidate graphs and confusion matrices
-                DV.graphPanel.repaint();
-                DV.confusionMatrixPanel.repaint();
-                DV.graphPanel.revalidate();
-                DV.confusionMatrixPanel.revalidate();
+                // revalidate cross validation panel
+                DV.crossValidationPanel.repaint();
+                DV.crossValidationPanel.revalidate();
             }
             catch (InterruptedException | ExecutionException ex)
             {
@@ -278,11 +264,9 @@ public class AnalyticsMenu extends JPanel
                             {
                                 analytics.get();
 
-                                // revalidate graphs and confusion matrices
-                                DV.graphPanel.repaint();
-                                DV.confusionMatrixPanel.repaint();
-                                DV.graphPanel.revalidate();
-                                DV.confusionMatrixPanel.revalidate();
+                                // revalidate cross validation panel
+                                DV.crossValidationPanel.repaint();
+                                DV.crossValidationPanel.revalidate();
                             }
                             catch (InterruptedException | ExecutionException ex)
                             {
