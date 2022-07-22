@@ -626,7 +626,7 @@ public class DV extends JFrame
         constraints.gridx = 0;
         constraints.gridy = 2;
         constraints.gridwidth = 2;
-        constraints.insets = new Insets(5, 5, 0, 0);
+        constraints.insets = new Insets(Resolutions.uiControlsPanel[2], Resolutions.uiControlsPanel[2], 0, 0);
         constraints.anchor = GridBagConstraints.WEST;
         mainPanel.add(controlPanel, constraints);
 
