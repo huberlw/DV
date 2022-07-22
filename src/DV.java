@@ -429,13 +429,13 @@ public class DV extends JFrame
 
         // add icons
         int offset = colorOptionsBtn.getInsets().top + colorOptionsBtn.getInsets().bottom;
-        colorOptionsBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\color-palette.png"), colorOptionsBtn.getHeight() - offset, colorOptionsBtn.getHeight() - offset));
-        visOptionsBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\line-chart.png"), visOptionsBtn.getHeight() - offset, visOptionsBtn.getHeight() - offset));
-        analyticsBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\statistics.png"), analyticsBtn.getHeight() - offset, analyticsBtn.getHeight() - offset));
-        resetScreenBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
-        optimizeBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\up-right-arrow.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
-        undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
-        barLineBtn.setIcon(resizeIcon(new ImageIcon("src\\icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
+        colorOptionsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\color-palette.png"), colorOptionsBtn.getHeight() - offset, colorOptionsBtn.getHeight() - offset));
+        visOptionsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\line-chart.png"), visOptionsBtn.getHeight() - offset, visOptionsBtn.getHeight() - offset));
+        analyticsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\statistics.png"), analyticsBtn.getHeight() - offset, analyticsBtn.getHeight() - offset));
+        resetScreenBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
+        optimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\up-right-arrow.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
+        undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
+        barLineBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
     }
 
 
