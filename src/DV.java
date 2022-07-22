@@ -609,23 +609,24 @@ public class DV extends JFrame
 
         // add control panel to mainPanel
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JLabel mouseControls = new JLabel("UI Controls:    ");
-        mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 16f));
+        JLabel mouseControls = new JLabel("UI Controls: ");
+        mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 12f));
         controlPanel.add(mouseControls);
 
-        JLabel controls = new JLabel("panning = ctrl + press and hold any mouse button,    " +
-                "zooming = scroll wheel,    " +
-                "unequal zoom in selected rectangle = press and hold any mouse button + drag down and right,    " +
-                "unequal zoom out = press and hold any mouse button + drag left or up");
-        controls.setFont(controls.getFont().deriveFont(16f));
+        JLabel controls = new JLabel("panning = ctrl + hold left mouse button, " +
+                "zooming = scroll wheel, " +
+                "unequal zoom in selected rectangle = hold left mouse button + drag down and right, " +
+                "unequal zoom out = hold left mouse button + drag left or up");
+        controls.setFont(controls.getFont().deriveFont(12f));
 
         controlPanel.add(controls);
+        controlPanel.setPreferredSize(new Dimension(Resolutions.uiControlsPanel[0], Resolutions.uiControlsPanel[1]));
 
         constraints.weightx = 1;
         constraints.gridx = 0;
         constraints.gridy = 2;
         constraints.gridwidth = 2;
-        constraints.insets = new Insets(5, 0, 0, 0);
+        constraints.insets = new Insets(5, 5, 0, 0);
         constraints.anchor = GridBagConstraints.WEST;
         mainPanel.add(controlPanel, constraints);
 
