@@ -209,7 +209,7 @@ public class DataVisualization
             }
 
             // delete created file
-            File fileToDelete = new File("Python\\DV_data.csv");
+            File fileToDelete = new File("source\\Python\\DV_data.csv");
             Files.deleteIfExists(fileToDelete.toPath());
         }
         catch (IOException e)
