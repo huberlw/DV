@@ -8,7 +8,7 @@ public class Resolutions
     public static int[] domainSlider = new int[]{950, 20};
     public static int[] analyticsPane = new int[]{1200, 150};
     public static int[] singleChartPanel = new int[]{950, 270};
-    public static int[] uiControlsPanel = new int[] {1980, 36};
+    public static int[] uiControlsPanel = new int[] {1225, 18, 0};
 
     /**
      * Sizes for portions of the DV Program for various screen sizes
@@ -27,7 +27,7 @@ public class Resolutions
             domainSlider = new int[]{1480, 20};
             analyticsPane = new int[]{1870, 180};
             singleChartPanel = new int[]{1480, 320};
-            uiControlsPanel = new int[] {1980, 36};
+            uiControlsPanel = new int[] {1870, 24, 3};
         }
         // 1280x720
         else if(resolution == 1)
@@ -40,7 +40,7 @@ public class Resolutions
             domainSlider = new int[]{990, 15};
             analyticsPane = new int[]{1250, 120};
             singleChartPanel = new int[]{990, 215};
-            uiControlsPanel = new int[] {1280, 36};
+            uiControlsPanel = new int[] {1250, 20, 0};
 
         }
     }
