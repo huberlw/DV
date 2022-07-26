@@ -18,6 +18,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.mariuszgromada.math.mxparser.Argument;
+import org.mariuszgromada.math.mxparser.Expression;
+import org.mariuszgromada.math.mxparser.Function;
+
 public class DV extends JFrame
 {
     /**************************************************
@@ -143,6 +147,7 @@ public class DV extends JFrame
 
     // normalized and original data
     static ArrayList<DataObject> data;
+    static ArrayList<DataObject> normalizedData;
     static ArrayList<DataObject> originalData;
 
     // user made validation data
@@ -155,6 +160,10 @@ public class DV extends JFrame
     // fieldnames and length
     static ArrayList<String> fieldNames;
     static int fieldLength;
+
+    // initialize with linear function
+    static String function = "f(x) = x";
+    static Function dataFunction = new Function("f(x) = x");
 
     /************************************************
      * FOR PROJECT
@@ -1598,6 +1607,39 @@ public class DV extends JFrame
 
 
     /**
+     * Creates informative popup explaining how to
+     * enter a function
+     */
+    public static void funcInfoPopup()
+    {
+        JOptionPane.showMessageDialog(
+                mainFrame,
+                """
+                        Enter a function with "x" as the only variable.
+                        All functions must use the symbols below.
+                        Symbols not included below cannot be used.
+                        
+                            Addition: +
+                            Subtraction: -
+                            Multiplication: *
+                            Division: /
+                            Exponent: ^
+                            Square Root: sqrt()
+                            Parenthesis: ( )
+                            Sine: sin()
+                            Cosine: cos()
+                            Tangent: tan()
+                        
+                        Example:
+                            f(x) = 2 * sqrt(sin(x^2))
+                        """,
+                "Function Help",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+
+    /**
      * Resets DV program
      * @param remove_classes whether to keep unique classes or not
      */
@@ -1625,5 +1667,25 @@ public class DV extends JFrame
 
         // reset popup
         showPopup = true;
+    }
+
+
+    /**
+     * DO SOMETHING
+     */
+    public static void updatePoints()
+    {
+        for (int i = 0; i < normalizedData.size(); i++)
+        {
+            for (int j = 0; j < normalizedData.get(i).data.length; j++)
+            {
+                for (int k = 0; k < fieldLength; k++)
+                {
+                    Argument x = new Argument("x = " + normalizedData.get(i).data[j][k]);
+                    Expression e = new Expression("f(x)", dataFunction, x);
+                    data.get(i).data[j][k] = e.calculate();
+                }
+            }
+        }
     }
 }

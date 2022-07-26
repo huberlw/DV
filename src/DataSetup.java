@@ -84,11 +84,13 @@ public class DataSetup
 
                     // transform classes into data objects
                     DV.data = createDataObjects(splitByClass);
+                    DV.normalizedData = createDataObjects(splitByClass);
                     DV.originalData = createDataObjects(originalByClass);
                 }
                 else
                 {
                     DV.data = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
+                    DV.normalizedData = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
                     DV.originalData = createDataObjects(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])));
                 }
 

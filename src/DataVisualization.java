@@ -220,6 +220,64 @@ public class DataVisualization
 
 
     /**
+     * Support Vector Machine (SVM)
+     * Gets optimal angles and threshold
+     */
+    private static void SVM()
+    {
+        // create LDA (python) process
+        ProcessBuilder svm = new ProcessBuilder("cmd", "/c",
+                "src\\Python\\SupportVectorMachine\\SupportVectorMachine.exe",
+                "src\\Python\\DV_data.csv");
+
+        try
+        {
+            // create file for python process
+            createCSVFile();
+
+            // run python (LDA) process
+            Process process = svm.start();
+
+            // read python outputs
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String output;
+
+            // if process is running continue
+            DV.angleSliderPanel.removeAll();
+            DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
+
+            int cnt = 0;
+
+            while ((output = reader.readLine()) != null)
+            {
+                // get angles then threshold
+                if (cnt < DV.fieldLength)
+                {
+                    // update angles and create angle slider
+                    DV.angles[cnt] = Double.parseDouble(output);
+                    AngleSliders.createSliderPanel(DV.fieldNames.get(cnt), (int) (DV.angles[cnt] * 100), cnt);
+                    cnt++;
+                }
+                else
+                {
+                    // get threshold
+                    DV.threshold = Double.parseDouble(output);
+                    DV.thresholdSlider.setValue((int) (Double.parseDouble(output) / DV.fieldLength * 200) + 200);
+                }
+            }
+
+            // delete created file
+            File fileToDelete = new File("src\\Python\\DV_data.csv");
+            Files.deleteIfExists(fileToDelete.toPath());
+        }
+        catch (IOException e)
+        {
+            JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Support Vector Machines", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+
+    /**
      * Searches for the best accuracy by
      * adjusting the threshold location
      * @param bestAccuracy current best accuracy
