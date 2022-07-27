@@ -39,6 +39,7 @@ public class DV extends JFrame
     static JPanel analyticsPanel;
     static JPanel graphPanel;
     static JPanel sliderPanel;
+    static JPanel controlPanel;
 
     // scroll areas
     JScrollPane graphPane;
@@ -617,7 +618,7 @@ public class DV extends JFrame
         mainPanel.add(analyticsPane, constraints);
 
         // add control panel to mainPanel
-        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel mouseControls = new JLabel("UI Controls: ");
         mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 12f));
         controlPanel.add(mouseControls);

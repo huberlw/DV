@@ -194,6 +194,7 @@ public class AnalyticsMenu extends JPanel
         {
             // reverse check
             DV.crossValidationChecked = !DV.crossValidationChecked;
+            DV.crossValidationNotGenerated = true;
 
             // regenerate confusion matrices
             Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
@@ -202,6 +203,7 @@ public class AnalyticsMenu extends JPanel
             // wait before repainting and revalidating
             try
             {
+                DV.crossValidationPanel.removeAll();
                 analytics.get();
 
                 // revalidate cross validation panel
