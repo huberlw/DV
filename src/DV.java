@@ -185,17 +185,214 @@ public class DV extends JFrame
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setExtendedState(this.getExtendedState() & (~JFrame.ICONIFIED));
         this.setLocationRelativeTo(null);
-        this.setResizable(false);
         this.setVisible(true);
 
         // set mainFrame to DV
         mainFrame = this;
 
-        // create option bars
+        // setup layout with constraints
+        mainFrame.setLayout(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
+
+        // create menu bar
         createMenuBar();
-        createToolBar();
+
+        // create and add toolbar
+        JPanel toolBar = createToolBar();
+
+        constraints.weightx = 1;
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.gridwidth = 1;
+        constraints.anchor = GridBagConstraints.FIRST_LINE_START;
+        mainFrame.add(toolBar, constraints);
+
+        // set layout for graphPanel
+        graphPanel = new JPanel();
+        graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.Y_AXIS));
+
+        // add blank graph
+        graphPanel.add(blankGraph());
+
+        graphPane = new JScrollPane(graphPanel);
+
+        // center graph
+        graphPane.setAlignmentX(Component.CENTER_ALIGNMENT);
+        graphPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        // set layout and size
+        sliderPanel = new JPanel();
+        sliderPanel.setLayout(new BoxLayout(sliderPanel, BoxLayout.Y_AXIS));
+        sliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], Resolutions.sliderPanel[1]));
+
+        sliderPanel.add(graphPane);
+
+        // create domain slider
+        JPanel domainSliderPanel = new JPanel();
+
+        // set colors minimum and maximum of slider
+        domainSlider = new RangeSlider()
+        {
+            @Override
+            public void updateUI()
+            {
+                setUI(new RangeSliderUI(this, Color.BLACK, Color.GRAY, Color.DARK_GRAY));
+                updateLabelUIs();
+            }
+        };
+        domainSlider.setMinimum(0);
+        domainSlider.setMaximum(400);
+        domainSlider.setMajorTickSpacing(1);
+        domainSlider.setValue(0);
+        domainSlider.setUpperValue(400);
+        domainSlider.setToolTipText("Control visible range of graph");
+
+        // set preferred size and alignment
+        domainSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
+        domainSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // add to panels
+        domainSliderPanel.add(domainSlider);
+        sliderPanel.add(domainSliderPanel);
+
+        // add label
+        JPanel domainSliderLabel = new JPanel();
+        domainSliderLabel.add(new JLabel("Setting up Subset of Utilized Data for All Classes"));
+        domainSliderLabel.setToolTipText("Control visible range of graph");
+        sliderPanel.add(domainSliderLabel);
+
+        // create overlap slider
+        JPanel overlapSliderPanel = new JPanel();
+
+        // set colors and minimum and maximum of slider
+        overlapSlider = new RangeSlider()
+        {
+            @Override
+            public void updateUI()
+            {
+                setUI(new RangeSliderUI(this, Color.ORANGE, new Color(255, 165, 0), new Color(215,107,0)));
+                updateLabelUIs();
+            }
+        };
+        overlapSlider.setMinimum(0);
+        overlapSlider.setMaximum(400);
+        overlapSlider.setMajorTickSpacing(1);
+        overlapSlider.setValue(0);
+        overlapSlider.setUpperValue(400);
+        overlapSlider.setToolTipText("Control overlap area of graph");
+
+        // set preferred size and alignment
+        overlapSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
+        overlapSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // add to panels
+        overlapSliderPanel.add(overlapSlider);
+        sliderPanel.add(overlapSliderPanel);
+
+        // add label
+        JPanel overlapSliderLabel = new JPanel();
+        overlapSliderLabel.add(new JLabel("Setting up Overlap Area for All Classes"));
+        overlapSliderLabel.setToolTipText("Control overlap Area of graph");
+        sliderPanel.add(overlapSliderLabel);
+
+        // create threshold slider
+        JPanel thresholdSliderPanel = new JPanel();
+        thresholdSlider = new JSlider()
+        {
+            @Override
+            public void updateUI()
+            {
+                setUI(new ThresholdSliderUI(this));
+            }
+        };
+
+        // set minimum and maximum of slider
+        thresholdSlider.setMinimum(0);
+        thresholdSlider.setMaximum(400);
+        thresholdSlider.setMajorTickSpacing(1);
+        thresholdSlider.setValue(200);
+        thresholdSlider.setToolTipText("Change threshold value for visualization");
+
+        // set preferred size and alignment
+        thresholdSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
+        thresholdSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // add to panels
+        thresholdSliderPanel.add(thresholdSlider);
+        sliderPanel.add(thresholdSliderPanel);
+
+        // add label
+        JPanel thresholdSliderLabel = new JPanel();
+        thresholdSliderLabel.add(new JLabel("Setting up Area of the Class Threshold"));
+        thresholdSliderLabel.setToolTipText("Change threshold value for visualization");
+        sliderPanel.add(thresholdSliderLabel);
+
+        // finalize domain panel
+        constraints.weightx = 0.7;
+        constraints.gridx = 0;
+        constraints.gridy = 1;
+        mainFrame.add(sliderPanel, constraints);
+
+        // create angles scroll pane
+        angleSliderPanel = new JPanel(new GridLayout(1, 0));
+        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], Resolutions.angleSliderPanel[1]));
+        anglesPane = new JScrollPane(angleSliderPanel);
+        anglesPane.setPreferredSize(new Dimension(Resolutions.anglesPane[0], Resolutions.anglesPane[1]));
+
+        constraints.weightx = 0.3;
+        constraints.gridx = 1;
+        constraints.gridy = 1;
+        mainFrame.add(anglesPane, constraints);
+
+        // create confusion matrix and cross validation panels
+        confusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 5));
+        crossValidationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        // create analytics panel
+        analyticsPanel = new JPanel();
+        analyticsPanel.setLayout(new BoxLayout(analyticsPanel, BoxLayout.Y_AXIS));
+        analyticsPanel.add(confusionMatrixPanel);
+        analyticsPanel.add(crossValidationPanel);
+
+        // create confusion matrix pane
+        analyticsPane = new JScrollPane(analyticsPanel);
+        analyticsPane.setPreferredSize(new Dimension(Resolutions.analyticsPane[0], Resolutions.analyticsPane[1]));
+        analyticsPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        constraints.weightx = 1;
+        constraints.gridx = 0;
+        constraints.gridy = 2;
+        constraints.gridwidth = 2;
+        mainFrame.add(analyticsPane, constraints);
+
+        // add control panel to mainPanel
+        controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel mouseControls = new JLabel("UI Controls: ");
+        mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 12f));
+        controlPanel.add(mouseControls);
+
+        JLabel controls = new JLabel("panning = ctrl + hold left mouse button, " +
+                "zooming = scroll wheel, " +
+                "unequal zoom in selected rectangle = hold left mouse button + drag down and right, " +
+                "unequal zoom out = hold left mouse button + drag left or up");
+        controls.setFont(controls.getFont().deriveFont(12f));
+
+        controlPanel.add(controls);
+        controlPanel.setPreferredSize(new Dimension(Resolutions.uiControlsPanel[0], Resolutions.uiControlsPanel[1]));
+
+        constraints.weightx = 1;
+        constraints.gridx = 0;
+        constraints.gridy = 3;
+        constraints.gridwidth = 2;
+        constraints.insets = new Insets(Resolutions.uiControlsPanel[2], Resolutions.uiControlsPanel[2], 0, 0);
+        constraints.anchor = GridBagConstraints.WEST;
+        mainFrame.add(controlPanel, constraints);
 
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+        mainFrame.revalidate();
+        mainFrame.pack();
+        mainFrame.repaint();
     }
 
 
@@ -353,7 +550,7 @@ public class DV extends JFrame
     /**
      * Creates toolbar for DV Program
      */
-    private void createToolBar()
+    private JPanel createToolBar()
     {
         // create toolbar
         JToolBar toolBar = new JToolBar();
@@ -425,18 +622,6 @@ public class DV extends JFrame
         toolBar.add(barLineBtn);
         toolBar.addSeparator();
 
-        // set toolbar north
-        JPanel toolBarPanel = new JPanel(new BorderLayout());
-        toolBarPanel.setVisible(true);
-        toolBarPanel.add(toolBar, BorderLayout.NORTH);
-
-        // add uiPanel to toolbar
-        toolBarPanel.add(uiPanel());
-
-        // add toolbar to mainFrame
-        mainFrame.add(toolBarPanel);
-        mainFrame.pack();
-
         // add icons
         int offset = colorOptionsBtn.getInsets().top + colorOptionsBtn.getInsets().bottom;
         colorOptionsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\color-palette.png"), colorOptionsBtn.getHeight() - offset, colorOptionsBtn.getHeight() - offset));
@@ -446,201 +631,13 @@ public class DV extends JFrame
         optimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\up-right-arrow.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
         undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
         barLineBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
-    }
 
+        // set toolbar north
+        JPanel toolBarPanel = new JPanel();
+        toolBarPanel.setVisible(true);
+        toolBarPanel.add(toolBar);
 
-    /**
-     * Create main panel for DV program
-     * @return main panel for DV
-     */
-    private JPanel uiPanel()
-    {
-        // create main panel for program
-        JPanel mainPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints constraints = new GridBagConstraints();
-
-        // set layout
-        graphPanel = new JPanel();
-        graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.Y_AXIS));
-
-        // add blank graph
-        graphPanel.add(blankGraph());
-
-        graphPane = new JScrollPane(graphPanel);
-
-        // center graph
-        graphPane.setAlignmentX(Component.CENTER_ALIGNMENT);
-        graphPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-
-        // set layout and size
-        sliderPanel = new JPanel();
-        sliderPanel.setLayout(new BoxLayout(sliderPanel, BoxLayout.Y_AXIS));
-        sliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], Resolutions.sliderPanel[1]));
-
-        sliderPanel.add(graphPane);
-
-        // create domain slider
-        JPanel domainSliderPanel = new JPanel();
-
-        // set colors minimum and maximum of slider
-        domainSlider = new RangeSlider()
-        {
-            @Override
-            public void updateUI()
-            {
-                setUI(new RangeSliderUI(this, Color.BLACK, Color.GRAY, Color.DARK_GRAY));
-                updateLabelUIs();
-            }
-        };
-        domainSlider.setMinimum(0);
-        domainSlider.setMaximum(400);
-        domainSlider.setMajorTickSpacing(1);
-        domainSlider.setValue(0);
-        domainSlider.setUpperValue(400);
-        domainSlider.setToolTipText("Control visible range of graph");
-
-        // set preferred size and alignment
-        domainSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
-        domainSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        // add to panels
-        domainSliderPanel.add(domainSlider);
-        sliderPanel.add(domainSliderPanel);
-
-        // add label
-        JPanel domainSliderLabel = new JPanel();
-        domainSliderLabel.add(new JLabel("Setting up Subset of Utilized Data for All Classes"));
-        domainSliderLabel.setToolTipText("Control visible range of graph");
-        sliderPanel.add(domainSliderLabel);
-
-        // create overlap slider
-        JPanel overlapSliderPanel = new JPanel();
-
-        // set colors and minimum and maximum of slider
-        overlapSlider = new RangeSlider()
-        {
-            @Override
-            public void updateUI()
-            {
-                setUI(new RangeSliderUI(this, Color.ORANGE, new Color(255, 165, 0), new Color(215,107,0)));
-                updateLabelUIs();
-            }
-        };
-        overlapSlider.setMinimum(0);
-        overlapSlider.setMaximum(400);
-        overlapSlider.setMajorTickSpacing(1);
-        overlapSlider.setValue(0);
-        overlapSlider.setUpperValue(400);
-        overlapSlider.setToolTipText("Control overlap area of graph");
-
-        // set preferred size and alignment
-        overlapSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
-        overlapSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        // add to panels
-        overlapSliderPanel.add(overlapSlider);
-        sliderPanel.add(overlapSliderPanel);
-
-        // add label
-        JPanel overlapSliderLabel = new JPanel();
-        overlapSliderLabel.add(new JLabel("Setting up Overlap Area for All Classes"));
-        overlapSliderLabel.setToolTipText("Control overlap Area of graph");
-        sliderPanel.add(overlapSliderLabel);
-
-        // create threshold slider
-        JPanel thresholdSliderPanel = new JPanel();
-        thresholdSlider = new JSlider()
-        {
-            @Override
-            public void updateUI()
-            {
-                setUI(new ThresholdSliderUI(this));
-            }
-        };
-
-        // set minimum and maximum of slider
-        thresholdSlider.setMinimum(0);
-        thresholdSlider.setMaximum(400);
-        thresholdSlider.setMajorTickSpacing(1);
-        thresholdSlider.setValue(200);
-        thresholdSlider.setToolTipText("Change threshold value for visualization");
-
-        // set preferred size and alignment
-        thresholdSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
-        thresholdSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        // add to panels
-        thresholdSliderPanel.add(thresholdSlider);
-        sliderPanel.add(thresholdSliderPanel);
-
-        // add label
-        JPanel thresholdSliderLabel = new JPanel();
-        thresholdSliderLabel.add(new JLabel("Setting up Area of the Class Threshold"));
-        thresholdSliderLabel.setToolTipText("Change threshold value for visualization");
-        sliderPanel.add(thresholdSliderLabel);
-
-        // finalize domain panel
-        constraints.weightx = 0.7;
-        constraints.gridx = 0;
-        constraints.gridy = 0;
-        mainPanel.add(sliderPanel, constraints);
-
-        // create angles scroll pane
-        angleSliderPanel = new JPanel(new GridLayout(1, 0));
-        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], Resolutions.angleSliderPanel[1]));
-        anglesPane = new JScrollPane(angleSliderPanel);
-        anglesPane.setPreferredSize(new Dimension(Resolutions.anglesPane[0], Resolutions.anglesPane[1]));
-
-        constraints.weightx = 0.3;
-        constraints.gridx = 1;
-        constraints.gridy = 0;
-        mainPanel.add(anglesPane, constraints);
-
-        // create confusion matrix and cross validation panels
-        confusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 5));
-        crossValidationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-
-        // create analytics panel
-        analyticsPanel = new JPanel();
-        analyticsPanel.setLayout(new BoxLayout(analyticsPanel, BoxLayout.Y_AXIS));
-        analyticsPanel.add(confusionMatrixPanel);
-        analyticsPanel.add(crossValidationPanel);
-
-        // create confusion matrix pane
-        analyticsPane = new JScrollPane(analyticsPanel);
-        analyticsPane.setPreferredSize(new Dimension(Resolutions.analyticsPane[0], Resolutions.analyticsPane[1]));
-        analyticsPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-
-        constraints.weightx = 1;
-        constraints.gridx = 0;
-        constraints.gridy = 1;
-        constraints.gridwidth = 2;
-        mainPanel.add(analyticsPane, constraints);
-
-        // add control panel to mainPanel
-        controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JLabel mouseControls = new JLabel("UI Controls: ");
-        mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 12f));
-        controlPanel.add(mouseControls);
-
-        JLabel controls = new JLabel("panning = ctrl + hold left mouse button, " +
-                "zooming = scroll wheel, " +
-                "unequal zoom in selected rectangle = hold left mouse button + drag down and right, " +
-                "unequal zoom out = hold left mouse button + drag left or up");
-        controls.setFont(controls.getFont().deriveFont(12f));
-
-        controlPanel.add(controls);
-        controlPanel.setPreferredSize(new Dimension(Resolutions.uiControlsPanel[0], Resolutions.uiControlsPanel[1]));
-
-        constraints.weightx = 1;
-        constraints.gridx = 0;
-        constraints.gridy = 2;
-        constraints.gridwidth = 2;
-        constraints.insets = new Insets(Resolutions.uiControlsPanel[2], Resolutions.uiControlsPanel[2], 0, 0);
-        constraints.anchor = GridBagConstraints.WEST;
-        mainPanel.add(controlPanel, constraints);
-
-        return mainPanel;
+        return toolBarPanel;
     }
 
 
