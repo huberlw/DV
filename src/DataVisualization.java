@@ -221,14 +221,14 @@ public class DataVisualization
 
     /**
      * Support Vector Machine (SVM)
-     * Gets optimal angles and threshold
+     * Gets support vectors
      */
-    private static void SVM()
+    public static void SVM()
     {
         // create LDA (python) process
         ProcessBuilder svm = new ProcessBuilder("cmd", "/c",
-                "src\\Python\\SupportVectorMachine\\SupportVectorMachine.exe",
-                "src\\Python\\DV_data.csv");
+                "source\\Python\\SupportVectorMachine\\SupportVectorMachine.exe",
+                "source\\Python\\DV_data.csv");
 
         try
         {
@@ -237,40 +237,19 @@ public class DataVisualization
 
             // run python (LDA) process
             Process process = svm.start();
+            process.waitFor();
 
-            // read python outputs
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String output;
+            // setup support vectors
+            File svFile = new File("source\\Python\\svm_data.csv");
 
-            // if process is running continue
-            DV.angleSliderPanel.removeAll();
-            DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
-
-            int cnt = 0;
-
-            while ((output = reader.readLine()) != null)
-            {
-                // get angles then threshold
-                if (cnt < DV.fieldLength)
-                {
-                    // update angles and create angle slider
-                    DV.angles[cnt] = Double.parseDouble(output);
-                    AngleSliders.createSliderPanel(DV.fieldNames.get(cnt), (int) (DV.angles[cnt] * 100), cnt);
-                    cnt++;
-                }
-                else
-                {
-                    // get threshold
-                    DV.threshold = Double.parseDouble(output);
-                    DV.thresholdSlider.setValue((int) (Double.parseDouble(output) / DV.fieldLength * 200) + 200);
-                }
-            }
+            if (!DataSetup.setupSupportVectors(svFile))
+                JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Support Vector Machines", "Error", JOptionPane.ERROR_MESSAGE);
 
             // delete created file
-            File fileToDelete = new File("src\\Python\\DV_data.csv");
+            File fileToDelete = new File("source\\Python\\DV_data.csv");
             Files.deleteIfExists(fileToDelete.toPath());
         }
-        catch (IOException e)
+        catch (IOException | InterruptedException e)
         {
             JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Support Vector Machines", "Error", JOptionPane.ERROR_MESSAGE);
         }

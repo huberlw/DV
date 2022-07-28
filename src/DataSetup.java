@@ -49,17 +49,19 @@ public class DataSetup
             // get fieldNames and fieldLength
             DV.fieldNames = getFieldNames(stringData);
             DV.fieldLength = DV.fieldNames.size();
+            DV.standardFieldNames = DV.fieldNames;
+            DV.standardFieldLength = DV.fieldLength;
 
             // initializes angles to 45 degrees
             DV.angles = new double[DV.fieldLength];
             DV.prevAngles = new double[DV.fieldLength];
+            DV.standardAngles = new double[DV.fieldLength];
 
             for (int i = 0; i < DV.fieldLength; i++)
             {
                 DV.angles[i] = 45;
                 DV.prevAngles[i] = 45;
             }
-
 
             // get numerical data from string data
             double[][] numericalData = stringToNumerical(stringData);
@@ -224,6 +226,34 @@ public class DataSetup
                 }
                 else
                     return false;
+            }
+            else
+                return false;
+        }
+        else
+            return false;
+    }
+
+
+    public static boolean setupSupportVectors(File svFile)
+    {
+        // data string[][] representation of dataFile (csv)
+        String[][] stringData = getStringFromCSV(svFile);
+
+        if (stringData != null)
+        {
+            // get numerical data from string data
+            double[][] numericalData = stringToNumerical(stringData);
+
+            // get normalized numerical data if not null
+            if (numericalData != null)
+            {
+                // normalize data
+                double[][] normalizedNumericalData = normalizeData(numericalData);
+
+                DV.supportVectors = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0]))).get(0);
+
+                return true;
             }
             else
                 return false;
@@ -546,7 +576,10 @@ public class DataSetup
 
             return outputData;
         }
-        catch(IOException ioe) { return null; }
+        catch(IOException ioe)
+        {
+            return null;
+        }
     }
 
 
@@ -881,7 +914,7 @@ public class DataSetup
      * @param separateClasses ArrayList to transform into DataObjects
      * @return ArrayList of DataObjects
      */
-    private static ArrayList<DataObject> createDataObjects(ArrayList<double[][]> separateClasses)
+    public static ArrayList<DataObject> createDataObjects(ArrayList<double[][]> separateClasses)
     {
         // get classes and output arraylist
         ArrayList<DataObject> dataObjects = new ArrayList<>();

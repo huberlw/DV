@@ -1,7 +1,9 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
+import java.sql.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -166,7 +168,7 @@ public class VisualizationOptionsMenu extends JPanel
             // maximum text field
             JTextField funcField = new JTextField();
             funcField.setPreferredSize(new Dimension(200, 30));
-            funcField.setText(DV.function);
+            funcField.setText(DV.scalarFunction);
             textPanel.add(new JLabel("Function: f(x) = "));
             textPanel.add(funcField);
 
@@ -200,7 +202,7 @@ public class VisualizationOptionsMenu extends JPanel
                         {
                             // try new function with dummy variables
                             Map<String, Double> variables = new HashMap<>();
-                            FunctionParser.Expression exp = FunctionParser.parseExpression(func, variables);
+                            FunctionParser.Expression exp = FunctionParser.parseScalerExpression(func, variables);
 
                             for (double x = 0; x < 1; x += 0.1)
                             {
@@ -209,7 +211,7 @@ public class VisualizationOptionsMenu extends JPanel
                             }
 
                             // apply function if working
-                            DV.function = func;
+                            DV.scalarFunction = func;
 
                             for (int i = 0; i < DV.normalizedData.size(); i++)
                             {
@@ -242,7 +244,7 @@ public class VisualizationOptionsMenu extends JPanel
 
                         notChosen = false;
                     }
-                    case 2 -> DV.funcInfoPopup();
+                    case 2 -> DV.scalarFuncInfoPopup();
                     default -> { return; }
                 }
             }
@@ -258,12 +260,174 @@ public class VisualizationOptionsMenu extends JPanel
         vectorVisFuncBtn.setToolTipText("Applies given function to all data points");
         vectorVisFuncBtn.addActionListener(e ->
         {
+            // popup asking for number of folds
+            JPanel funcPanel = new JPanel(new BorderLayout());
+
+            // radio button group
+            ButtonGroup stockFunc = new ButtonGroup();
+            JRadioButton svmPolyFunc = new JRadioButton("SVM - Polynomial Kernel", true);
+            JRadioButton svmRBFFunc = new JRadioButton("SVM - RBF Kernel");
+            JRadioButton customFunc = new JRadioButton("Custom");
+            stockFunc.add(svmPolyFunc);
+            stockFunc.add(svmRBFFunc);
+            stockFunc.add(customFunc);
+
+            // default function panel
+            JPanel stockPanel = new JPanel();
+            stockPanel.add(new JLabel("Functions: "));
+            stockPanel.add(svmPolyFunc);
+            stockPanel.add(svmRBFFunc);
+            stockPanel.add(customFunc);
+            funcPanel.add(stockPanel, BorderLayout.NORTH);
+
+            // text panel
+            JPanel textPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+
+            // maximum text field
+            JTextField funcField = new JTextField();
             /**
-             * CREATE FUNCTION PARSER WITH WORKING DOT PRODUCT
-             * LATER TURN BOTH FUNCTION BUTTONS INTO A SINGLE PANEL
-             *
-             * e = 2.7182818284590452
+             * REMOVE THIS LINE LATER
              */
+            funcField.setEditable(false);
+            /**
+             * REMOVE THIS LINE LATER
+             */
+            funcField.setPreferredSize(new Dimension(200, 30));
+            funcField.setText(DV.scalarFunction);
+            textPanel.add(new JLabel("Function: f(x, y) = "));
+            textPanel.add(funcField);
+
+            // add text panel
+            funcPanel.add(textPanel, BorderLayout.SOUTH);
+
+            // add listeners
+            svmPolyFunc.addActionListener(e1 -> funcField.setText("(1/" + DV.fieldLength + " * dot(x, y) + 1)^3"));
+            svmRBFFunc.addActionListener(e1 -> funcField.setText("e^(-1/" + DV.fieldLength + " * norm(vSub(x, y))^2)"));
+
+            funcField.addKeyListener(new KeyListener() {
+                @Override
+                public void keyTyped(KeyEvent e)
+                {
+                    customFunc.setSelected(true);
+                }
+
+                @Override
+                public void keyPressed(KeyEvent e) {}
+
+                @Override
+                public void keyReleased(KeyEvent e) {}
+            });
+
+            Object[] funcButtons = { "Ok", "Cancel", "Help" };
+
+            boolean notChosen = true;
+
+            // loop until folds are valid or user quits
+            while (notChosen)
+            {
+                int choice = JOptionPane.showOptionDialog(
+                        DV.mainFrame, funcPanel,
+                        "Enter function",
+                        JOptionPane.YES_NO_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE,
+                        null,
+                        funcButtons,
+                        funcButtons[0]);
+
+                switch (choice)
+                {
+                    case 0 ->
+                    {
+                        // get function and remove spaces
+                        String func = funcField.getText();
+
+                        try
+                        {
+                            // try new function with dummy variables
+                            Map<String, double[]> variables = new HashMap<>();
+                            FunctionParser.Expression exp = FunctionParser.parseVectorExpression(func, variables);
+
+                            for (double x = 0; x < 1; x += 0.1)
+                            {
+                                variables.put("x", new double[]{ x, x, x });
+                                variables.put("y", new double[]{ x, x, x });
+                                exp.eval();
+                            }
+
+                            // apply function if working
+                            DV.vectorFunction = func;
+                            ArrayList<double[][]> splitByClass = new ArrayList<>();
+
+                            for (int i = 0; i < DV.normalizedData.size(); i++)
+                            {
+                                ArrayList<double[]> classData = new ArrayList<>();
+
+                                for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
+                                {
+                                    ArrayList<Double> newRow = new ArrayList<>();
+
+                                    for (int k = 0; k < DV.supportVectors.data.length; k++)
+                                    {
+                                        variables.put("x", DV.data.get(i).data[j]);
+                                        variables.put("y", DV.supportVectors.data[k]);
+                                        newRow.add(exp.eval());
+                                    }
+
+                                    double[] newRowArray = new double[newRow.size()];
+
+                                    for (int w = 0; w < newRow.size(); w++)
+                                        newRowArray[w] = newRow.get(w);
+
+                                    classData.add(newRowArray);
+                                }
+
+                                double[][] newClassData = new double[classData.size()][];
+
+                                for (int w = 0; w < classData.size(); w++)
+                                    newClassData[w] = classData.get(w);
+
+                                splitByClass.add(newClassData);
+                            }
+
+                            DV.data = DataSetup.createDataObjects(splitByClass);
+
+                            DV.fieldLength = splitByClass.get(0)[0].length;
+
+
+                            DV.angles = new double[DV.fieldLength];
+                            DV.prevAngles = new double[DV.fieldLength];
+                            DV.fieldNames.clear();
+
+                            for (int i = 0; i < DV.fieldLength; i++)
+                            {
+                                DV.fieldNames.add("feature " + i);
+                                DV.angles[i] = 45;
+                                DV.prevAngles[i] = 45;
+                            }
+
+                            DataVisualization.optimizeSetup();
+                            DataVisualization.drawGraphs();
+                        }
+                        catch (Exception exc)
+                        {
+                            // invalid function input
+                            JOptionPane.showMessageDialog(
+                                    DV.mainFrame,
+                                    """
+                                            Error: input is invalid.
+                                            Please enter a valid function.
+                                            Select "Help" for more info.
+                                            """,
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                        }
+
+                        notChosen = false;
+                    }
+                    case 2 -> DV.vectorFuncInfoPopup();
+                    default -> { return; }
+                }
+            }
         });
         vectorVisFuncPanel.add(vectorVisFuncBtn);
         /**
@@ -283,10 +447,11 @@ public class VisualizationOptionsMenu extends JPanel
 
         // if drawing overlap
         if (DV.drawOverlap)
-            visOptions.add(stopOverlapVisPanel);
+            visOptions.add(vectorVisFuncPanel);
 
-        // add function
+        // add functions
         visOptions.add(scalarVisFuncPanel);
+        visOptions.add(vectorVisFuncPanel);
 
         visOptionsFrame.add(visOptions);
         visOptionsFrame.pack();

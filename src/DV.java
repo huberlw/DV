@@ -141,11 +141,13 @@ public class DV extends JFrame
     // angles and initial angles (store angles before optimizing)
     static double[] angles;
     static double[] prevAngles;
+    static double[] standardAngles;
 
     // normalized and original data
     static ArrayList<DataObject> data;
     static ArrayList<DataObject> normalizedData;
     static ArrayList<DataObject> originalData;
+    static DataObject supportVectors;
 
     // user made validation data
     static ArrayList<DataObject> validationData;
@@ -157,9 +159,12 @@ public class DV extends JFrame
     // fieldnames and length
     static ArrayList<String> fieldNames;
     static int fieldLength;
+    static ArrayList<String>  standardFieldNames;
+    static int standardFieldLength;
 
     // initialize with linear function
-    static String function = "x";
+    static String scalarFunction = "x";
+    static String vectorFunction = "x";
 
     /************************************************
      * FOR PROJECT
@@ -776,6 +781,9 @@ public class DV extends JFrame
                     angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
 
                     DataVisualization.drawGraphs();
+
+                    // get support vectors
+                    DataVisualization.SVM();
                 }
                 else
                 {
@@ -1603,7 +1611,46 @@ public class DV extends JFrame
      * Creates informative popup explaining how to
      * enter a function
      */
-    public static void funcInfoPopup()
+    public static void scalarFuncInfoPopup()
+    {
+        JOptionPane.showMessageDialog(
+                mainFrame,
+                """
+                        Enter a function with "x" and "y" as the only variables.
+                        "x" will be a vector in the dataset and "y" will be a support vector.
+                        All functions must use the symbols below.
+                        Symbols not included below cannot be used.
+                        
+                            Addition: +
+                            Subtraction: -
+                            Multiplication: *
+                            Division: /
+                            Exponent: ^
+                            Square Root: sqrt()
+                            Parenthesis: ( )
+                            Sine: sin()
+                            Cosine: cos()
+                            Tangent: tan()
+                            Dot Product: dot(x,y)
+                            Vector Norm: norm(x,y)
+                            Vector Addition: vAdd(x,y)
+                            Vector Subtraction: vSub(x,y)
+                            e: 2.7182818
+                        
+                        Example:
+                            f(x) = e^(-1/9 * norm(vSub(x, y))^2)
+                        """,
+                "Function Help",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+
+    /**
+     * Creates informative popup explaining how to
+     * enter a function
+     */
+    public static void vectorFuncInfoPopup()
     {
         JOptionPane.showMessageDialog(
                 mainFrame,
