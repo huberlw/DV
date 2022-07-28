@@ -60,6 +60,8 @@ public class DV extends JFrame
             new Color(84, 133, 145)       // lower graph (dark cyan)
     };
 
+    static Color endpoints = Color.RED;
+
     // show bars instead of endpoints for graphs
     // the height of a bar is equal to the number of points in its location
     static boolean showBars = false;
@@ -1616,6 +1618,40 @@ public class DV extends JFrame
         JOptionPane.showMessageDialog(
                 mainFrame,
                 """
+                        Enter a function with "x" as the only variable.
+                        All functions must use the symbols below.
+                        Symbols not included below cannot be used.
+                        
+                            Addition: +
+                            Subtraction: -
+                            Multiplication: *
+                            Division: /
+                            Exponent: ^
+                            Square Root: sqrt()
+                            Parenthesis: ( )
+                            Sine: sin()
+                            Cosine: cos()
+                            Tangent: tan()
+                            e: 2.7182818
+                        
+                        Example:
+                            f(x) = 2 * sqrt(sin(x^2))
+                        """,
+                "Function Help",
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
+
+
+    /**
+     * Creates informative popup explaining how to
+     * enter a function
+     */
+    public static void vectorFuncInfoPopup()
+    {
+        JOptionPane.showMessageDialog(
+                mainFrame,
+                """
                         Enter a function with "x" and "y" as the only variables.
                         "x" will be a vector in the dataset and "y" will be a support vector.
                         All functions must use the symbols below.
@@ -1639,40 +1675,6 @@ public class DV extends JFrame
                         
                         Example:
                             f(x) = e^(-1/9 * norm(vSub(x, y))^2)
-                        """,
-                "Function Help",
-                JOptionPane.INFORMATION_MESSAGE
-        );
-    }
-
-
-    /**
-     * Creates informative popup explaining how to
-     * enter a function
-     */
-    public static void vectorFuncInfoPopup()
-    {
-        JOptionPane.showMessageDialog(
-                mainFrame,
-                """
-                        Enter a function with "x" as the only variable.
-                        All functions must use the symbols below.
-                        Symbols not included below cannot be used.
-                        
-                            Addition: +
-                            Subtraction: -
-                            Multiplication: *
-                            Division: /
-                            Exponent: ^
-                            Square Root: sqrt()
-                            Parenthesis: ( )
-                            Sine: sin()
-                            Cosine: cos()
-                            Tangent: tan()
-                            e: 2.7182818
-                        
-                        Example:
-                            f(x) = 2 * sqrt(sin(x^2))
                         """,
                 "Function Help",
                 JOptionPane.INFORMATION_MESSAGE

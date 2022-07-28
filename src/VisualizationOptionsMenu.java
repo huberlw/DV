@@ -274,7 +274,7 @@ public class VisualizationOptionsMenu extends JPanel
 
             // default function panel
             JPanel stockPanel = new JPanel();
-            stockPanel.add(new JLabel("Functions: "));
+            stockPanel.add(new JLabel("Built-In: "));
             stockPanel.add(svmPolyFunc);
             stockPanel.add(svmRBFFunc);
             stockPanel.add(customFunc);
@@ -392,7 +392,7 @@ public class VisualizationOptionsMenu extends JPanel
                             DV.data = DataSetup.createDataObjects(splitByClass);
 
                             DV.fieldLength = splitByClass.get(0)[0].length;
-
+                            System.out.println(DV.fieldLength);
 
                             DV.angles = new double[DV.fieldLength];
                             DV.prevAngles = new double[DV.fieldLength];

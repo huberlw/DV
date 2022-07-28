@@ -843,7 +843,7 @@ public class DataVisualization
             XYSeries thresholdLine = new XYSeries(0, false, true);
 
             // get line height
-            final double lineHeight = UPPER_OR_LOWER == 1 ? -DV.fieldLength : DV.fieldLength;
+            final double lineHeight = UPPER_OR_LOWER == 1 ? GRAPH_SCALER * -DV.fieldLength : GRAPH_SCALER * DV.fieldLength;
 
             // set domain lines
             domainMinLine.add(DV.domainArea[0], 0);
@@ -1047,38 +1047,39 @@ public class DataVisualization
             BasicStroke thresholdOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
             BasicStroke domainStroke = new BasicStroke(2f);
 
+            // set endpoint renderer and dataset
+            endpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-2, -2, 4, 4));
+            endpointRenderer.setSeriesPaint(0, DV.endpoints);
+            plot.setRenderer(0, endpointRenderer);
+            plot.setDataset(0, endpoints);
+
             // set threshold renderer and dataset
             thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
             thresholdRenderer.setSeriesPaint(0, DV.thresholdLine);
-            plot.setRenderer(0, thresholdRenderer);
-            plot.setDataset(0, threshold);
+            plot.setRenderer(1, thresholdRenderer);
+            plot.setDataset(1, threshold);
 
             // set overlap renderer and dataset
             overlapRenderer.setSeriesStroke(0, thresholdOverlapStroke);
             overlapRenderer.setSeriesStroke(1, thresholdOverlapStroke);
             overlapRenderer.setSeriesPaint(0, DV.overlapLines);
             overlapRenderer.setSeriesPaint(1, DV.overlapLines);
-            plot.setRenderer(1, overlapRenderer);
-            plot.setDataset(1, overlap);
+            plot.setRenderer(2, overlapRenderer);
+            plot.setDataset(2, overlap);
 
             // set domain renderer and dataset
             domainRenderer.setSeriesStroke(0, domainStroke);
             domainRenderer.setSeriesStroke(1, domainStroke);
             domainRenderer.setSeriesPaint(0, DV.domainLines);
             domainRenderer.setSeriesPaint(1, DV.domainLines);
-            plot.setRenderer(2, domainRenderer);
-            plot.setDataset(2, domain);
+            plot.setRenderer(3, domainRenderer);
+            plot.setDataset(3, domain);
 
             // set line renderer and dataset
             lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
             lineRenderer.setAutoPopulateSeriesStroke(false);
-            plot.setRenderer(3, lineRenderer);
-            plot.setDataset(3, graphLines);
-
-            // set endpoint renderer and dataset
-            endpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-2, -2, 4, 4));
-            plot.setRenderer(4, endpointRenderer);
-            plot.setDataset(4, endpoints);
+            plot.setRenderer(4, lineRenderer);
+            plot.setDataset(4, graphLines);
 
             // set bar or timeline renderer and dataset
             if (DV.showBars)

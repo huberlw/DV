@@ -42,7 +42,7 @@ public class ColorOptionsMenu extends JPanel
         {
             Color newColor = JColorChooser.showDialog(
                     colorOptionsFrame,
-                    "Chose Domain Line Color",
+                    "Chose Overlap Line Color",
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
@@ -62,7 +62,7 @@ public class ColorOptionsMenu extends JPanel
         {
             Color newColor = JColorChooser.showDialog(
                     colorOptionsFrame,
-                    "Chose Domain Line Color",
+                    "Chose Threshold Line Color",
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
@@ -102,7 +102,7 @@ public class ColorOptionsMenu extends JPanel
         {
             Color newColor = JColorChooser.showDialog(
                     colorOptionsFrame,
-                    "Chose Domain Line Color",
+                    "Chose Upper Graph Color",
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
@@ -122,7 +122,7 @@ public class ColorOptionsMenu extends JPanel
         {
             Color newColor = JColorChooser.showDialog(
                     colorOptionsFrame,
-                    "Chose Domain Line Color",
+                    "Chose Lower Graph Color",
                     colorOptionsFrame.getBackground());
 
             if (newColor != null)
@@ -134,6 +134,26 @@ public class ColorOptionsMenu extends JPanel
             }
         });
         colors.add(lowerGraphColorBtn);
+
+        // set lower graph color
+        JButton endpointColorBtn = new JButton("Endpoint Color");
+        endpointColorBtn.setToolTipText("Sets color of endpoints for upper and lower graphs");
+        endpointColorBtn.addActionListener(e ->
+        {
+            Color newColor = JColorChooser.showDialog(
+                    colorOptionsFrame,
+                    "Chose Endpoint Color",
+                    colorOptionsFrame.getBackground());
+
+            if (newColor != null)
+            {
+                DV.endpoints = newColor;
+
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+            }
+        });
+        colors.add(endpointColorBtn);
 
         colorOptionsFrame.add(colors);
         colorOptionsFrame.pack();
