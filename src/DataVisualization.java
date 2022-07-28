@@ -246,7 +246,9 @@ public class DataVisualization
                 JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Support Vector Machines", "Error", JOptionPane.ERROR_MESSAGE);
 
             // delete created file
-            File fileToDelete = new File("source\\Python\\DV_data.csv");
+            File fileToDelete = new File("source\\Python\\svm_data.csv");
+            Files.deleteIfExists(fileToDelete.toPath());
+            fileToDelete = new File("source\\Python\\DV_data.csv");
             Files.deleteIfExists(fileToDelete.toPath());
         }
         catch (IOException | InterruptedException e)

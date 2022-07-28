@@ -10,6 +10,9 @@ import java.util.concurrent.ExecutionException;
 
 public class Analytics
 {
+    // class names for each number
+    static String classNames;
+
     // holds the percentage of overlap points used
     static String percentageOverlapPointsUsed;
 
@@ -38,6 +41,18 @@ public class Analytics
         {
             if (DV.classNumber > 1)
             {
+                StringBuilder classes = new StringBuilder();
+
+                for (int i = 0; i < DV.data.size(); i++)
+                {
+                    classes.append("Class ").append(i).append(": ").append(DV.data.get(0).className);
+
+                    if (i != DV.data.size() - 1)
+                        classes.append(", ");
+                }
+
+                classNames = classes.toString();
+
                 // remove old confusion matrices
                 CONFUSION_MATRICES.clear();
 
@@ -174,6 +189,7 @@ public class Analytics
             for (int i = 0; i < DV.prevAllDataCM.size(); i++)
             {
                 JTextArea confusionMatrix = new JTextArea(DV.prevAllDataCM.get(i));
+                confusionMatrix.setToolTipText(classNames);
                 confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix.setEditable(false);
                 synchronized (CONFUSION_MATRICES)
@@ -324,6 +340,7 @@ public class Analytics
 
             // set all data confusion matrix
             JTextArea confusionMatrix = new JTextArea(DV.allDataCM);
+            confusionMatrix.setToolTipText(classNames);
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
             synchronized (CONFUSION_MATRICES)
@@ -462,6 +479,7 @@ public class Analytics
 
                     // set data without overlap confusion matrix
                     JTextArea confusionMatrix = new JTextArea(cm.toString());
+                    confusionMatrix.setToolTipText(classNames);
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
                     synchronized (CONFUSION_MATRICES)
@@ -578,6 +596,7 @@ public class Analytics
 
                     // set overlap confusion matrix
                     JTextArea confusionMatrix = new JTextArea(cm.toString());
+                    confusionMatrix.setToolTipText(classNames);
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
                     synchronized (CONFUSION_MATRICES)
@@ -743,6 +762,7 @@ public class Analytics
 
                 // set worst case confusion matrix
                 JTextArea confusionMatrix = new JTextArea(cm.toString());
+                confusionMatrix.setToolTipText(classNames);
                 confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix.setEditable(false);
                 synchronized (CONFUSION_MATRICES)
@@ -922,6 +942,7 @@ public class Analytics
 
             // set user validation confusion matrix
             JTextArea confusionMatrix = new JTextArea( cm.toString());
+            confusionMatrix.setToolTipText(classNames);
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
             synchronized (CONFUSION_MATRICES)
