@@ -1,11 +1,9 @@
-import org.mariuszgromada.math.mxparser.Argument;
-import org.mariuszgromada.math.mxparser.Expression;
-import org.mariuszgromada.math.mxparser.Function;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class VisualizationOptionsMenu extends JPanel
 {
@@ -169,7 +167,7 @@ public class VisualizationOptionsMenu extends JPanel
             JTextField funcField = new JTextField();
             funcField.setPreferredSize(new Dimension(200, 30));
             funcField.setText(DV.function);
-            textPanel.add(new JLabel("Function: "));
+            textPanel.add(new JLabel("Function: f(x) = "));
             textPanel.add(funcField);
 
             // add text panel
@@ -198,22 +196,37 @@ public class VisualizationOptionsMenu extends JPanel
                         // get function and remove spaces
                         String func = funcField.getText();
 
-                        // test function
-                        Function testFunc = new Function(func);
-                        Argument x = new Argument("x = 1");
-                        Expression testExp = new Expression("f(x)", testFunc, x);
-                        double testAns = testExp.calculate();
-
-                        if (!Double.isNaN(testAns))
+                        try
                         {
+                            // try new function with dummy variables
+                            Map<String, Double> variables = new HashMap<>();
+                            FunctionParser.Expression exp = FunctionParser.parseExpression(func, variables);
+
+                            for (double x = 0; x < 1; x += 0.1)
+                            {
+                                variables.put("x", x);
+                                exp.eval();
+                            }
+
                             // apply function if working
                             DV.function = func;
-                            DV.dataFunction = new Function(func);
-                            DV.updatePoints();
+
+                            for (int i = 0; i < DV.normalizedData.size(); i++)
+                            {
+                                for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
+                                {
+                                    for (int k = 0; k < DV.fieldLength; k++)
+                                    {
+                                        variables.put("x", DV.data.get(i).data[j][k]);
+                                        DV.data.get(i).data[j][k] = exp.eval();
+                                    }
+                                }
+                            }
+
                             DataVisualization.optimizeSetup();
                             DataVisualization.drawGraphs();
                         }
-                        else
+                        catch (Exception exc)
                         {
                             // invalid function input
                             JOptionPane.showMessageDialog(

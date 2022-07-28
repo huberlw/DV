@@ -18,10 +18,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.mariuszgromada.math.mxparser.Argument;
-import org.mariuszgromada.math.mxparser.Expression;
-import org.mariuszgromada.math.mxparser.Function;
-
 public class DV extends JFrame
 {
     /**************************************************
@@ -163,8 +159,7 @@ public class DV extends JFrame
     static int fieldLength;
 
     // initialize with linear function
-    static String function = "f(x) = x";
-    static Function dataFunction = new Function("f(x) = x");
+    static String function = "x";
 
     /************************************************
      * FOR PROJECT
@@ -1627,6 +1622,7 @@ public class DV extends JFrame
                             Sine: sin()
                             Cosine: cos()
                             Tangent: tan()
+                            e: 2.7182818
                         
                         Example:
                             f(x) = 2 * sqrt(sin(x^2))
@@ -1665,25 +1661,5 @@ public class DV extends JFrame
 
         // reset popup
         showPopup = true;
-    }
-
-
-    /**
-     * DO SOMETHING
-     */
-    public static void updatePoints()
-    {
-        for (int i = 0; i < normalizedData.size(); i++)
-        {
-            for (int j = 0; j < normalizedData.get(i).data.length; j++)
-            {
-                for (int k = 0; k < fieldLength; k++)
-                {
-                    Argument x = new Argument("x = " + normalizedData.get(i).data[j][k]);
-                    Expression e = new Expression("f(x)", dataFunction, x);
-                    data.get(i).data[j][k] = e.calculate();
-                }
-            }
-        }
     }
 }
