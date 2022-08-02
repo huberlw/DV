@@ -45,7 +45,7 @@ public class Analytics
 
                 for (int i = 0; i < DV.data.size(); i++)
                 {
-                    classes.append("Class ").append(i).append(": ").append(DV.data.get(0).className);
+                    classes.append("Class ").append(i).append(": ").append(DV.data.get(i).className);
 
                     if (i != DV.data.size() - 1)
                         classes.append(", ");

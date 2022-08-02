@@ -12,53 +12,18 @@ public class FunctionParser
         double eval();
     }
 
+    @FunctionalInterface
+    interface VectorExpression
+    {
+        double[] eval_vec();
+    }
+
     static final Map<String,DoubleUnaryOperator> scalarFunctions = Map.ofEntries(
             entry("sqrt", x -> Math.sqrt(x)),
             entry("sin", x -> Math.sin(Math.toRadians(x))),
             entry("cos", x -> Math.cos(Math.toRadians(x))),
             entry("tan", x -> Math.tan(Math.toRadians(x)))
     );
-
-
-    private static double dotProduct(double[] x, double[] y)
-    {
-        double product = 0;
-
-        for (int i = 0; i < x.length; i++)
-            product += x[i] * y[i];
-
-        return product;
-    }
-
-    private static double norm(double[] vec)
-    {
-        double norm = 0;
-
-        for (double x : vec)
-            norm += Math.pow(x, 2);
-
-        return Math.sqrt(norm);
-    }
-
-    private static double[] vAdd(double[] x, double[] y)
-    {
-        double[] sums = new double[x.length];
-
-        for (int i = 0; i < x.length; i++)
-            sums[i] += x[i] + y[i];
-
-        return sums;
-    }
-
-    private static double[] vSub(double[] x, double[] y)
-    {
-        double[] sums = new double[x.length];
-
-        for (int i = 0; i < x.length; i++)
-            sums[i] += x[i] - y[i];
-
-        return sums;
-    }
 
     public static Expression parseScalerExpression(String strExp, Map<String, Double> variables)
     {
@@ -205,7 +170,7 @@ public class FunctionParser
         }.parse();
     }
 
-    public static Expression parseVectorExpression(String strExp, Map<String, double[]> variables)
+    public static Expression parseVectorExpression(String strExp, Map<String, VectorExpression> variables)
     {
         return new Object()
         {
@@ -292,6 +257,57 @@ public class FunctionParser
                 }
             }
 
+            double dotProduct(VectorExpression vecX, VectorExpression vecY)
+            {
+                double[] x = vecX.eval_vec();
+                double[] y = vecY.eval_vec();
+
+                double product = 0;
+
+                for (int i = 0; i < x.length; i++)
+                    product += x[i] * y[i];
+
+                return product;
+            }
+
+            double norm(VectorExpression vecX)
+            {
+                double[] vec = vecX.eval_vec();
+
+                double norm = 0;
+
+                for (double x : vec)
+                    norm += Math.pow(x, 2);
+
+                return Math.sqrt(norm);
+            }
+
+            double[] vAdd(VectorExpression vecX, VectorExpression vecY)
+            {
+                double[] x = vecX.eval_vec();
+                double[] y = vecY.eval_vec();
+
+                double[] sums = new double[x.length];
+
+                for (int i = 0; i < x.length; i++)
+                    sums[i] += x[i] + y[i];
+
+                return sums;
+            }
+
+            double[] vSub(VectorExpression vecX, VectorExpression vecY)
+            {
+                double[] x = vecX.eval_vec();
+                double[] y = vecY.eval_vec();
+
+                double[] sums = new double[x.length];
+
+                for (int i = 0; i < x.length; i++)
+                    sums[i] += x[i] - y[i];
+
+                return sums;
+            }
+
             String[] parseVecFunc()
             {
                 String varX;
@@ -329,28 +345,41 @@ public class FunctionParser
 
             String parseVecNormFunc()
             {
-                String varX;
+                String tool_or_var;
 
                 if (operator('('))
                 {
                     int startPos = pos;
 
-                    if (c >= 'a' && c <= 'z')
+                    if (c >= 'A' && c <= 'z')
                     {
-                        while(c >= 'a' && c <= 'z')
+                        while(c >= 'A' && c <= 'z')
                             nextChar();
 
-                        varX = str.substring(startPos, pos);
+                        tool_or_var = str.substring(startPos, pos);
+
+                        if (tool_or_var.equals("vAdd"))
+                        {
+                            String[] vectors = parseVecAddSub();
+
+                            tool_or_var = vectors[0];
+                            variables.put(vectors[0], () -> vAdd(variables.get(vectors[1]), variables.get(vectors[2])));
+                        }
+                        else if (tool_or_var.equals("vSub"))
+                        {
+                            String[] vectors = parseVecAddSub();
+
+                            tool_or_var = vectors[0];
+                            variables.put(vectors[0], () -> vSub(variables.get(vectors[1]), variables.get(vectors[2])));
+                        }
                     }
                     else
                         throw new RuntimeException("Missing variable: x");
 
-                    nextChar();
-
                     if (!operator(')'))
                         throw new RuntimeException("Missing parenthesis: )");
 
-                    return varX;
+                    return tool_or_var;
                 }
                 else
                     throw new RuntimeException("Missing parenthesis: (");
@@ -362,15 +391,9 @@ public class FunctionParser
 
                 for (int i = 97; i < 123; i++)
                 {
-                    if (!variables.containsKey(Character.toString(i)))
+                    if (!variables.containsKey(Character.toString(i)) && i != 101)
                     {
                         String newVal = Character.toString(i);
-                        nextChar();
-
-                        StringBuilder updatedStr = new StringBuilder(str);
-                        updatedStr.replace(pos - 5, pos, newVal);
-                        str = updatedStr.toString();
-                        pos = pos - 5;
 
                         return new String[]{ newVal, vectors[0], vectors[1] };
                     }
@@ -383,9 +406,15 @@ public class FunctionParser
             {
                 // check for positive or negative signs
                 if (operator('+'))
-                    return () -> +parseNumber().eval();
+                {
+                    Expression p = parseNumber();
+                    return () -> +p.eval();
+                }
                 else if (operator('-'))
-                    return () -> -parseNumber().eval();
+                {
+                    Expression p = parseNumber();
+                    return () -> -p.eval();
+                }
 
                 //
                 Expression x = () -> 0;
@@ -406,9 +435,9 @@ public class FunctionParser
                     String tmp = str.substring(startPos, pos);
                     x = () -> Double.parseDouble(tmp);
                 }
-                else if (c >= 'a' && c <= 'z')
+                else if (c >= 'A' && c <= 'z')
                 {
-                    while (c >= 'a' && c <= 'z')
+                    while (c >= 'A' && c <= 'z')
                         nextChar();
 
                     String tool_or_var = str.substring(startPos, pos);
@@ -432,16 +461,12 @@ public class FunctionParser
                     else if (tool_or_var.equals("vAdd"))
                     {
                         String[] vectors = parseVecAddSub();
-                        double[] sumVec = vAdd(variables.get(vectors[1]), variables.get(vectors[2]));
-
-                        variables.put(vectors[0], sumVec);
+                        variables.put(vectors[0], () -> vAdd(variables.get(vectors[1]), variables.get(vectors[2])));
                     }
                     else if (tool_or_var.equals("vSub"))
                     {
                         String[] vectors = parseVecAddSub();
-                        double[] sumVec = vSub(variables.get(vectors[1]), variables.get(vectors[2]));
-
-                        variables.put(vectors[0], sumVec);
+                        variables.put(vectors[0], () -> vSub(variables.get(vectors[1]), variables.get(vectors[2])));
                     }
                 }
 
@@ -460,17 +485,14 @@ public class FunctionParser
     public static void main(String[] args)
     {
         //Map<String,Double> variables = new HashMap<>();
-        Map<String,double[]> variables = new HashMap<>();
+        Map<String, VectorExpression> variables = new HashMap<>();
 
         //Expression exp = parseScalerExpression("x + e^2", variables);
-        Expression exp = parseVectorExpression("1 + dot(x, y)", variables);
-        variables.put("x", new double[]{1, 2, 3});
-        variables.put("y", new double[]{3, 2, 1});
+        Expression exp = parseVectorExpression("e^(-1/3 * norm(vSub(x, y))^2)", variables);
+        //Expression exp = parseVectorExpression("(1/3 * dot(x, y) + 1)^3", variables);
+        variables.put("x", () -> new double[]{1, 2, 3});
+        variables.put("y", () -> new double[]{3, 2, 1});
 
-        for (double x = 1; x < 10; x++)
-        {
-            //variables.put("x", x);
-            System.out.println(x + " => " + exp.eval());
-        }
+        System.out.println(exp.eval());
     }
 }

@@ -1021,7 +1021,7 @@ public class DataVisualization
                 double minBound = -DV.fieldLength;
 
                 // get maximum bar height
-                double maxBarHeight = DV.fieldLength / 9.0;
+                double maxBarHeight = DV.fieldLength;
 
                 // add series to collection
                 for (int i = 0; i < 400; i++)
@@ -1046,11 +1046,11 @@ public class DataVisualization
             }
 
             // create basic strokes
-            BasicStroke thresholdOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
-            BasicStroke domainStroke = new BasicStroke(2f);
+            BasicStroke thresholdOverlapStroke = new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
+            BasicStroke domainStroke = new BasicStroke(1f);
 
             // set endpoint renderer and dataset
-            endpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-2, -2, 4, 4));
+            endpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-1, -1, 2, 2));
             endpointRenderer.setSeriesPaint(0, DV.endpoints);
             plot.setRenderer(0, endpointRenderer);
             plot.setDataset(0, endpoints);
@@ -1092,9 +1092,9 @@ public class DataVisualization
             else
             {
                 if (UPPER_OR_LOWER == 1)
-                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
+                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 6));
                 else
-                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
+                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -6, 0.5, 6));
 
                 plot.setRenderer(5, timeLineRenderer);
                 plot.setDataset(5, timeLine);

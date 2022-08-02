@@ -1,7 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -136,6 +135,8 @@ public class VisualizationOptionsMenu extends JPanel
             {
                 DV.drawOverlap = true;
                 DataVisualization.drawGraphs();
+
+                visOptionsFrame.dispatchEvent(new WindowEvent(visOptionsFrame, WindowEvent.WINDOW_CLOSING));
             }
             else
                 JOptionPane.showMessageDialog(visOptionsFrame, "No overlap area");
@@ -150,6 +151,8 @@ public class VisualizationOptionsMenu extends JPanel
         {
             DV.drawOverlap = false;
             DataVisualization.drawGraphs();
+
+            visOptionsFrame.dispatchEvent(new WindowEvent(visOptionsFrame, WindowEvent.WINDOW_CLOSING));
         });
         stopOverlapVisPanel.add(stopOverlapVisBtn);
 
@@ -204,11 +207,8 @@ public class VisualizationOptionsMenu extends JPanel
                             Map<String, Double> variables = new HashMap<>();
                             FunctionParser.Expression exp = FunctionParser.parseScalerExpression(func, variables);
 
-                            for (double x = 0; x < 1; x += 0.1)
-                            {
-                                variables.put("x", x);
-                                exp.eval();
-                            }
+                            variables.put("x", 0.5);
+                            exp.eval();
 
                             // apply function if working
                             DV.scalarFunction = func;
@@ -265,12 +265,14 @@ public class VisualizationOptionsMenu extends JPanel
 
             // radio button group
             ButtonGroup stockFunc = new ButtonGroup();
-            JRadioButton svmPolyFunc = new JRadioButton("SVM - Polynomial Kernel", true);
+            JRadioButton svmPolyFunc = new JRadioButton("SVM - Polynomial Kernel");
             JRadioButton svmRBFFunc = new JRadioButton("SVM - RBF Kernel");
             JRadioButton customFunc = new JRadioButton("Custom");
+            JRadioButton noFunc = new JRadioButton("None", true);
             stockFunc.add(svmPolyFunc);
             stockFunc.add(svmRBFFunc);
             stockFunc.add(customFunc);
+            stockFunc.add(noFunc);
 
             // default function panel
             JPanel stockPanel = new JPanel();
@@ -278,6 +280,7 @@ public class VisualizationOptionsMenu extends JPanel
             stockPanel.add(svmPolyFunc);
             stockPanel.add(svmRBFFunc);
             stockPanel.add(customFunc);
+            stockPanel.add(noFunc);
             funcPanel.add(stockPanel, BorderLayout.NORTH);
 
             // text panel
@@ -285,15 +288,8 @@ public class VisualizationOptionsMenu extends JPanel
 
             // maximum text field
             JTextField funcField = new JTextField();
-            /**
-             * REMOVE THIS LINE LATER
-             */
-            funcField.setEditable(false);
-            /**
-             * REMOVE THIS LINE LATER
-             */
             funcField.setPreferredSize(new Dimension(200, 30));
-            funcField.setText(DV.scalarFunction);
+            funcField.setText(DV.vectorFunction);
             textPanel.add(new JLabel("Function: f(x, y) = "));
             textPanel.add(funcField);
 
@@ -301,10 +297,12 @@ public class VisualizationOptionsMenu extends JPanel
             funcPanel.add(textPanel, BorderLayout.SOUTH);
 
             // add listeners
-            svmPolyFunc.addActionListener(e1 -> funcField.setText("(1/" + DV.fieldLength + " * dot(x, y) + 1)^3"));
-            svmRBFFunc.addActionListener(e1 -> funcField.setText("e^(-1/" + DV.fieldLength + " * norm(vSub(x, y))^2)"));
+            svmPolyFunc.addActionListener(e1 -> funcField.setText("(1/" + DV.standardFieldLength + " * dot(x, y) + 1)^3"));
+            svmRBFFunc.addActionListener(e1 -> funcField.setText("e^(-1/" + DV.standardFieldLength + " * norm(vSub(x, y))^2)"));
+            noFunc.addActionListener(e1 -> funcField.setText("N/A"));
 
-            funcField.addKeyListener(new KeyListener() {
+            funcField.addKeyListener(new KeyListener()
+            {
                 @Override
                 public void keyTyped(KeyEvent e)
                 {
@@ -341,85 +339,101 @@ public class VisualizationOptionsMenu extends JPanel
                         // get function and remove spaces
                         String func = funcField.getText();
 
-                        try
+                        if (func.equals("N/A"))
                         {
-                            // try new function with dummy variables
-                            Map<String, double[]> variables = new HashMap<>();
-                            FunctionParser.Expression exp = FunctionParser.parseVectorExpression(func, variables);
+                            DV.fieldLength = DV.standardFieldLength;
 
-                            for (double x = 0; x < 1; x += 0.1)
-                            {
-                                variables.put("x", new double[]{ x, x, x });
-                                variables.put("y", new double[]{ x, x, x });
-                                exp.eval();
-                            }
+                            DV.fieldNames = new ArrayList<>();
+                            DV.fieldNames.addAll(DV.standardFieldNames);
 
-                            // apply function if working
-                            DV.vectorFunction = func;
-                            ArrayList<double[][]> splitByClass = new ArrayList<>();
-
-                            for (int i = 0; i < DV.normalizedData.size(); i++)
-                            {
-                                ArrayList<double[]> classData = new ArrayList<>();
-
-                                for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
-                                {
-                                    ArrayList<Double> newRow = new ArrayList<>();
-
-                                    for (int k = 0; k < DV.supportVectors.data.length; k++)
-                                    {
-                                        variables.put("x", DV.data.get(i).data[j]);
-                                        variables.put("y", DV.supportVectors.data[k]);
-                                        newRow.add(exp.eval());
-                                    }
-
-                                    double[] newRowArray = new double[newRow.size()];
-
-                                    for (int w = 0; w < newRow.size(); w++)
-                                        newRowArray[w] = newRow.get(w);
-
-                                    classData.add(newRowArray);
-                                }
-
-                                double[][] newClassData = new double[classData.size()][];
-
-                                for (int w = 0; w < classData.size(); w++)
-                                    newClassData[w] = classData.get(w);
-
-                                splitByClass.add(newClassData);
-                            }
-
-                            DV.data = DataSetup.createDataObjects(splitByClass);
-
-                            DV.fieldLength = splitByClass.get(0)[0].length;
-                            System.out.println(DV.fieldLength);
-
-                            DV.angles = new double[DV.fieldLength];
-                            DV.prevAngles = new double[DV.fieldLength];
-                            DV.fieldNames.clear();
-
-                            for (int i = 0; i < DV.fieldLength; i++)
-                            {
-                                DV.fieldNames.add("feature " + i);
-                                DV.angles[i] = 45;
-                                DV.prevAngles[i] = 45;
-                            }
+                            DV.data = new ArrayList<>();
+                            DV.data.addAll(DV.normalizedData);
 
                             DataVisualization.optimizeSetup();
                             DataVisualization.drawGraphs();
                         }
-                        catch (Exception exc)
+                        else
                         {
-                            // invalid function input
-                            JOptionPane.showMessageDialog(
-                                    DV.mainFrame,
-                                    """
-                                            Error: input is invalid.
-                                            Please enter a valid function.
-                                            Select "Help" for more info.
-                                            """,
-                                    "Error",
-                                    JOptionPane.ERROR_MESSAGE);
+                            try
+                            {
+                                // try new function with dummy variables
+                                Map<String, FunctionParser.VectorExpression> variables = new HashMap<>();
+                                FunctionParser.Expression exp = FunctionParser.parseVectorExpression(func, variables);
+
+                                variables.put("x", () -> new double[]{0, 0.3, 0.8});
+                                variables.put("y", () -> new double[]{1, 0.6, 0.1});
+                                exp.eval();
+
+                                // apply function if working
+                                DV.vectorFunction = func;
+                                ArrayList<double[][]> splitByClass = new ArrayList<>();
+
+                                for (int i = 0; i < DV.normalizedData.size(); i++)
+                                {
+                                    ArrayList<double[]> classData = new ArrayList<>();
+
+                                    for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
+                                    {
+                                        ArrayList<Double> newRow = new ArrayList<>();
+
+                                        for (int k = 0; k < DV.supportVectors.data.length; k++)
+                                        {
+                                            final double[] x = DV.normalizedData.get(i).data[j];
+                                            final double[] y = DV.supportVectors.data[k];
+
+                                            variables.put("x", () -> x);
+                                            variables.put("y", () -> y);
+                                            newRow.add(exp.eval());
+                                        }
+
+                                        double[] newRowArray = new double[newRow.size()];
+
+                                        for (int w = 0; w < newRow.size(); w++)
+                                            newRowArray[w] = newRow.get(w);
+
+                                        classData.add(newRowArray);
+                                    }
+
+                                    double[][] newClassData = new double[classData.size()][];
+
+                                    for (int w = 0; w < classData.size(); w++)
+                                        newClassData[w] = classData.get(w);
+
+                                    splitByClass.add(newClassData);
+                                }
+
+                                DV.data = DataSetup.createDataObjects(splitByClass);
+
+                                DV.fieldLength = splitByClass.get(0)[0].length;
+                                System.out.println(DV.fieldLength);
+
+                                DV.angles = new double[DV.fieldLength];
+                                DV.prevAngles = new double[DV.fieldLength];
+                                DV.fieldNames.clear();
+
+                                for (int i = 0; i < DV.fieldLength; i++)
+                                {
+                                    DV.fieldNames.add("feature " + i);
+                                    DV.angles[i] = 45;
+                                    DV.prevAngles[i] = 45;
+                                }
+
+                                DataVisualization.optimizeSetup();
+                                DataVisualization.drawGraphs();
+                            }
+                            catch (Exception exc)
+                            {
+                                // invalid function input
+                                JOptionPane.showMessageDialog(
+                                        DV.mainFrame,
+                                        """
+                                                Error: input is invalid.
+                                                Please enter a valid function.
+                                                Select "Help" for more info.
+                                                """,
+                                        "Error",
+                                        JOptionPane.ERROR_MESSAGE);
+                            }
                         }
 
                         notChosen = false;
@@ -444,10 +458,8 @@ public class VisualizationOptionsMenu extends JPanel
         // check if not drawing overlap
         if (!DV.drawOverlap)
             visOptions.add(visOverlapPanel);
-
-        // if drawing overlap
-        if (DV.drawOverlap)
-            visOptions.add(vectorVisFuncPanel);
+        else
+            visOptions.add(stopOverlapVisPanel);
 
         // add functions
         visOptions.add(scalarVisFuncPanel);

@@ -49,7 +49,7 @@ public class DV extends JFrame
      * FOR GRAPHS
      *************************************************/
     // line colors
-    static Color domainLines = Color.BLACK;
+    static Color domainLines = Color.RED;
     static Color overlapLines = Color.ORANGE;
     static Color thresholdLine = Color.GREEN;
     static Color background = Color.WHITE;
@@ -60,7 +60,7 @@ public class DV extends JFrame
             new Color(84, 133, 145)       // lower graph (dark cyan)
     };
 
-    static Color endpoints = Color.RED;
+    static Color endpoints = Color.BLACK;
 
     // show bars instead of endpoints for graphs
     // the height of a bar is equal to the number of points in its location
@@ -161,12 +161,12 @@ public class DV extends JFrame
     // fieldnames and length
     static ArrayList<String> fieldNames;
     static int fieldLength;
-    static ArrayList<String>  standardFieldNames;
+    static ArrayList<String> standardFieldNames;
     static int standardFieldLength;
 
     // initialize with linear function
     static String scalarFunction = "x";
-    static String vectorFunction = "x";
+    static String vectorFunction = "N/A";
 
     /************************************************
      * FOR PROJECT
@@ -238,7 +238,7 @@ public class DV extends JFrame
             @Override
             public void updateUI()
             {
-                setUI(new RangeSliderUI(this, Color.BLACK, Color.GRAY, Color.DARK_GRAY));
+                setUI(new RangeSliderUI(this, Color.RED, new Color(255, 114, 118), new Color(139, 0, 0)));
                 updateLabelUIs();
             }
         };
