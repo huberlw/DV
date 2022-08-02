@@ -502,7 +502,7 @@ public class VisualizationMenu extends JPanel
         separateVisBtn.setToolTipText("Open another window displaying the visualization");
         separateVisBtn.addActionListener(e->
         {
-            JOptionPane optionPane = new JOptionPane(DV.graphPanel);
+            JOptionPane optionPane = new JOptionPane(DV.graphPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Close"}, null);
             JDialog dialog = optionPane.createDialog(DV.mainFrame, "Visualization");
             dialog.setModal(false);
             dialog.setVisible(true);

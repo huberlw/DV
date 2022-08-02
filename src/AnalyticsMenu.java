@@ -304,7 +304,7 @@ public class AnalyticsMenu extends JPanel
         separateAnalyticsBtn.setToolTipText("Open another window displaying all analytics");
         separateAnalyticsBtn.addActionListener(e->
         {
-            JOptionPane optionPane = new JOptionPane(DV.analyticsPanel);
+            JOptionPane optionPane = new JOptionPane(DV.analyticsPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Close"}, null);
             JDialog dialog = optionPane.createDialog(DV.mainFrame, "Analytics");
             dialog.setModal(false);
             dialog.setVisible(true);
