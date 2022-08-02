@@ -1,6 +1,8 @@
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -405,7 +407,6 @@ public class VisualizationOptionsMenu extends JPanel
                                 DV.data = DataSetup.createDataObjects(splitByClass);
 
                                 DV.fieldLength = splitByClass.get(0)[0].length;
-                                System.out.println(DV.fieldLength);
 
                                 DV.angles = new double[DV.fieldLength];
                                 DV.prevAngles = new double[DV.fieldLength];
@@ -448,6 +449,37 @@ public class VisualizationOptionsMenu extends JPanel
          * END CONSTRUCTION ZONE
          */
 
+        /**
+         * ANOTHER CONSTRUCTION ZONE
+         */
+        JPanel tmpVectorPanel = new JPanel();
+        JButton tmpVecBtn = new JButton("Vectors from File Test");
+        tmpVecBtn.addActionListener(e ->
+        {
+            // set filter on file chooser
+            JFileChooser fileDialog = new JFileChooser();
+            fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
+
+            // set to current directory
+            File workingDirectory = new File(System.getProperty("user.dir"));
+            fileDialog.setCurrentDirectory(workingDirectory);
+
+            // open file dialog
+            int results = fileDialog.showOpenDialog(DV.mainFrame);
+
+            if (results == JFileChooser.APPROVE_OPTION)
+            {
+                File dataFile = fileDialog.getSelectedFile();
+
+                DataVisualization.vectorsFromFileTest(dataFile);
+                DataVisualization.drawGraphs();
+            }
+        });
+        tmpVectorPanel.add(tmpVecBtn);
+        /**
+         * END ANOTHER CONSTRUCTION ZONE
+         */
+
         // options panel
         JPanel visOptions = new JPanel();
         visOptions.add(chooseUpperClassPanel);
@@ -464,6 +496,11 @@ public class VisualizationOptionsMenu extends JPanel
         // add functions
         visOptions.add(scalarVisFuncPanel);
         visOptions.add(vectorVisFuncPanel);
+
+        /**
+         * REMOVE LATER (ANOTHER CONSTRUCTION ZONE)
+         */
+        visOptions.add(tmpVectorPanel);
 
         visOptionsFrame.add(visOptions);
         visOptionsFrame.pack();

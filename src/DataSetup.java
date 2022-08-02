@@ -106,6 +106,89 @@ public class DataSetup
     }
 
 
+    public static void setupVectorsFromFileTest(File dataFile)
+    {
+        String[][] stringData = getStringFromCSV(dataFile);
+
+        if (stringData != null)
+        {
+            // get numerical data from string data
+            double[][] normalizedNumericalData = stringToNumerical(stringData);
+
+            if (normalizedNumericalData != null)
+            {
+                double[][] numericalData = normalizeData(normalizedNumericalData);
+
+                double[] angles = new double[DV.fieldLength];
+
+                for (int i = 0; i < DV.fieldLength; i++)
+                    angles[i] = 0;
+
+                int counter = 0;
+
+                ArrayList<double[][]> splitByClass = new ArrayList<>();
+
+                for (int i = 0; i < DV.normalizedData.size(); i++)
+                {
+                    ArrayList<double[]> classData = new ArrayList<>();
+
+                    for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
+                    {
+                        for (double[] y : numericalData)
+                        {
+                            ArrayList<Double> newRow = new ArrayList<>();
+
+                            final double[] x = DV.normalizedData.get(i).data[j];
+
+                            for (int w = 0; w < y.length; w++)
+                            {
+                                if (w == 0) counter++;
+                                double norm = Math.sqrt(Math.pow(x[w], 2) + Math.pow(y[w], 2));
+                                double divisor = y[w];
+                                if (divisor == 0)
+                                    divisor = 1;
+                                angles[w] += x[w] / divisor;
+                                newRow.add(norm);
+                            }
+
+                            double[] newRowArray = new double[newRow.size()];
+
+                            for (int w = 0; w < newRow.size(); w++)
+                                newRowArray[w] = newRow.get(w);
+
+                            classData.add(newRowArray);
+                        }
+                    }
+
+                    double[][] newClassData = new double[classData.size()][];
+
+                    for (int w = 0; w < classData.size(); w++)
+                        newClassData[w] = classData.get(w);
+
+                    splitByClass.add(newClassData);
+                }
+
+                DV.data = DataSetup.createDataObjects(splitByClass);
+
+                DV.angles = new double[DV.fieldLength];
+                DV.prevAngles = new double[DV.fieldLength];
+                DV.fieldNames.clear();
+
+                DV.angleSliderPanel.removeAll();
+                DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
+
+                for (int p = 0; p < DV.fieldLength; p++)
+                {
+                    DV.fieldNames.add("feature " + p);
+                    DV.angles[p] = Math.atan(angles[p] / counter);
+                    DV.prevAngles[p] = 45;
+                    AngleSliders.createSliderPanel(DV.fieldNames.get(p), (int) (DV.angles[p] * 100), p);
+                }
+            }
+        }
+    }
+
+
     /**
      * Sets up validation data for user made worst case confusion matrix
      * @param valFile .csv file holding data

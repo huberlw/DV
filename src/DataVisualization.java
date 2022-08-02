@@ -1001,18 +1001,21 @@ public class DataVisualization
             if (DV.showBars)
             {
                 int[] barRanges = new int[400];
-                double memberCnt = 0;
+                double max = 0;
 
                 // get bar lengths
                 for (DataObject dataObj : DATA_OBJECTS)
                 {
-                    // get member count
-                    memberCnt += dataObj.data.length;
-
                     // translate endpoint to slider ticks
                     // increment bar which endpoint lands
                     for (int i = 0; i < dataObj.data.length; i++)
-                        barRanges[(int) (Math.round((dataObj.coordinates[i][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200))]++;
+                    {
+                        int tmpTick = (int) (Math.round((dataObj.coordinates[i][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200));
+                        barRanges[tmpTick]++;
+
+                        if (barRanges[tmpTick] > max)
+                            max = barRanges[tmpTick];
+                    }
                 }
 
                 // get interval and bounds
@@ -1021,7 +1024,7 @@ public class DataVisualization
                 double minBound = -DV.fieldLength;
 
                 // get maximum bar height
-                double maxBarHeight = DV.fieldLength;
+                double maxBarHeight = DV.fieldLength / 10.0;
 
                 // add series to collection
                 for (int i = 0; i < 400; i++)
@@ -1034,9 +1037,9 @@ public class DataVisualization
                     // bar width = interval
                     // bar height = (total endpoints on bar) / (total endpoints)
                     if (UPPER_OR_LOWER == 1)
-                        bar.add(interval, minBound, maxBound, -barRanges[i] / memberCnt, -maxBarHeight, 0);
+                        bar.add(interval, minBound, maxBound, (-barRanges[i] / max) * maxBarHeight, -maxBarHeight, 0);
                     else
-                        bar.add(interval, minBound, maxBound, barRanges[i] / memberCnt, 0, maxBarHeight);
+                        bar.add(interval, minBound, maxBound, (barRanges[i] / max) * maxBarHeight, 0, maxBarHeight);
 
                     bars.addSeries(bar);
 
@@ -1086,15 +1089,21 @@ public class DataVisualization
             // set bar or timeline renderer and dataset
             if (DV.showBars)
             {
+                barRenderer.setDrawBarOutline(true);
+                barRenderer.setShadowVisible(false);
+
+                for (int i = 0; i < 400; i++)
+                    barRenderer.setSeriesOutlinePaint(i, Color.BLACK);
+
                 plot.setRenderer(5, barRenderer);
                 plot.setDataset(5, bars);
             }
             else
             {
                 if (UPPER_OR_LOWER == 1)
-                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 6));
+                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
                 else
-                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -6, 0.5, 6));
+                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
 
                 plot.setRenderer(5, timeLineRenderer);
                 plot.setDataset(5, timeLine);
@@ -1517,5 +1526,35 @@ public class DataVisualization
 
             return true;
         }
+    }
+
+
+    public static void vectorsFromFileTest(File dataFile)
+    {
+        DataSetup.setupVectorsFromFileTest(dataFile);
+
+        // setup vertical scaling
+        verticalScale = 0.4;
+
+        LDA();
+
+        // optimize threshold
+        optimizeThreshold(0);
+
+        // try again with upperIsLower false
+        double upperIsLowerAccuracy = DV.accuracy;
+        DV.upperIsLower = false;
+
+        optimizeThreshold(0);
+
+        // see whether upper is actually lower
+        if (DV.accuracy < upperIsLowerAccuracy)
+        {
+            DV.upperIsLower = true;
+            optimizeThreshold(0);
+        }
+
+        // get overlap area
+        getOverlap();
     }
 }
