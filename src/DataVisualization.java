@@ -186,7 +186,7 @@ public class DataVisualization
 
             // if process is running continue
             DV.angleSliderPanel.removeAll();
-            DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
+            DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 1));
 
             int cnt = 0;
 
@@ -211,6 +211,10 @@ public class DataVisualization
             // delete created file
             File fileToDelete = new File("source\\Python\\DV_data.csv");
             Files.deleteIfExists(fileToDelete.toPath());
+
+            // repaint and revalidate angle sliders
+            DV.angleSliderPanel.repaint();
+            DV.angleSliderPanel.revalidate();
         }
         catch (IOException e)
         {

@@ -227,6 +227,7 @@ public class VisualizationOptionsMenu extends JPanel
                                 }
                             }
 
+                            DV.crossValidationNotGenerated = true;
                             DataVisualization.optimizeSetup();
                             DataVisualization.drawGraphs();
                         }
@@ -270,7 +271,7 @@ public class VisualizationOptionsMenu extends JPanel
             JRadioButton svmPolyFunc = new JRadioButton("SVM - Polynomial Kernel");
             JRadioButton svmRBFFunc = new JRadioButton("SVM - RBF Kernel");
             JRadioButton customFunc = new JRadioButton("Custom");
-            JRadioButton noFunc = new JRadioButton("None", true);
+            JRadioButton noFunc = new JRadioButton("None");
             stockFunc.add(svmPolyFunc);
             stockFunc.add(svmRBFFunc);
             stockFunc.add(customFunc);
@@ -294,6 +295,16 @@ public class VisualizationOptionsMenu extends JPanel
             funcField.setText(DV.vectorFunction);
             textPanel.add(new JLabel("Function: f(x, y) = "));
             textPanel.add(funcField);
+
+            // set text
+            if (DV.vectorFunction.equals("(1/" + DV.standardFieldLength + " * dot(x, y) + 1)^3"))
+                svmPolyFunc.setSelected(true);
+            else if (DV.vectorFunction.equals("e^(-1/" + DV.standardFieldLength + " * norm(vSub(x, y))^2)"))
+                svmRBFFunc.setSelected(true);
+            else if (DV.vectorFunction.equals("N/A"))
+                noFunc.setSelected(true);
+            else
+                customFunc.setSelected(true);
 
             // add text panel
             funcPanel.add(textPanel, BorderLayout.SOUTH);
@@ -350,6 +361,9 @@ public class VisualizationOptionsMenu extends JPanel
 
                             DV.data = new ArrayList<>();
                             DV.data.addAll(DV.normalizedData);
+
+                            DV.crossValidationNotGenerated = true;
+                            DV.angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * DV.fieldLength)));
 
                             DataVisualization.optimizeSetup();
                             DataVisualization.drawGraphs();
@@ -418,6 +432,9 @@ public class VisualizationOptionsMenu extends JPanel
                                     DV.angles[i] = 45;
                                     DV.prevAngles[i] = 45;
                                 }
+
+                                DV.crossValidationNotGenerated = true;
+                                DV.angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * DV.fieldLength)));
 
                                 DataVisualization.optimizeSetup();
                                 DataVisualization.drawGraphs();

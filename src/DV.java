@@ -336,7 +336,7 @@ public class DV extends JFrame
         mainFrame.add(sliderPanel, constraints);
 
         // create angles scroll pane
-        angleSliderPanel = new JPanel(new GridLayout(1, 0));
+        angleSliderPanel = new JPanel(new GridLayout(1, 1));
         angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], Resolutions.angleSliderPanel[1]));
         anglesPane = new JScrollPane(angleSliderPanel);
         anglesPane.setPreferredSize(new Dimension(Resolutions.anglesPane[0], Resolutions.anglesPane[1]));
@@ -962,7 +962,7 @@ public class DV extends JFrame
 
                 // create angle sliders
                 angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
-                DV.angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
+                angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
 
                 for (int i = 0; i < fieldLength; i++)
                     AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
