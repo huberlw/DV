@@ -4,17 +4,16 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-public class VisualizationOptionsMenu extends JPanel
+public class VisualizationMenu extends JPanel
 {
     /**
      * Creates Visualization Options Menu on mouseLocation
      * @param mouseLocation location to create menu on
      */
-    public VisualizationOptionsMenu(Point mouseLocation)
+    public VisualizationMenu(Point mouseLocation)
     {
         super(new BorderLayout());
 
@@ -497,6 +496,19 @@ public class VisualizationOptionsMenu extends JPanel
          * END ANOTHER CONSTRUCTION ZONE
          */
 
+        // open analytics in another window
+        JPanel separateVisPanel = new JPanel();
+        JButton separateVisBtn = new JButton("Visualization Window");
+        separateVisBtn.setToolTipText("Open another window displaying the visualization");
+        separateVisBtn.addActionListener(e->
+        {
+            JOptionPane optionPane = new JOptionPane(DV.graphPanel);
+            JDialog dialog = optionPane.createDialog(DV.mainFrame, "Visualization");
+            dialog.setModal(false);
+            dialog.setVisible(true);
+        });
+        separateVisPanel.add(separateVisBtn);
+
         // options panel
         JPanel visOptions = new JPanel();
         visOptions.add(chooseUpperClassPanel);
@@ -518,6 +530,9 @@ public class VisualizationOptionsMenu extends JPanel
          * REMOVE LATER (ANOTHER CONSTRUCTION ZONE)
          */
         visOptions.add(tmpVectorPanel);
+
+        // add separate vis panel
+        visOptions.add(separateVisPanel);
 
         visOptionsFrame.add(visOptions);
         visOptionsFrame.pack();

@@ -217,6 +217,7 @@ public class AnalyticsMenu extends JPanel
         });
         analyticsPanel.add(crossValCheckBox);
 
+        // set k number of folds for cross validation
         JButton kFoldsButton = new JButton("k-folds");
         kFoldsButton.setToolTipText("Number for folds for cross validation");
         kFoldsButton.addActionListener(e ->
@@ -297,6 +298,18 @@ public class AnalyticsMenu extends JPanel
             }
         });
         analyticsPanel.add(kFoldsButton);
+
+        // open analytics in another window
+        JButton separateAnalyticsBtn = new JButton("Analytics Window");
+        separateAnalyticsBtn.setToolTipText("Open another window displaying all analytics");
+        separateAnalyticsBtn.addActionListener(e->
+        {
+            JOptionPane optionPane = new JOptionPane(DV.analyticsPanel);
+            JDialog dialog = optionPane.createDialog(DV.mainFrame, "Analytics");
+            dialog.setModal(false);
+            dialog.setVisible(true);
+        });
+        analyticsPanel.add(separateAnalyticsBtn);
 
         analyticsOptionFrame.add(analyticsPanel);
         analyticsOptionFrame.pack();

@@ -562,7 +562,7 @@ public class DV extends JFrame
         // colors options
         JButton colorOptionsBtn = new JButton("Color Options");
         colorOptionsBtn.setToolTipText("Open the color options menu");
-        colorOptionsBtn.addActionListener(e -> new ColorOptionsMenu(MouseInfo.getPointerInfo().getLocation()));
+        colorOptionsBtn.addActionListener(e -> new ColorMenu(MouseInfo.getPointerInfo().getLocation()));
         toolBar.addSeparator();
         toolBar.add(colorOptionsBtn);
         toolBar.addSeparator();
@@ -570,7 +570,7 @@ public class DV extends JFrame
         // visualization options
         JButton visOptionsBtn = new JButton("Visualization Options");
         visOptionsBtn.setToolTipText("Open the visualization options menu");
-        visOptionsBtn.addActionListener(e -> new VisualizationOptionsMenu(MouseInfo.getPointerInfo().getLocation()));
+        visOptionsBtn.addActionListener(e -> new VisualizationMenu(MouseInfo.getPointerInfo().getLocation()));
         toolBar.add(visOptionsBtn);
         toolBar.addSeparator();
 

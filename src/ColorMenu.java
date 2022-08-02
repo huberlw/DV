@@ -2,9 +2,9 @@ import javax.swing.*;
 import java.awt.*;
 
 
-public class ColorOptionsMenu extends JPanel
+public class ColorMenu extends JPanel
 {
-    public ColorOptionsMenu(Point mouseLocation)
+    public ColorMenu(Point mouseLocation)
     {
         super(new BorderLayout());
 
