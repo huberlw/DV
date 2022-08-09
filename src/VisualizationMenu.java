@@ -474,7 +474,7 @@ public class VisualizationMenu extends JPanel
             if (!DV.displayRemoteGraphs)
             {
                 DV.displayRemoteGraphs = true;
-                JOptionPane optionPane = new JOptionPane(DV.graphPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Close"}, null);
+                JOptionPane optionPane = new JOptionPane(DV.remoteGraphPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Close"}, null);
                 JDialog dialog = optionPane.createDialog(DV.mainFrame, "Visualization");
                 dialog.setModal(false);
                 dialog.setVisible(true);
