@@ -465,49 +465,81 @@ public class VisualizationMenu extends JPanel
          * END CONSTRUCTION ZONE
          */
 
-        /**
-         * ANOTHER CONSTRUCTION ZONE
-         */
-        JPanel tmpVectorPanel = new JPanel();
-        JButton tmpVecBtn = new JButton("Vectors from File Test");
-        tmpVecBtn.addActionListener(e ->
-        {
-            // set filter on file chooser
-            JFileChooser fileDialog = new JFileChooser();
-            fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
-
-            // set to current directory
-            File workingDirectory = new File(System.getProperty("user.dir"));
-            fileDialog.setCurrentDirectory(workingDirectory);
-
-            // open file dialog
-            int results = fileDialog.showOpenDialog(DV.mainFrame);
-
-            if (results == JFileChooser.APPROVE_OPTION)
-            {
-                File dataFile = fileDialog.getSelectedFile();
-
-                DataVisualization.vectorsFromFileTest(dataFile);
-                DataVisualization.drawGraphs();
-            }
-        });
-        tmpVectorPanel.add(tmpVecBtn);
-        /**
-         * END ANOTHER CONSTRUCTION ZONE
-         */
-
         // open analytics in another window
         JPanel separateVisPanel = new JPanel();
         JButton separateVisBtn = new JButton("Visualization Window");
         separateVisBtn.setToolTipText("Open another window displaying the visualization");
         separateVisBtn.addActionListener(e->
         {
-            JOptionPane optionPane = new JOptionPane(DV.graphPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Close"}, null);
-            JDialog dialog = optionPane.createDialog(DV.mainFrame, "Visualization");
-            dialog.setModal(false);
-            dialog.setVisible(true);
+            if (!DV.displayRemoteGraphs)
+            {
+                DV.displayRemoteGraphs = true;
+                JOptionPane optionPane = new JOptionPane(DV.graphPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Close"}, null);
+                JDialog dialog = optionPane.createDialog(DV.mainFrame, "Visualization");
+                dialog.setModal(false);
+                dialog.setVisible(true);
+
+                dialog.addWindowListener(new WindowListener()
+                {
+                    @Override
+                    public void windowOpened(WindowEvent e) {}
+
+                    @Override
+                    public void windowClosing(WindowEvent e)
+                    {
+                        DV.displayRemoteGraphs = false;
+                        DV.remoteGraphPanel.removeAll();
+                    }
+
+                    @Override
+                    public void windowClosed(WindowEvent e) {}
+
+                    @Override
+                    public void windowIconified(WindowEvent e) {}
+
+                    @Override
+                    public void windowDeiconified(WindowEvent e) {}
+
+                    @Override
+                    public void windowActivated(WindowEvent e) {}
+
+                    @Override
+                    public void windowDeactivated(WindowEvent e) {}
+                });
+
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+            }
         });
         separateVisPanel.add(separateVisBtn);
+
+        // open analytics in another window
+        JPanel plotPanel = new JPanel();
+        JButton plotBtn = new JButton("Plot Type");
+        plotBtn.setToolTipText("Choose GLC-L or DSC2 plot");
+        plotBtn.addActionListener(e->
+        {
+            // radio button group
+            ButtonGroup plotType = new ButtonGroup();
+            JRadioButton glc = new JRadioButton("GLC-L", true);
+            JRadioButton dsc = new JRadioButton("DSC2");
+            plotType.add(glc);
+            plotType.add(dsc);
+
+            // default function panel
+            JPanel plotTypePanel = new JPanel();
+            plotTypePanel.add(new JLabel("Built-In: "));
+            plotTypePanel.add(glc);
+            plotTypePanel.add(dsc);
+
+            JOptionPane.showConfirmDialog(DV.mainFrame, plotTypePanel, "Plot Type", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            DV.glc_or_dsc = glc.isSelected();
+
+            if (DV.data != null)
+                DataVisualization.drawGraphs();
+        });
+        plotPanel.add(plotBtn);
 
         // options panel
         JPanel visOptions = new JPanel();
@@ -526,10 +558,7 @@ public class VisualizationMenu extends JPanel
         visOptions.add(scalarVisFuncPanel);
         visOptions.add(vectorVisFuncPanel);
 
-        /**
-         * REMOVE LATER (ANOTHER CONSTRUCTION ZONE)
-         */
-        visOptions.add(tmpVectorPanel);
+        visOptions.add(plotPanel);
 
         // add separate vis panel
         visOptions.add(separateVisPanel);

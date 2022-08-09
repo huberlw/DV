@@ -37,6 +37,14 @@ public class DV extends JFrame
     static JPanel sliderPanel;
     static JPanel controlPanel;
 
+    // panels for remote windows
+    static JPanel remoteGraphPanel;
+    static JPanel remoteAnalyticsPanel;
+    static JPanel remoteConfusionMatrixPanel;
+    static JPanel remoteCrossValidationPanel;
+    static boolean displayRemoteGraphs;
+    static boolean displayRemoteAnalytics;
+
     // scroll areas
     JScrollPane graphPane;
     JScrollPane anglesPane;
@@ -70,7 +78,7 @@ public class DV extends JFrame
     static boolean drawOverlap = false;
 
     // domain active
-    static boolean domainActive = true;
+    static boolean domainActive = false;
 
     // domain area
     static double[] domainArea;
@@ -82,6 +90,9 @@ public class DV extends JFrame
 
     // warn user about scaling
     static boolean showPopup;
+
+    // choose plot type: true == glc, false == dsc
+    static boolean glc_or_dsc = true;
 
     /**************************************************
      * FOR ANALYTICS
@@ -208,6 +219,21 @@ public class DV extends JFrame
         constraints.gridwidth = 1;
         constraints.anchor = GridBagConstraints.FIRST_LINE_START;
         mainFrame.add(toolBar, constraints);
+
+        // set layouts for remote panels
+        remoteGraphPanel = new JPanel();
+        remoteGraphPanel.setLayout(new BoxLayout(remoteGraphPanel, BoxLayout.Y_AXIS));
+        remoteGraphPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        remoteGraphPanel.setPreferredSize(new Dimension(Resolutions.chartPanel[0], Resolutions.chartPanel[1]));
+
+        remoteAnalyticsPanel = new JPanel();
+        remoteAnalyticsPanel.setLayout(new BoxLayout(remoteAnalyticsPanel, BoxLayout.Y_AXIS));
+
+        remoteConfusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 5));
+        remoteCrossValidationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        remoteAnalyticsPanel.add(remoteConfusionMatrixPanel);
+        remoteAnalyticsPanel.add(remoteCrossValidationPanel);
 
         // set layout for graphPanel
         graphPanel = new JPanel();
@@ -562,7 +588,7 @@ public class DV extends JFrame
         // colors options
         JButton colorOptionsBtn = new JButton("Color Options");
         colorOptionsBtn.setToolTipText("Open the color options menu");
-        colorOptionsBtn.addActionListener(e -> new ColorMenu(MouseInfo.getPointerInfo().getLocation()));
+        colorOptionsBtn.addActionListener(e -> new ColorMenu());
         toolBar.addSeparator();
         toolBar.add(colorOptionsBtn);
         toolBar.addSeparator();
@@ -698,61 +724,58 @@ public class DV extends JFrame
     {
         try
         {
-            // check for ID column
-            int choice = JOptionPane.showConfirmDialog(
-                    mainFrame,
-                    "Does this project use the first column to designate ID?",
-                    "ID Column",
-                    JOptionPane.YES_NO_OPTION);
+            JPanel checkBoxPanel = new JPanel();
+            checkBoxPanel.setLayout(new BoxLayout(checkBoxPanel, BoxLayout.Y_AXIS));
+            checkBoxPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            if (choice == 0) hasID = true;
-            else if (choice == 1) hasID = false;
-            else if (choice == -1) return;
+            JLabel message = new JLabel("Specify the dataset format for this project.");
+            message.setFont(message.getFont().deriveFont(14f));
+            checkBoxPanel.add(message);
+            checkBoxPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-            // check for class column
-            choice = JOptionPane.showConfirmDialog(
-                    mainFrame,
-                    "Does this project use the last column to designate classes?",
-                    "Classes",
-                    JOptionPane.YES_NO_OPTION);
+            JCheckBox idCol = new JCheckBox("Does this project use the first column to designate ID?");
+            idCol.setFont(idCol.getFont().deriveFont(12f));
+            idCol.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JCheckBox classCol = new JCheckBox("Does this project use the last column to designate classes?");
+            classCol.setAlignmentX(Component.LEFT_ALIGNMENT);
+            classCol.setFont(classCol.getFont().deriveFont(12f));
 
-            if (choice == 0) hasClasses = true;
-            else if (choice == 1) hasClasses = false;
-            else if (choice == -1) return;
+            JPanel normPanel = new JPanel();
+            normPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            ButtonGroup normBtnGroup = new ButtonGroup();
+            JCheckBox zScoreNorm = new JCheckBox("z-Score Min-Max Normalization", true);
+            JCheckBox minMaxNorm = new JCheckBox("Min-Max Normalization");
+            zScoreNorm.setFont(zScoreNorm.getFont().deriveFont(12f));
+            minMaxNorm.setFont(minMaxNorm.getFont().deriveFont(12f));
+            zScoreNorm.setAlignmentX(Component.LEFT_ALIGNMENT);
+            minMaxNorm.setAlignmentX(Component.LEFT_ALIGNMENT);
+            normBtnGroup.add(zScoreNorm);
+            normBtnGroup.add(minMaxNorm);
 
-            // buttons for JOptionPane
-            Object[] normStyleButtons = { "z-Score Min-Max", "Min-Max", "Help" };
-            boolean notChosen = true;
+            JButton normHelp = new JButton("Help");
+            normHelp.setFont(normHelp.getFont().deriveFont(12f));
+            normHelp.setAlignmentX(Component.LEFT_ALIGNMENT);
+            normHelp.setToolTipText("Information on normalization styles");
+            normHelp.addActionListener(e -> normalizationInfoPopup());
 
-            // ask for normalization style and repeat if user asks for help
-            while (notChosen)
+            normPanel.add(zScoreNorm);
+            normPanel.add(minMaxNorm);
+            normPanel.add(normHelp);
+
+            checkBoxPanel.add(idCol);
+            checkBoxPanel.add(classCol);
+            checkBoxPanel.add(normPanel);
+
+            int choice = JOptionPane.showConfirmDialog(DV.mainFrame, checkBoxPanel, "Dataset Information", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+            if (choice == 0)
             {
-                choice = JOptionPane.showOptionDialog(mainFrame,
-                        "Choose a normalization style or click " +
-                                "\"Help\" for more information on normalization styles.",
-                        "Normalization Style",
-                        JOptionPane.YES_NO_CANCEL_OPTION,
-                        JOptionPane.QUESTION_MESSAGE,
-                        null,
-                        normStyleButtons,
-                        normStyleButtons[0]);
-
-                switch (choice)
-                {
-                    case 0 ->
-                    {
-                        zScoreMinMax = true;
-                        notChosen = false;
-                    }
-                    case 1 ->
-                    {
-                        zScoreMinMax = false;
-                        notChosen = false;
-                    }
-                    case 2 -> normalizationInfoPopup();
-                    default -> { return; }
-                }
+                hasID = idCol.isSelected();
+                hasClasses = classCol.isSelected();
+                zScoreMinMax = zScoreNorm.isSelected();
             }
+            else
+                return;
 
             // set filter on file chooser
             JFileChooser fileDialog = new JFileChooser();

@@ -924,7 +924,7 @@ public class DataSetup
             if (maxValues[i] != minValues[i])
             {
                 for (int j = 0; j < data.length; j++)
-                    data[j][i] = (data[j][i] - minValues[i]) / (maxValues[i] - minValues[i]);
+                    data[j][i] = (data[j][i] - minValues[i] + 0.1) / (maxValues[i] - minValues[i]);
 
             }
             else

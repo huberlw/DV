@@ -51,22 +51,33 @@ public class DataVisualization
             verticalScale = 0.4;
 
             // get optimal angles and threshold
-            LDA();
+            if (DV.glc_or_dsc)
+                LDA();
 
             // optimize threshold
-            optimizeThreshold(0);
+            if (DV.glc_or_dsc)
+                optimizeThreshold(0);
+            else
+                findBestThreshold(0);
 
             // try again with upperIsLower false
             double upperIsLowerAccuracy = DV.accuracy;
             DV.upperIsLower = false;
 
-            optimizeThreshold(0);
+            if (DV.glc_or_dsc)
+                optimizeThreshold(0);
+            else
+                findBestThreshold(0);
 
             // see whether upper is actually lower
             if (DV.accuracy < upperIsLowerAccuracy)
             {
                 DV.upperIsLower = true;
-                optimizeThreshold(0);
+
+                if (DV.glc_or_dsc)
+                    optimizeThreshold(0);
+                else
+                    findBestThreshold(0);
             }
 
             // get overlap area
@@ -304,6 +315,54 @@ public class DataVisualization
         DV.thresholdSlider.setValue((int) (bestThreshold / DV.fieldLength * 200) + 200);
     }
 
+    public static void findBestThreshold(double bestAccuracy)
+    {
+        // get current points
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
+            {
+                if (DV.glc_or_dsc)
+                    DV.data.get(i).updateCoordinatesGLC(DV.angles);
+                else
+                    DV.data.get(i).updateCoordinatesDSC();
+            }
+        }
+
+        // store current best threshold
+        double bestThreshold = DV.threshold;
+
+        // increment equals 2 slider ticks
+        double increment = DV.fieldLength / 200.0;
+        DV.threshold = 0;
+
+        // search for best threshold
+        // search range is 15% of total range
+        for (int i = 0; i < 400; i++)
+        {
+            // calculate accuracy with trial threshold
+            getAccuracy();
+
+            // update the best threshold and accuracy
+            if (DV.accuracy >= bestAccuracy)
+            {
+                bestAccuracy = DV.accuracy;
+                bestThreshold = DV.threshold;
+            }
+
+            // new trial threshold
+            DV.threshold += increment;
+        }
+
+        // set best accuracy
+        DV.accuracy = bestAccuracy;
+
+        // use best threshold
+        DV.threshold = bestThreshold;
+
+        // set slider to best
+        DV.thresholdSlider.setValue((int) (bestThreshold / DV.fieldLength * 200) + 200);
+    }
 
     /**
      * Uses random gradient search
@@ -479,7 +538,7 @@ public class DataVisualization
             // check if class is visualized
             if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
-                DV.data.get(i).updateCoordinates(DV.angles);
+                DV.data.get(i).updateCoordinatesGLC(DV.angles);
                 totalPoints += DV.data.get(i).coordinates.length;
             }
         }
@@ -559,7 +618,12 @@ public class DataVisualization
         for (int i = 0; i < DV.data.size(); i++)
         {
             if (i == DV.upperClass || DV.lowerClasses.get(i))
-                DV.data.get(i).updateCoordinates(DV.angles);
+            {
+                if (DV.glc_or_dsc)
+                    DV.data.get(i).updateCoordinatesGLC(DV.angles);
+                else
+                    DV.data.get(i).updateCoordinatesDSC();
+            }
         }
 
         if (DV.classNumber > 1 && DV.accuracy != 100)
@@ -582,7 +646,7 @@ public class DataVisualization
                 {
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
                         // get classification
                         if ((i == DV.upperClass && DV.upperIsLower) || (DV.lowerClasses.get(i) && !DV.upperIsLower))
@@ -699,6 +763,9 @@ public class DataVisualization
         // remove old graphs
         DV.graphPanel.removeAll();
 
+        if (DV.displayRemoteGraphs)
+            DV.remoteGraphPanel.removeAll();
+
         // holds classes to be graphed
         ArrayList<DataObject> upperObjects = new ArrayList<>(List.of(DV.data.get(DV.upperClass)));
         ArrayList<DataObject> lowerObjects = new ArrayList<>();
@@ -758,7 +825,12 @@ public class DataVisualization
         for (int i = 0; i < GRAPHS.size(); i++)
         {
             if (GRAPHS.containsKey(i))
+            {
                 DV.graphPanel.add(GRAPHS.get(i));
+
+                if (DV.displayRemoteGraphs)
+                    DV.remoteGraphPanel.add(GRAPHS.get(i));
+            }
         }
 
         // revalidate graphs and confusion matrices
@@ -766,6 +838,12 @@ public class DataVisualization
         DV.analyticsPanel.repaint();
         DV.graphPanel.revalidate();
         DV.analyticsPanel.revalidate();
+
+        if (DV.displayRemoteGraphs)
+        {
+            DV.remoteGraphPanel.repaint();
+            DV.remoteGraphPanel.revalidate();
+        }
 
         // warn user if graphs are scaled
         if (DV.showPopup && (upperScaler > 1 || lowerScaler > 1))
@@ -794,7 +872,12 @@ public class DataVisualization
         // get coordinates
         for (DataObject dataObject : dataObjects)
         {
-            double tmpScale = dataObject.updateCoordinates(DV.angles);
+            double tmpScale;
+
+            if (DV.glc_or_dsc)
+                tmpScale = dataObject.updateCoordinatesGLC(DV.angles);
+            else
+                tmpScale = dataObject.updateCoordinatesDSC();
 
             // check for greater scaler
             if (tmpScale > graphScaler)
@@ -899,8 +982,9 @@ public class DataVisualization
                 {
                     // start line at (0, 0)
                     lines.add(new XYSeries(lineCnt, false, true));
-                    lines.get(lineCnt).add(0, 0);
-                    double endpoint = data.coordinates[i][DV.fieldLength - 1][0];
+                    if (DV.glc_or_dsc)
+                        lines.get(lineCnt).add(0, 0);
+                    double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
 
                     // ensure datapoint is within domain
                     // if drawing overlap, ensure datapoint is within overlap
@@ -908,17 +992,17 @@ public class DataVisualization
                             (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
                     {
                         // add points to lines
-                        for (int j = 0; j < DV.fieldLength; j++)
+                        for (int j = 0; j < data.coordinates[i].length; j++)
                         {
                             int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
 
                             lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
-                            if (j > 0 && j < DV.fieldLength - 1 && DV.angles[j] == DV.angles[j + 1])
+                            if (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
                                 midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
                             // add endpoint and timeline
-                            if (j == DV.fieldLength - 1)
+                            if (j == data.coordinates[i].length - 1)
                             {
                                 if (UPPER_OR_LOWER == 1)
                                     endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
@@ -1093,12 +1177,7 @@ public class DataVisualization
             // set bar or timeline renderer and dataset
             if (DV.showBars)
             {
-                barRenderer.setDrawBarOutline(true);
                 barRenderer.setShadowVisible(false);
-
-                for (int i = 0; i < 400; i++)
-                    barRenderer.setSeriesOutlinePaint(i, Color.BLACK);
-
                 plot.setRenderer(5, barRenderer);
                 plot.setDataset(5, bars);
             }
@@ -1114,8 +1193,8 @@ public class DataVisualization
             }
 
             // set midpoint renderer and dataset
-            midpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-1.5, -1.5, 3, 3));
-            midpointRenderer.setSeriesPaint(0, Color.BLACK);
+            midpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-0.5, -0.5, 1, 1));
+            midpointRenderer.setSeriesPaint(0, Color.GRAY);
             plot.setRenderer(6, midpointRenderer);
             plot.setDataset(6, midpoints);
 
@@ -1267,8 +1346,9 @@ public class DataVisualization
                         {
                             // start line at (0, 0)
                             lines.add(new XYSeries(lineCnt, false, true));
-                            lines.get(lineCnt).add(0, 0);
-                            double endpoint = data.coordinates[i][DV.fieldLength - 1][0];
+                            if (DV.glc_or_dsc)
+                                lines.get(lineCnt).add(0, 0);
+                            double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
 
                             // ensure datapoint is within domain
                             // if drawing overlap, ensure datapoint is within overlap
@@ -1276,17 +1356,17 @@ public class DataVisualization
                                     (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
                             {
                                 // add points to lines
-                                for (int j = 0; j < DV.fieldLength; j++)
+                                for (int j = 0; j < data.coordinates[i].length; j++)
                                 {
                                     int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
 
                                     lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
-                                    if (j > 0 && j < DV.fieldLength - 1 && DV.angles[j] == DV.angles[j + 1])
+                                    if (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
                                         midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
                                     // add endpoint and timeline
-                                    if (j == DV.fieldLength - 1)
+                                    if (j == data.coordinates[i].length - 1)
                                     {
                                         if (UPPER_OR_LOWER == 1)
                                             endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);

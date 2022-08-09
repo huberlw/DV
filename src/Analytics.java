@@ -62,6 +62,9 @@ public class Analytics
                 // remove old analytics
                 DV.confusionMatrixPanel.removeAll();
 
+                if (DV.displayRemoteAnalytics)
+                    DV.remoteConfusionMatrixPanel.removeAll();
+
                 // add confusion matrices from previous splits
                 AddOldConfusionMatrices oldCM = new AddOldConfusionMatrices();
 
@@ -112,6 +115,10 @@ public class Analytics
                 if (DV.crossValidationNotGenerated && DV.crossValidationChecked)
                 {
                     DV.crossValidationPanel.removeAll();
+
+                    if (DV.displayRemoteAnalytics)
+                        DV.remoteCrossValidationPanel.removeAll();
+
                     kFold.execute();
                 }
 
@@ -140,7 +147,12 @@ public class Analytics
                 for (int i = 0; i < DV.prevAllDataCM.size() + 6; i++)
                 {
                     if (CONFUSION_MATRICES.containsKey(i))
+                    {
                         DV.confusionMatrixPanel.add(CONFUSION_MATRICES.get(i));
+
+                        if (DV.displayRemoteAnalytics)
+                            DV.remoteConfusionMatrixPanel.add(CONFUSION_MATRICES.get(i));
+                    }
                 }
             }
 
@@ -227,7 +239,7 @@ public class Analytics
                 {
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
                         // check if endpoint is within the subset of used data
                         if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
@@ -379,13 +391,13 @@ public class Analytics
 
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
                         // if endpoint is outside of overlap then store point
                         if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
                         {
-                            double[] thisPoint = new double[DV.fieldLength];
-                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
+                            double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
 
                             upper.add(thisPoint);
                             totalPointsUsed++;
@@ -398,13 +410,13 @@ public class Analytics
 
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
                         // if endpoint is outside of overlap then store point
                         if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
                         {
-                            double[] thisPoint = new double[DV.fieldLength];
-                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
+                            double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
 
                             lower.add(thisPoint);
                             totalPointsUsed++;
@@ -523,13 +535,13 @@ public class Analytics
 
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
                         // if endpoint is within overlap then store point
                         if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
                         {
-                            double[] thisPoint = new double[DV.fieldLength];
-                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
+                            double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
 
                             upper.add(thisPoint);
                             totalPointsUsed++;
@@ -542,13 +554,13 @@ public class Analytics
 
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
                         // if endpoint is within overlap then store point
                         if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
                         {
-                            double[] thisPoint = new double[DV.fieldLength];
-                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
+                            double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
 
                             lower.add(thisPoint);
                             totalPointsUsed++;
@@ -673,14 +685,14 @@ public class Analytics
                 double worstCaseThreshold = LDAFunction.get(LDAFunction.size() - 1);
 
                 // get data without overlap angles
-                double[] worstCaseAngles = new double[DV.fieldLength];
+                double[] worstCaseAngles = new double[LDAFunction.size()];
 
-                for (int i = 0; i < DV.fieldLength; i++)
+                for (int i = 0; i < LDAFunction.size(); i++)
                     worstCaseAngles[i] = LDAFunction.get(i);
 
                 // update points with worst case angles
-                upperOverlap.updateCoordinates(worstCaseAngles);
-                lowerOverlap.updateCoordinates(worstCaseAngles);
+                upperOverlap.updateCoordinatesGLC(worstCaseAngles);
+                lowerOverlap.updateCoordinatesGLC(worstCaseAngles);
 
                 int totalPointsUsed = lower.size() + upper.size();
                 int correctPoints = 0;
@@ -693,7 +705,7 @@ public class Analytics
                 {
                     if (DV.upperIsLower)
                     {
-                        if (upperOverlap.coordinates[i][DV.fieldLength- 1][0] < worstCaseThreshold)
+                        if (upperOverlap.coordinates[i][upperOverlap.coordinates[i].length - 1][0] < worstCaseThreshold)
                         {
                             pntDist[0][0]++;
                             correctPoints++;
@@ -703,7 +715,7 @@ public class Analytics
                     }
                     else
                     {
-                        if (upperOverlap.coordinates[i][DV.fieldLength- 1][0] > worstCaseThreshold)
+                        if (upperOverlap.coordinates[i][upperOverlap.coordinates[i].length - 1][0] > worstCaseThreshold)
                         {
                             pntDist[1][1]++;
                             correctPoints++;
@@ -718,7 +730,7 @@ public class Analytics
                 {
                     if (DV.upperIsLower)
                     {
-                        if (lowerOverlap.coordinates[i][DV.fieldLength- 1][0] > worstCaseThreshold)
+                        if (lowerOverlap.coordinates[i][upperOverlap.coordinates[i].length - 1][0] > worstCaseThreshold)
                         {
                             pntDist[1][1]++;
                             correctPoints++;
@@ -728,7 +740,7 @@ public class Analytics
                     }
                     else
                     {
-                        if (lowerOverlap.coordinates[i][DV.fieldLength- 1][0] < worstCaseThreshold)
+                        if (lowerOverlap.coordinates[i][upperOverlap.coordinates[i].length - 1][0] < worstCaseThreshold)
                         {
                             pntDist[0][0]++;
                             correctPoints++;
@@ -828,7 +840,7 @@ public class Analytics
 
             // update points with worst case angles
             for (int i = 0; i < DV.validationData.size(); i++)
-                DV.validationData.get(i).updateCoordinates(worstCaseAngles);
+                DV.validationData.get(i).updateCoordinatesGLC(worstCaseAngles);
 
             int totalPoints = 0;
 
@@ -974,13 +986,13 @@ public class Analytics
                 {
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
                         // if endpoint is outside of overlap then store point
                         if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
                         {
-                            double[] thisPoint = new double[DV.fieldLength];
-                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
+                            double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
 
                             upper.add(thisPoint);
                         }
@@ -990,13 +1002,13 @@ public class Analytics
                 {
                     for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength-1][0];
+                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
                         // if endpoint is outside of overlap then store point
                         if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
                         {
-                            double[] thisPoint = new double[DV.fieldLength];
-                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.fieldLength);
+                            double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                            System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
 
                             lower.add(thisPoint);
                         }
@@ -1057,6 +1069,9 @@ public class Analytics
                     cross_validate.setFont(cross_validate.getFont().deriveFont(Font.BOLD, 12f));
                     cross_validate.setEditable(false);
                     DV.crossValidationPanel.add(cross_validate);
+
+                    if (DV.displayRemoteAnalytics)
+                        DV.remoteCrossValidationPanel.add(cross_validate);
                 }
             }
             catch (IOException e)
@@ -1083,9 +1098,9 @@ public class Analytics
             Writer out = new FileWriter(fileName, false);
 
             // create header for file
-            for (int i = 0; i < DV.fieldLength; i++)
+            for (int i = 0; i < data.get(0).get(0).length; i++)
             {
-                if (i != DV.fieldLength - 1)
+                if (i != data.get(0).get(0).length - 1)
                     out.write("feature,");
                 else
                     out.write("feature,class\n");
@@ -1096,9 +1111,9 @@ public class Analytics
             {
                 for (int j = 0; j < data.get(i).size(); j++)
                 {
-                    for (int k = 0; k < DV.fieldLength; k++)
+                    for (int k = 0; k < data.get(i).get(i).length; k++)
                     {
-                        if (k != DV.fieldLength - 1)
+                        if (k != data.get(i).get(i).length - 1)
                             out.write(String.format("%f,", data.get(i).get(j)[k]));
                         else
                             out.write(String.format("%f," + i + "\n", data.get(i).get(j)[k]));
