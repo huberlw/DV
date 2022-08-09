@@ -796,21 +796,6 @@ public class DataVisualization
         AddGraph upperGraph = new AddGraph(upperObjects, 0, graphScaler);
         upperGraph.execute();
 
-        AddRemoteGraph remoteUpperGraph = new AddRemoteGraph(upperObjects, 0, graphScaler);
-        AddRemoteGraph remoteLowerGraph = null;
-
-        if (DV.displayRemoteGraphs)
-        {
-            remoteUpperGraph.execute();
-
-            if (lowerObjects.size() > 0)
-            {
-                remoteLowerGraph = new AddRemoteGraph(lowerObjects, 1, graphScaler);
-                remoteLowerGraph.execute();
-            }
-
-        }
-
         // add lower graph
         AddGraph lowerGraph = null;
 
@@ -830,13 +815,6 @@ public class DataVisualization
             upperGraph.get();
             if (DV.hasClasses && lowerGraph != null)
                 lowerGraph.get();
-
-            if (DV.displayRemoteGraphs)
-            {
-                remoteUpperGraph.get();
-                if (DV.hasClasses && remoteLowerGraph != null)
-                    remoteLowerGraph.get();
-            }
         }
         catch (ExecutionException | InterruptedException e)
         {
@@ -1631,725 +1609,116 @@ public class DataVisualization
                 GRAPHS.put(UPPER_OR_LOWER, chartPanel);
             }
 
-            return true;
-        }
-    }
-
-    private static class AddRemoteGraph extends SwingWorker<Boolean, Void>
-    {
-        final ArrayList<DataObject> DATA_OBJECTS;
-        final int UPPER_OR_LOWER;
-        final double GRAPH_SCALER;
-
-        /**
-         * Initializes parameters
-         * @param dataObjects classes to draw
-         * @param upperOrLower draw up when upper (0) and down when lower (1)
-         * @param graphScaler how much to zoom out the graphs
-         */
-        AddRemoteGraph(ArrayList<DataObject> dataObjects, int upperOrLower, double graphScaler)
-        {
-            this.DATA_OBJECTS = dataObjects;
-            this.UPPER_OR_LOWER = upperOrLower;
-            this.GRAPH_SCALER = graphScaler;
-        }
-
-        @Override
-        protected Boolean doInBackground()
-        {
-            // create main renderer and dataset
-            XYLineAndShapeRenderer lineRenderer = new XYLineAndShapeRenderer(true, false);
-            XYSeriesCollection graphLines = new XYSeriesCollection();
-            ArrayList<XYSeries> lines = new ArrayList<>();
-
-            // create renderer for domain, overlap, and threshold lines
-            XYLineAndShapeRenderer domainRenderer = new XYLineAndShapeRenderer(true, false);
-            XYLineAndShapeRenderer overlapRenderer = new XYLineAndShapeRenderer(true, false);
-            XYLineAndShapeRenderer thresholdRenderer = new XYLineAndShapeRenderer(true, false);
-            XYSeriesCollection domain = new XYSeriesCollection();
-            XYSeriesCollection overlap = new XYSeriesCollection();
-            XYSeriesCollection threshold = new XYSeriesCollection();
-            XYSeries domainMaxLine = new XYSeries(-1, false, true);
-            XYSeries domainMinLine = new XYSeries(-2, false, true);
-            XYSeries overlapMaxLine = new XYSeries(-3, false, true);
-            XYSeries overlapMinLine = new XYSeries(-4, false, true);
-            XYSeries thresholdLine = new XYSeries(0, false, true);
-
-            // get line height
-            final double lineHeight = UPPER_OR_LOWER == 1 ? GRAPH_SCALER * -DV.fieldLength : GRAPH_SCALER * DV.fieldLength;
-
-            // set domain lines
-            domainMinLine.add(DV.domainArea[0], 0);
-            domainMinLine.add(DV.domainArea[0], lineHeight);
-            domainMaxLine.add(DV.domainArea[1], 0);
-            domainMaxLine.add(DV.domainArea[1], lineHeight);
-
-            // add domain series to collection
-            domain.addSeries(domainMaxLine);
-            domain.addSeries(domainMinLine);
-
-            // set overlap lines
-            overlapMinLine.add(DV.overlapArea[0], 0);
-            overlapMinLine.add(DV.overlapArea[0], lineHeight);
-            overlapMaxLine.add(DV.overlapArea[1], 0);
-            overlapMaxLine.add(DV.overlapArea[1], lineHeight);
-
-            // add overlap series to collection
-            overlap.addSeries(overlapMaxLine);
-            overlap.addSeries(overlapMinLine);
-
-            // get threshold line
-            thresholdLine.add(DV.threshold, 0);
-            thresholdLine.add(DV.threshold, lineHeight);
-
-            // add threshold series to collection
-            threshold.addSeries(thresholdLine);
-
-            // renderer for endpoint, midpoint, and timeline
-            XYLineAndShapeRenderer endpointRenderer = new XYLineAndShapeRenderer(false, true);
-            XYLineAndShapeRenderer midpointRenderer = new XYLineAndShapeRenderer(false, true);
-            XYLineAndShapeRenderer timeLineRenderer = new XYLineAndShapeRenderer(false, true);
-            XYSeriesCollection endpoints = new XYSeriesCollection();
-            XYSeriesCollection midpoints = new XYSeriesCollection();
-            XYSeriesCollection timeLine = new XYSeriesCollection();
-            XYSeries endpointSeries = new XYSeries(0, false, true);
-            XYSeries midpointSeries = new XYSeries(1, false, true);
-            XYSeries timeLineSeries = new XYSeries(2, false, true);
-
-            // number of lines
-            int lineCnt = 0;
-
-            // populate series
-            for (DataObject data : DATA_OBJECTS)
+            if (DV.displayRemoteGraphs)
             {
-                for (int i = 0; i < data.data.length; i++, lineCnt++)
+                try
                 {
-                    // start line at (0, 0)
-                    lines.add(new XYSeries(lineCnt, false, true));
-                    if (DV.glc_or_dsc)
-                        lines.get(lineCnt).add(0, 0);
-                    double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
+                    // create the graph panel and add it to the main panel
+                    ChartPanel chartPanel2 = new ChartPanel((JFreeChart) chart.clone());
+                    chartPanel2.setMouseWheelEnabled(true);
+                    chartPanel2.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1] * vertical_res));
 
-                    // ensure datapoint is within domain
-                    // if drawing overlap, ensure datapoint is within overlap
-                    if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
-                            (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
+                    // show datapoint when clicked
+                    chartPanel2.addChartMouseListener(new ChartMouseListener()
                     {
-                        // add points to lines
-                        for (int j = 0; j < data.coordinates[i].length; j++)
+                        // display point on click
+                        @Override
+                        public void chartMouseClicked(ChartMouseEvent e)
                         {
-                            int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
+                            // get clicked entity
+                            ChartEntity ce = e.getEntity();
 
-                            lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
-
-                            if (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
-                                midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
-
-                            // add endpoint and timeline
-                            if (j == data.coordinates[i].length - 1)
+                            if (ce instanceof XYItemEntity xy)
                             {
+                                // get class and index
+                                int curClass = 0;
+                                int index = xy.getSeriesIndex();
+
+                                // if upper class than curClass is upperClass
+                                // otherwise search for class
                                 if (UPPER_OR_LOWER == 1)
-                                    endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
+                                {
+                                    // -1 because index start at 0, not 1
+                                    int cnt = -1;
+
+                                    // loop through classes until the class containing index is found
+                                    for (int i = 0; i < DV.classNumber; i++)
+                                    {
+                                        if (i != DV.upperClass)
+                                        {
+                                            cnt += DV.data.get(i).data.length;
+
+                                            // if true, index is within the current class
+                                            if (cnt >= index)
+                                            {
+                                                curClass = i;
+                                                index = cnt - index;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
                                 else
-                                    endpointSeries.add(data.coordinates[i][j][0], data.coordinates[i][j][1]);
+                                    curClass = DV.upperClass;
 
-                                timeLineSeries.add(data.coordinates[i][j][0], 0);
-                            }
-                        }
-                    }
+                                // create points
+                                StringBuilder originalPoint = new StringBuilder("<b>Original Point: </b>");
+                                StringBuilder normalPoint = new StringBuilder("<b>Normalized Point: </b>");
 
-                    // add to dataset if within domain
-                    if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
-                        graphLines.addSeries(lines.get(lineCnt));
-                }
-            }
-
-            // add data to series
-            endpoints.addSeries(endpointSeries);
-            timeLine.addSeries(timeLineSeries);
-            midpoints.addSeries(midpointSeries);
-
-            JFreeChart chart = ChartFactory.createXYLineChart(
-                    "",
-                    "",
-                    "",
-                    graphLines,
-                    PlotOrientation.VERTICAL,
-                    false,
-                    true,
-                    false);
-
-            // format chart
-            chart.setBorderVisible(false);
-            chart.setPadding(RectangleInsets.ZERO_INSETS);
-
-            // get plot
-            XYPlot plot = (XYPlot) chart.getPlot();
-
-            // format plot
-            plot.setDrawingSupplier(new DefaultDrawingSupplier(
-                    new Paint[] { DV.graphColors[UPPER_OR_LOWER] },
-                    DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
-                    DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
-                    DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
-                    DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
-            plot.getRangeAxis().setVisible(false);
-            plot.getDomainAxis().setVisible(false);
-            plot.setOutlinePaint(null);
-            plot.setOutlineVisible(false);
-            plot.setInsets(RectangleInsets.ZERO_INSETS);
-            plot.setDomainPannable(true);
-            plot.setRangePannable(true);
-            plot.setBackgroundPaint(DV.background);
-            plot.setDomainGridlinePaint(Color.GRAY);
-            plot.setRangeGridlinePaint(Color.GRAY);
-
-            // set domain and range of graph
-            double bound = GRAPH_SCALER * DV.fieldLength;
-            double tick = DV.fieldLength / 10.0;
-
-            // set domain
-            ValueAxis domainView = plot.getDomainAxis();
-            domainView.setRange(-bound, bound);
-            NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
-            xAxis.setTickUnit(new NumberTickUnit(tick));
-
-            // set range
-            ValueAxis rangeView = plot.getRangeAxis();
-            NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
-            yAxis.setTickUnit(new NumberTickUnit(tick));
-
-            // set range up or down
-            if (UPPER_OR_LOWER == 1)
-                rangeView.setRange(-bound * verticalScale, 0);
-            else
-                rangeView.setRange(0, bound * verticalScale);
-
-            // renderer for bars
-            XYIntervalSeriesCollection bars = new XYIntervalSeriesCollection();
-            XYBarRenderer barRenderer = new XYBarRenderer();
-
-            // create bar chart
-            if (DV.showBars)
-            {
-                int[] barRanges = new int[400];
-                double max = 0;
-
-                // get bar lengths
-                for (DataObject dataObj : DATA_OBJECTS)
-                {
-                    // translate endpoint to slider ticks
-                    // increment bar which endpoint lands
-                    for (int i = 0; i < dataObj.data.length; i++)
-                    {
-                        int tmpTick = (int) (Math.round((dataObj.coordinates[i][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200));
-                        barRanges[tmpTick]++;
-
-                        if (barRanges[tmpTick] > max)
-                            max = barRanges[tmpTick];
-                    }
-                }
-
-                // get interval and bounds
-                double interval = DV.fieldLength / 200.0;
-                double maxBound = -DV.fieldLength;
-                double minBound = -DV.fieldLength;
-
-                // get maximum bar height
-                double maxBarHeight = DV.fieldLength / 10.0;
-
-                // add series to collection
-                for (int i = 0; i < 400; i++)
-                {
-                    // get max bound
-                    maxBound += interval;
-
-                    XYIntervalSeries bar = new XYIntervalSeries(i, false, true);
-
-                    // bar width = interval
-                    // bar height = (total endpoints on bar) / (total endpoints)
-                    if (UPPER_OR_LOWER == 1)
-                        bar.add(interval, minBound, maxBound, (-barRanges[i] / max) * maxBarHeight, -maxBarHeight, 0);
-                    else
-                        bar.add(interval, minBound, maxBound, (barRanges[i] / max) * maxBarHeight, 0, maxBarHeight);
-
-                    bars.addSeries(bar);
-
-                    // set min bound to old max
-                    minBound = maxBound;
-                }
-            }
-
-            // create basic strokes
-            BasicStroke thresholdOverlapStroke = new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
-            BasicStroke domainStroke = new BasicStroke(1f);
-
-            // set endpoint renderer and dataset
-            endpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-1, -1, 2, 2));
-            endpointRenderer.setSeriesPaint(0, DV.endpoints);
-            plot.setRenderer(0, endpointRenderer);
-            plot.setDataset(0, endpoints);
-
-            // set threshold renderer and dataset
-            thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
-            thresholdRenderer.setSeriesPaint(0, DV.thresholdLine);
-            plot.setRenderer(1, thresholdRenderer);
-            plot.setDataset(1, threshold);
-
-            // set overlap renderer and dataset
-            overlapRenderer.setSeriesStroke(0, thresholdOverlapStroke);
-            overlapRenderer.setSeriesStroke(1, thresholdOverlapStroke);
-            overlapRenderer.setSeriesPaint(0, DV.overlapLines);
-            overlapRenderer.setSeriesPaint(1, DV.overlapLines);
-            plot.setRenderer(2, overlapRenderer);
-            plot.setDataset(2, overlap);
-
-            // set domain renderer and dataset
-            domainRenderer.setSeriesStroke(0, domainStroke);
-            domainRenderer.setSeriesStroke(1, domainStroke);
-            domainRenderer.setSeriesPaint(0, DV.domainLines);
-            domainRenderer.setSeriesPaint(1, DV.domainLines);
-            plot.setRenderer(3, domainRenderer);
-            plot.setDataset(3, domain);
-
-            // set line renderer and dataset
-            lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
-            lineRenderer.setAutoPopulateSeriesStroke(false);
-            plot.setRenderer(4, lineRenderer);
-            plot.setDataset(4, graphLines);
-
-            // set bar or timeline renderer and dataset
-            if (DV.showBars)
-            {
-                barRenderer.setShadowVisible(false);
-                plot.setRenderer(5, barRenderer);
-                plot.setDataset(5, bars);
-            }
-            else
-            {
-                if (UPPER_OR_LOWER == 1)
-                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
-                else
-                    timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
-
-                plot.setRenderer(5, timeLineRenderer);
-                plot.setDataset(5, timeLine);
-            }
-
-            // set midpoint renderer and dataset
-            midpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-0.5, -0.5, 1, 1));
-            midpointRenderer.setSeriesPaint(0, Color.GRAY);
-            plot.setRenderer(6, midpointRenderer);
-            plot.setDataset(6, midpoints);
-
-            // create the graph panel and add it to the main panel
-            ChartPanel chartPanel = new ChartPanel(chart);
-            chartPanel.setMouseWheelEnabled(true);
-
-            // set chart size
-            int vertical_res = 1;
-
-            if (DV.classNumber == 1)
-                vertical_res *= 2;
-
-            chartPanel.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1] * vertical_res));
-
-            // show datapoint when clicked
-            chartPanel.addChartMouseListener(new ChartMouseListener()
-            {
-                // display point on click
-                @Override
-                public void chartMouseClicked(ChartMouseEvent e)
-                {
-                    // get clicked entity
-                    ChartEntity ce = e.getEntity();
-
-                    if (ce instanceof XYItemEntity xy)
-                    {
-                        // get class and index
-                        int curClass = 0;
-                        int index = xy.getSeriesIndex();
-
-                        // if upper class than curClass is upperClass
-                        // otherwise search for class
-                        if (UPPER_OR_LOWER == 1)
-                        {
-                            // -1 because index start at 0, not 1
-                            int cnt = -1;
-
-                            // loop through classes until the class containing index is found
-                            for (int i = 0; i < DV.classNumber; i++)
-                            {
-                                if (i != DV.upperClass)
+                                for (int i = 0; i < DV.fieldLength; i++)
                                 {
-                                    cnt += DV.data.get(i).data.length;
+                                    // get feature values
+                                    String tmpOrig = String.format("%.2f", DV.originalData.get(curClass).data[index][i]);
+                                    String tmpNorm = String.format("%.2f", DV.data.get(curClass).data[index][i]);
 
-                                    // if true, index is within the current class
-                                    if (cnt >= index)
+                                    // add values to points
+                                    originalPoint.append(tmpOrig);
+                                    normalPoint.append(tmpNorm);
+
+                                    if (i != DV.fieldLength - 1)
                                     {
-                                        curClass = i;
-                                        index = cnt - index;
-                                        break;
+                                        originalPoint.append(", ");
+                                        normalPoint.append(", ");
+
+                                        // add new line
+                                        if (i % 10 == 9)
+                                        {
+                                            originalPoint.append("<br/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;");
+                                            normalPoint.append("<br/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;");
+                                        }
                                     }
                                 }
-                            }
-                        }
-                        else
-                            curClass = DV.upperClass;
 
-                        // create points
-                        StringBuilder originalPoint = new StringBuilder("<b>Original Point: </b>");
-                        StringBuilder normalPoint = new StringBuilder("<b>Normalized Point: </b>");
+                                // create message
+                                String chosenDataPoint = "<html>" + "<b>Class: </b>" + DV.uniqueClasses.get(curClass) + "<br/>" + originalPoint + "<br/>" + normalPoint + "</html>";
 
-                        for (int i = 0; i < DV.fieldLength; i++)
-                        {
-                            // get feature values
-                            String tmpOrig = String.format("%.2f", DV.originalData.get(curClass).data[index][i]);
-                            String tmpNorm = String.format("%.2f", DV.data.get(curClass).data[index][i]);
+                                // get mouse location
+                                Point mouseLoc = MouseInfo.getPointerInfo().getLocation();
+                                int x = (int) mouseLoc.getX();
+                                int y = (int) mouseLoc.getY();
 
-                            // add values to points
-                            originalPoint.append(tmpOrig);
-                            normalPoint.append(tmpNorm);
-
-                            if (i != DV.fieldLength - 1)
-                            {
-                                originalPoint.append(", ");
-                                normalPoint.append(", ");
-
-                                // add new line
-                                if (i % 10 == 9)
-                                {
-                                    originalPoint.append("<br/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;");
-                                    normalPoint.append("<br/>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;");
-                                }
+                                // create popup
+                                JOptionPane optionPane = new JOptionPane(chosenDataPoint, JOptionPane.INFORMATION_MESSAGE);
+                                JDialog dialog = optionPane.createDialog(null, "Datapoint");
+                                dialog.setLocation(x, y);
+                                dialog.setVisible(true);
                             }
                         }
 
-                        // create message
-                        String chosenDataPoint = "<html>" + "<b>Class: </b>" + DV.uniqueClasses.get(curClass) + "<br/>" + originalPoint + "<br/>" + normalPoint + "</html>";
+                        @Override
+                        public void chartMouseMoved(ChartMouseEvent chartMouseEvent) {}
+                    });
 
-                        // get mouse location
-                        Point mouseLoc = MouseInfo.getPointerInfo().getLocation();
-                        int x = (int) mouseLoc.getX();
-                        int y = (int) mouseLoc.getY();
-
-                        // create popup
-                        JOptionPane optionPane = new JOptionPane(chosenDataPoint, JOptionPane.INFORMATION_MESSAGE);
-                        JDialog dialog = optionPane.createDialog(null, "Datapoint");
-                        dialog.setLocation(x, y);
-                        dialog.setVisible(true);
-                    }
-                }
-
-                @Override
-                public void chartMouseMoved(ChartMouseEvent chartMouseEvent) {}
-            });
-
-            // add domain listeners
-            DV.domainSlider.addMouseMotionListener(new MouseMotionListener()
-            {
-                @Override
-                public void mouseDragged(MouseEvent e)
-                {
-                    RangeSlider slider = (RangeSlider) e.getSource();
-                    DV.domainArea[0] = (slider.getValue() - 200) * DV.fieldLength / 200.0;
-                    DV.domainArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
-
-                    // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f);
-                    domainRenderer.setSeriesStroke(0, activeStroke);
-                    domainRenderer.setSeriesStroke(1, activeStroke);
-
-                    // clear old domain lines
-                    domainMinLine.clear();
-                    domainMaxLine.clear();
-
-                    // clear old lines, midpoints, endpoints, and timeline points
-                    lines.clear();
-                    graphLines.removeAllSeries();
-                    midpointSeries.clear();
-                    endpointSeries.clear();
-                    timeLineSeries.clear();
-
-                    // turn notify off
-                    chart.setNotify(false);
-
-                    // set overlap line
-                    domainMinLine.add(DV.domainArea[0], 0);
-                    domainMinLine.add(DV.domainArea[0], lineHeight);
-                    domainMaxLine.add(DV.domainArea[1], 0);
-                    domainMaxLine.add(DV.domainArea[1], lineHeight);
-
-                    // number of lines
-                    int lineCnt = 0;
-
-                    // populate series
-                    for (DataObject data : DATA_OBJECTS)
+                    // add graph to graph panel
+                    synchronized (REMOTE_GRAPHS)
                     {
-                        for (int i = 0; i < data.data.length; i++, lineCnt++)
-                        {
-                            // start line at (0, 0)
-                            lines.add(new XYSeries(lineCnt, false, true));
-                            if (DV.glc_or_dsc)
-                                lines.get(lineCnt).add(0, 0);
-                            double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
-
-                            // ensure datapoint is within domain
-                            // if drawing overlap, ensure datapoint is within overlap
-                            if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
-                                    (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
-                            {
-                                // add points to lines
-                                for (int j = 0; j < data.coordinates[i].length; j++)
-                                {
-                                    int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
-
-                                    lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
-
-                                    if (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
-                                        midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
-
-                                    // add endpoint and timeline
-                                    if (j == data.coordinates[i].length - 1)
-                                    {
-                                        if (UPPER_OR_LOWER == 1)
-                                            endpointSeries.add(data.coordinates[i][j][0], -data.coordinates[i][j][1]);
-                                        else
-                                            endpointSeries.add(data.coordinates[i][j][0], data.coordinates[i][j][1]);
-
-                                        timeLineSeries.add(data.coordinates[i][j][0], 0);
-                                    }
-                                }
-                            }
-
-                            // add to dataset if within domain
-                            if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
-                                graphLines.addSeries(lines.get(lineCnt));
-                        }
+                        REMOTE_GRAPHS.put(UPPER_OR_LOWER, chartPanel2);
                     }
-
-                    // update graph
-                    chart.setNotify(true);
-
-                    // generate analytics
-                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-                    analytics.execute();
-
-                    // wait for generation
-                    try
-                    {
-                        analytics.get();
-                    }
-                    catch (InterruptedException | ExecutionException ex)
-                    {
-                        ex.printStackTrace();
-                    }
-
-                    // revalidate graphs and confusion matrices
-                    DV.analyticsPanel.repaint();
-                    DV.analyticsPanel.revalidate();
                 }
-
-                @Override
-                public void mouseMoved(MouseEvent e) {}
-            });
-
-            DV.domainSlider.addMouseListener(new MouseListener()
-            {
-                @Override
-                public void mouseClicked(MouseEvent e) {}
-
-                @Override
-                public void mousePressed(MouseEvent e)
+                catch(CloneNotSupportedException e)
                 {
-                    // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f);
-                    domainRenderer.setSeriesStroke(0, activeStroke);
-                    domainRenderer.setSeriesStroke(1, activeStroke);
+                    e.printStackTrace();
                 }
-
-                @Override
-                public void mouseReleased(MouseEvent e)
-                {
-                    // draw lines as inactive (normal)
-                    BasicStroke inactiveStroke = new BasicStroke(2f);
-                    domainRenderer.setSeriesStroke(0, inactiveStroke);
-                    domainRenderer.setSeriesStroke(1, inactiveStroke);
-                }
-
-                @Override
-                public void mouseEntered(MouseEvent e) {}
-
-                @Override
-                public void mouseExited(MouseEvent e) {}
-            });
-
-            // add overlap listeners
-            DV.overlapSlider.addMouseMotionListener(new MouseMotionListener()
-            {
-                @Override
-                public void mouseDragged(MouseEvent e)
-                {
-                    RangeSlider slider = (RangeSlider) e.getSource();
-                    DV.overlapArea[0] = (slider.getValue() - 200) * DV.fieldLength / 200.0;
-                    DV.overlapArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
-
-                    // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
-                    overlapRenderer.setSeriesStroke(0, activeStroke);
-                    overlapRenderer.setSeriesStroke(1, activeStroke);
-
-                    // clear old lines
-                    overlapMinLine.clear();
-                    overlapMaxLine.clear();
-
-                    // turn notify off
-                    chart.setNotify(false);
-
-                    // set overlap line
-                    overlapMinLine.add(DV.overlapArea[0], 0);
-                    overlapMinLine.add(DV.overlapArea[0], lineHeight);
-                    overlapMaxLine.add(DV.overlapArea[1], 0);
-                    overlapMaxLine.add(DV.overlapArea[1], lineHeight);
-
-                    // update graph
-                    chart.setNotify(true);
-
-                    // generate analytics
-                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-                    analytics.execute();
-
-                    // wait for generation
-                    try
-                    {
-                        analytics.get();
-                    }
-                    catch (InterruptedException | ExecutionException ex)
-                    {
-                        ex.printStackTrace();
-                    }
-
-                    // revalidate graphs and confusion matrices
-                    DV.analyticsPanel.repaint();
-                    DV.analyticsPanel.revalidate();
-                }
-
-                @Override
-                public void mouseMoved(MouseEvent e) {}
-            });
-
-            DV.overlapSlider.addMouseListener(new MouseListener()
-            {
-                @Override
-                public void mouseClicked(MouseEvent e) {}
-
-                @Override
-                public void mousePressed(MouseEvent e)
-                {
-                    // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
-                    overlapRenderer.setSeriesStroke(0, activeStroke);
-                    overlapRenderer.setSeriesStroke(1, activeStroke);
-                }
-
-                @Override
-                public void mouseReleased(MouseEvent e)
-                {
-                    // draw lines as inactive (normal)
-                    BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
-                    overlapRenderer.setSeriesStroke(0, inactiveStroke);
-                    overlapRenderer.setSeriesStroke(1, inactiveStroke);
-                }
-
-                @Override
-                public void mouseEntered(MouseEvent e) {}
-
-                @Override
-                public void mouseExited(MouseEvent e) {}
-            });
-
-            // add threshold listeners
-            DV.thresholdSlider.addMouseMotionListener(new MouseMotionListener()
-            {
-                @Override
-                public void mouseDragged(MouseEvent e)
-                {
-                    // get position
-                    JSlider slider = (JSlider) e.getSource();
-                    DV.threshold = (slider.getValue() - 200) * DV.fieldLength / 200.0;
-
-                    // draw line as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
-                    thresholdRenderer.setSeriesStroke(0, activeStroke);
-
-                    // clear old line
-                    thresholdLine.clear();
-
-                    // turn notify off
-                    chart.setNotify(false);
-
-                    // set threshold line
-                    thresholdLine.add(DV.threshold, 0);
-                    thresholdLine.add(DV.threshold, lineHeight);
-
-                    // update graph
-                    chart.setNotify(true);
-
-                    // generate analytics
-                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-                    analytics.execute();
-
-                    // wait for generation
-                    try
-                    {
-                        analytics.get();
-                    }
-                    catch (InterruptedException | ExecutionException ex)
-                    {
-                        ex.printStackTrace();
-                    }
-
-                    // revalidate graphs and confusion matrices
-                    DV.analyticsPanel.repaint();
-                    DV.analyticsPanel.revalidate();
-                }
-
-                @Override
-                public void mouseMoved(MouseEvent e) {}
-            });
-
-            DV.thresholdSlider.addMouseListener(new MouseListener()
-            {
-                @Override
-                public void mouseClicked(MouseEvent e) {}
-
-                @Override
-                public void mousePressed(MouseEvent e)
-                {
-                    // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
-                    thresholdRenderer.setSeriesStroke(0, activeStroke);
-                }
-
-                @Override
-                public void mouseReleased(MouseEvent e)
-                {
-                    // draw lines as inactive (normal)
-                    BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
-                    thresholdRenderer.setSeriesStroke(0, inactiveStroke);
-                }
-
-                @Override
-                public void mouseEntered(MouseEvent e) {}
-
-                @Override
-                public void mouseExited(MouseEvent e) {}
-            });
-
-            // add graph to graph panel
-            synchronized (REMOTE_GRAPHS)
-            {
-                REMOTE_GRAPHS.put(UPPER_OR_LOWER, chartPanel);
             }
 
             return true;
