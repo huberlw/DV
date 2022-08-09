@@ -761,6 +761,9 @@ public class DataVisualization
         // remove old graphs
         GRAPHS.clear();
 
+        if (DV.displayRemoteGraphs)
+            REMOTE_GRAPHS.clear();
+
         // remove old graphs
         DV.graphPanel.removeAll();
 

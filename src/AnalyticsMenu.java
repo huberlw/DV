@@ -1,5 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.util.concurrent.ExecutionException;
@@ -309,41 +310,25 @@ public class AnalyticsMenu extends JPanel
             if (!DV.displayRemoteAnalytics)
             {
                 DV.displayRemoteAnalytics = true;
-                JOptionPane optionPane = new JOptionPane(DV.analyticsPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Close"}, null);
+                DV.crossValidationNotGenerated = true;
+
+                if (DV.data != null)
+                    DataVisualization.drawGraphs();
+
+                JOptionPane optionPane = new JOptionPane(DV.remoteAnalyticsPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
                 JDialog dialog = optionPane.createDialog(DV.mainFrame, "Analytics");
                 dialog.setModal(false);
                 dialog.setVisible(true);
 
-                dialog.addWindowListener(new WindowListener()
+                dialog.addWindowListener(new WindowAdapter()
                 {
-                    @Override
-                    public void windowOpened(WindowEvent e) {}
-
                     @Override
                     public void windowClosing(WindowEvent e)
                     {
                         DV.displayRemoteAnalytics = false;
                         DV.remoteAnalyticsPanel.removeAll();
                     }
-
-                    @Override
-                    public void windowClosed(WindowEvent e) {}
-
-                    @Override
-                    public void windowIconified(WindowEvent e) {}
-
-                    @Override
-                    public void windowDeiconified(WindowEvent e) {}
-
-                    @Override
-                    public void windowActivated(WindowEvent e) {}
-
-                    @Override
-                    public void windowDeactivated(WindowEvent e) {}
                 });
-
-                if (DV.data != null)
-                    DataVisualization.drawGraphs();
             }
         });
         analyticsPanel.add(separateAnalyticsBtn);

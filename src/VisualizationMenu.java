@@ -1,8 +1,6 @@
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -474,37 +472,20 @@ public class VisualizationMenu extends JPanel
             if (!DV.displayRemoteGraphs)
             {
                 DV.displayRemoteGraphs = true;
-                JOptionPane optionPane = new JOptionPane(DV.remoteGraphPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{"Close"}, null);
+
+                JOptionPane optionPane = new JOptionPane(DV.remoteGraphPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
                 JDialog dialog = optionPane.createDialog(DV.mainFrame, "Visualization");
                 dialog.setModal(false);
                 dialog.setVisible(true);
 
-                dialog.addWindowListener(new WindowListener()
+                dialog.addWindowListener(new WindowAdapter()
                 {
-                    @Override
-                    public void windowOpened(WindowEvent e) {}
-
                     @Override
                     public void windowClosing(WindowEvent e)
                     {
                         DV.displayRemoteGraphs = false;
                         DV.remoteGraphPanel.removeAll();
                     }
-
-                    @Override
-                    public void windowClosed(WindowEvent e) {}
-
-                    @Override
-                    public void windowIconified(WindowEvent e) {}
-
-                    @Override
-                    public void windowDeiconified(WindowEvent e) {}
-
-                    @Override
-                    public void windowActivated(WindowEvent e) {}
-
-                    @Override
-                    public void windowDeactivated(WindowEvent e) {}
                 });
 
                 if (DV.data != null)

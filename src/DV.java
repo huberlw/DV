@@ -78,7 +78,7 @@ public class DV extends JFrame
     static boolean drawOverlap = false;
 
     // domain active
-    static boolean domainActive = false;
+    static boolean domainActive = true;
 
     // domain area
     static double[] domainArea;
@@ -808,7 +808,8 @@ public class DV extends JFrame
                     DataVisualization.drawGraphs();
 
                     // get support vectors
-                    DataVisualization.SVM();
+                    if (DV.data.size() > 1)
+                        DataVisualization.SVM();
                 }
                 else
                 {
