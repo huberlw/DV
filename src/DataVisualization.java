@@ -74,6 +74,9 @@ public class DataVisualization
                 // setup angle sliders
                 for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
                     AngleSliders.createSliderPanel_DSC("feature " + i, 0, i);
+
+                DV.angleSliderPanel.repaint();
+                DV.angleSliderPanel.revalidate();
             }
 
             // optimize threshold

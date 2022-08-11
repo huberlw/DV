@@ -44,6 +44,8 @@ public class VisualizationMenu extends JPanel
 
             if (DV.data != null)
             {
+                DV.angleSliderPanel.removeAll();
+
                 DataVisualization.optimizeSetup();
                 DataVisualization.drawGraphs();
             }
