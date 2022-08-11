@@ -2,7 +2,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.util.concurrent.ExecutionException;
 
 public class AnalyticsMenu extends JPanel
@@ -42,6 +41,12 @@ public class AnalyticsMenu extends JPanel
                 // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
                 DV.confusionMatrixPanel.revalidate();
+
+                if (DV.displayRemoteAnalytics)
+                {
+                    DV.remoteConfusionMatrixPanel.repaint();
+                    DV.remoteConfusionMatrixPanel.revalidate();
+                }
             }
             catch (InterruptedException | ExecutionException ex)
             {
@@ -70,6 +75,12 @@ public class AnalyticsMenu extends JPanel
                 // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
                 DV.confusionMatrixPanel.revalidate();
+
+                if (DV.displayRemoteAnalytics)
+                {
+                    DV.remoteConfusionMatrixPanel.repaint();
+                    DV.remoteConfusionMatrixPanel.revalidate();
+                }
             }
             catch (InterruptedException | ExecutionException ex)
             {
@@ -98,6 +109,12 @@ public class AnalyticsMenu extends JPanel
                 // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
                 DV.confusionMatrixPanel.revalidate();
+
+                if (DV.displayRemoteAnalytics)
+                {
+                    DV.remoteConfusionMatrixPanel.repaint();
+                    DV.remoteConfusionMatrixPanel.revalidate();
+                }
             }
             catch (InterruptedException | ExecutionException ex)
             {
@@ -126,6 +143,12 @@ public class AnalyticsMenu extends JPanel
                 // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
                 DV.confusionMatrixPanel.revalidate();
+
+                if (DV.displayRemoteAnalytics)
+                {
+                    DV.remoteConfusionMatrixPanel.repaint();
+                    DV.remoteConfusionMatrixPanel.revalidate();
+                }
             }
             catch (InterruptedException | ExecutionException ex)
             {
@@ -154,6 +177,12 @@ public class AnalyticsMenu extends JPanel
                 // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
                 DV.confusionMatrixPanel.revalidate();
+
+                if (DV.displayRemoteAnalytics)
+                {
+                    DV.remoteConfusionMatrixPanel.repaint();
+                    DV.remoteConfusionMatrixPanel.revalidate();
+                }
             }
             catch (InterruptedException | ExecutionException ex)
             {
@@ -182,6 +211,12 @@ public class AnalyticsMenu extends JPanel
                 // revalidate confusion matrices
                 DV.confusionMatrixPanel.repaint();
                 DV.confusionMatrixPanel.revalidate();
+
+                if (DV.displayRemoteAnalytics)
+                {
+                    DV.remoteConfusionMatrixPanel.repaint();
+                    DV.remoteConfusionMatrixPanel.revalidate();
+                }
             }
             catch (InterruptedException | ExecutionException ex)
             {
@@ -212,6 +247,12 @@ public class AnalyticsMenu extends JPanel
                 // revalidate cross validation panel
                 DV.crossValidationPanel.repaint();
                 DV.crossValidationPanel.revalidate();
+
+                if (DV.displayRemoteAnalytics)
+                {
+                    DV.remoteCrossValidationPanel.repaint();
+                    DV.remoteCrossValidationPanel.revalidate();
+                }
             }
             catch (InterruptedException | ExecutionException ex)
             {
@@ -273,6 +314,12 @@ public class AnalyticsMenu extends JPanel
                                 // revalidate cross validation panel
                                 DV.crossValidationPanel.repaint();
                                 DV.crossValidationPanel.revalidate();
+
+                                if (DV.displayRemoteAnalytics)
+                                {
+                                    DV.remoteCrossValidationPanel.repaint();
+                                    DV.remoteCrossValidationPanel.revalidate();
+                                }
                             }
                             catch (InterruptedException | ExecutionException ex)
                             {
@@ -310,10 +357,24 @@ public class AnalyticsMenu extends JPanel
             if (!DV.displayRemoteAnalytics)
             {
                 DV.displayRemoteAnalytics = true;
-                DV.crossValidationNotGenerated = true;
 
                 if (DV.data != null)
-                    DataVisualization.drawGraphs();
+                {
+                    // generate analytics
+                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                    analytics.execute();
+
+                    // wait for analytics thread to finish
+                    try
+                    {
+                        analytics.get();
+                    }
+                    catch (ExecutionException | InterruptedException ae)
+                    {
+                        ae.printStackTrace();
+                        return;
+                    }
+                }
 
                 JOptionPane optionPane = new JOptionPane(DV.remoteAnalyticsPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
                 JDialog dialog = optionPane.createDialog(DV.mainFrame, "Analytics");
@@ -326,7 +387,8 @@ public class AnalyticsMenu extends JPanel
                     public void windowClosing(WindowEvent e)
                     {
                         DV.displayRemoteAnalytics = false;
-                        DV.remoteAnalyticsPanel.removeAll();
+                        DV.remoteConfusionMatrixPanel.removeAll();
+                        DV.remoteCrossValidationPanel.removeAll();
                     }
                 });
             }

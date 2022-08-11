@@ -1,6 +1,8 @@
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -256,12 +258,90 @@ public class VisualizationMenu extends JPanel
          */
         // change visualization function for each vector
         JPanel vectorVisFuncPanel = new JPanel();
-        JButton vectorVisFuncBtn = new JButton("Vector Function");
-        vectorVisFuncBtn.setToolTipText("Applies given function to all data points");
+        JButton vectorVisFuncBtn = new JButton("n-D Point Function");
+        vectorVisFuncBtn.setToolTipText("Applies given function to all n-D points");
         vectorVisFuncBtn.addActionListener(e ->
         {
             // popup asking for number of folds
-            JPanel funcPanel = new JPanel(new BorderLayout());
+            JPanel funcPanel = new JPanel();
+            funcPanel.setLayout(new BoxLayout(funcPanel, BoxLayout.Y_AXIS));
+
+            // svm vectors or input vectors
+            ButtonGroup vectorType = new ButtonGroup();
+            JRadioButton svmVec = new JRadioButton("SVM Vectors", true);
+            JRadioButton userVec = new JRadioButton("User n-D Points");
+            vectorType.add(svmVec);
+            vectorType.add(userVec);
+
+            // vector type panel
+            JPanel vecPanel = new JPanel();
+            JLabel vecLabel = new JLabel("n-D Point Type: ");
+            vecLabel.setFont(vecLabel.getFont().deriveFont(12f));
+            vecPanel.add(vecLabel);
+            vecPanel.add(svmVec);
+            vecPanel.add(userVec);
+            JButton userVecInput = new JButton("User n-D Points Input");
+            userVecInput.addActionListener(ee ->
+            {
+                if (DV.data.size() > 0)
+                {
+                    // set filter on file chooser
+                    JFileChooser fileDialog = new JFileChooser();
+                    fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
+
+                    // set to current directory
+                    File workingDirectory = new File(System.getProperty("user.dir"));
+                    fileDialog.setCurrentDirectory(workingDirectory);
+
+                    // open file dialog
+                    int results = fileDialog.showOpenDialog(DV.mainFrame);
+
+                    if (results == JFileChooser.APPROVE_OPTION)
+                    {
+                        File importFile = fileDialog.getSelectedFile();
+
+                        // check if import was successful
+                        boolean success = DataSetup.setupImportData(importFile);
+
+                        // create graphs
+                        if (success)
+                        {
+                            DataSetup.setupSupportVectors(importFile);
+                        }
+                        else
+                        {
+                            // add blank graph
+                            JOptionPane.showMessageDialog(
+                                    DV.mainFrame,
+                                    "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                                    "Error: could not open file",
+                                    JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                    else if (results != JFileChooser.CANCEL_OPTION)
+                    {
+                        JOptionPane.showMessageDialog(
+                                DV.mainFrame,
+                                "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                                "Error: could not open file",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+                else
+                {
+                    JOptionPane.showMessageDialog(
+                            DV.mainFrame,
+                            "Please create a project before importing data.\nFor additional information, please view the \"Help\" tab.",
+                            "Error: could not import data",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+                // repaint and revalidate graph
+                DV.graphPanel.repaint();
+                DV.graphPanel.revalidate();
+            });
+            vecPanel.add(userVecInput);
+            funcPanel.add(vecPanel);
 
             // radio button group
             ButtonGroup stockFunc = new ButtonGroup();
@@ -276,12 +356,14 @@ public class VisualizationMenu extends JPanel
 
             // default function panel
             JPanel stockPanel = new JPanel();
-            stockPanel.add(new JLabel("Built-In: "));
+            JLabel stockLabel = new JLabel("Built-In: ");
+            stockLabel.setFont(stockLabel.getFont().deriveFont(12f));
+            stockPanel.add(stockLabel);
             stockPanel.add(svmPolyFunc);
             stockPanel.add(svmRBFFunc);
             stockPanel.add(customFunc);
             stockPanel.add(noFunc);
-            funcPanel.add(stockPanel, BorderLayout.NORTH);
+            funcPanel.add(stockPanel);
 
             // text panel
             JPanel textPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -304,7 +386,7 @@ public class VisualizationMenu extends JPanel
                 customFunc.setSelected(true);
 
             // add text panel
-            funcPanel.add(textPanel, BorderLayout.SOUTH);
+            funcPanel.add(textPanel);
 
             // add listeners
             svmPolyFunc.addActionListener(e1 -> funcField.setText("(1/" + DV.standardFieldLength + " * dot(x, y) + 1)^3"));
@@ -502,8 +584,8 @@ public class VisualizationMenu extends JPanel
         {
             // radio button group
             ButtonGroup plotType = new ButtonGroup();
-            JRadioButton glc = new JRadioButton("GLC-L", true);
-            JRadioButton dsc = new JRadioButton("DSC2");
+            JRadioButton glc = new JRadioButton("GLC-L", DV.glc_or_dsc);
+            JRadioButton dsc = new JRadioButton("DSC2", DV.glc_or_dsc);
             plotType.add(glc);
             plotType.add(dsc);
 
@@ -518,7 +600,10 @@ public class VisualizationMenu extends JPanel
             DV.glc_or_dsc = glc.isSelected();
 
             if (DV.data != null)
+            {
+                DataVisualization.optimizeSetup();
                 DataVisualization.drawGraphs();
+            }
         });
         plotPanel.add(plotBtn);
 
@@ -543,6 +628,16 @@ public class VisualizationMenu extends JPanel
 
         // add separate vis panel
         visOptions.add(separateVisPanel);
+
+        JCheckBox tmp = new JCheckBox("Domain Active");
+        visOptions.add(tmp);
+        tmp.addActionListener(eee ->
+        {
+            DV.domainActive = tmp.isSelected();
+            if (DV.data != null)
+                DataVisualization.drawGraphs();
+        });
+
 
         visOptionsFrame.add(visOptions);
         visOptionsFrame.pack();

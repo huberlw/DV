@@ -27,8 +27,9 @@ public class Analytics
     static ArrayList<String> curClasses;
 
     // holds confusion matrices in order
-    final static Map<Integer, JTextArea> CONFUSION_MATRICES = new HashMap<>();
-    final static Map<Integer, JTextArea> REMOTE_CONFUSION_MATRICES = new HashMap<>();
+    final static Map<Integer, JTextArea> CONFUSION_MATRIX = new HashMap<>();
+    final static Map<Integer, JTextArea> REMOTE_CONFUSION_MATRIX = new HashMap<>();
+    final static ArrayList<String> CROSS_VALIDATION = new ArrayList<>();
 
 
     /**
@@ -55,17 +56,18 @@ public class Analytics
                 classNames = classes.toString();
 
                 // remove old confusion matrices
-                CONFUSION_MATRICES.clear();
+                CONFUSION_MATRIX.clear();
 
                 // get current classes being visualized
                 getCurClasses();
 
                 // remove old analytics
                 DV.confusionMatrixPanel.removeAll();
+                DV.crossValidationPanel.removeAll();
 
                 if (DV.displayRemoteAnalytics)
                 {
-                    REMOTE_CONFUSION_MATRICES.clear();
+                    REMOTE_CONFUSION_MATRIX.clear();
                     DV.remoteConfusionMatrixPanel.removeAll();
                 }
 
@@ -118,7 +120,7 @@ public class Analytics
 
                 if (DV.crossValidationNotGenerated && DV.crossValidationChecked)
                 {
-                    DV.crossValidationPanel.removeAll();
+                    CROSS_VALIDATION.clear();
 
                     if (DV.displayRemoteAnalytics)
                         DV.remoteCrossValidationPanel.removeAll();
@@ -148,14 +150,30 @@ public class Analytics
                 }
 
                 // add confusion matrices in order
-                for (int i = 0; i < DV.prevAllDataCM.size() + 6; i++)
+                for (int i = 0; i < DV.prevAllDataCM.size() + 5; i++)
                 {
-                    if (CONFUSION_MATRICES.containsKey(i))
+                    if (CONFUSION_MATRIX.containsKey(i))
                     {
-                        DV.confusionMatrixPanel.add(CONFUSION_MATRICES.get(i));
+                        DV.confusionMatrixPanel.add(CONFUSION_MATRIX.get(i));
 
                         if (DV.displayRemoteAnalytics)
-                            DV.remoteConfusionMatrixPanel.add(REMOTE_CONFUSION_MATRICES.get(i));
+                            DV.remoteConfusionMatrixPanel.add(REMOTE_CONFUSION_MATRIX.get(i));
+                    }
+                }
+
+                if (DV.crossValidationChecked)
+                {
+                    JTextArea cross_validate = new JTextArea(CROSS_VALIDATION.get(0));
+                    cross_validate.setFont(cross_validate.getFont().deriveFont(Font.BOLD, 12f));
+                    cross_validate.setEditable(false);
+                    DV.crossValidationPanel.add(cross_validate);
+
+                    if (DV.displayRemoteAnalytics)
+                    {
+                        JTextArea cross_validate2 = new JTextArea(CROSS_VALIDATION.get(0));
+                        cross_validate2.setFont(cross_validate2.getFont().deriveFont(Font.BOLD, 12f));
+                        cross_validate2.setEditable(false);
+                        DV.remoteCrossValidationPanel.add(cross_validate2);
                     }
                 }
             }
@@ -209,9 +227,9 @@ public class Analytics
                 confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix.setEditable(false);
 
-                synchronized (CONFUSION_MATRICES)
+                synchronized (CONFUSION_MATRIX)
                 {
-                    CONFUSION_MATRICES.put(i, confusionMatrix);
+                    CONFUSION_MATRIX.put(i, confusionMatrix);
 
                 }
 
@@ -222,9 +240,9 @@ public class Analytics
                     confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix2.setEditable(false);
 
-                    synchronized (REMOTE_CONFUSION_MATRICES)
+                    synchronized (REMOTE_CONFUSION_MATRIX)
                     {
-                        REMOTE_CONFUSION_MATRICES.put(i, confusionMatrix2);
+                        REMOTE_CONFUSION_MATRIX.put(i, confusionMatrix2);
                     }
                 }
 
@@ -375,9 +393,9 @@ public class Analytics
             confusionMatrix.setToolTipText(classNames);
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
-            synchronized (CONFUSION_MATRICES)
+            synchronized (CONFUSION_MATRIX)
             {
-                CONFUSION_MATRICES.put(DV.prevAllDataCM.size(), confusionMatrix);
+                CONFUSION_MATRIX.put(DV.prevAllDataCM.size(), confusionMatrix);
             }
 
             if (DV.displayRemoteAnalytics)
@@ -387,9 +405,9 @@ public class Analytics
                 confusionMatrix2.setToolTipText(classNames);
                 confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix2.setEditable(false);
-                synchronized (REMOTE_CONFUSION_MATRICES)
+                synchronized (REMOTE_CONFUSION_MATRIX)
                 {
-                    REMOTE_CONFUSION_MATRICES.put(DV.prevAllDataCM.size(), confusionMatrix2);
+                    REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size(), confusionMatrix2);
                 }
             }
 
@@ -497,9 +515,9 @@ public class Analytics
                     confusionMatrix.setToolTipText(classNames);
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
-                    synchronized (CONFUSION_MATRICES)
+                    synchronized (CONFUSION_MATRIX)
                     {
-                        CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 1, confusionMatrix);
+                        CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 1, confusionMatrix);
                     }
 
                     if (DV.displayRemoteAnalytics)
@@ -509,9 +527,9 @@ public class Analytics
                         confusionMatrix2.setToolTipText(classNames);
                         confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                         confusionMatrix2.setEditable(false);
-                        synchronized (REMOTE_CONFUSION_MATRICES)
+                        synchronized (REMOTE_CONFUSION_MATRIX)
                         {
-                            REMOTE_CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 1, confusionMatrix2);
+                            REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 1, confusionMatrix2);
                         }
                     }
                 }
@@ -541,9 +559,9 @@ public class Analytics
                     confusionMatrix.setToolTipText(classNames);
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
-                    synchronized (CONFUSION_MATRICES)
+                    synchronized (CONFUSION_MATRIX)
                     {
-                        CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 1, confusionMatrix);
+                        CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 1, confusionMatrix);
                     }
 
                     if (DV.displayRemoteAnalytics)
@@ -553,9 +571,9 @@ public class Analytics
                         confusionMatrix2.setToolTipText(classNames);
                         confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                         confusionMatrix2.setEditable(false);
-                        synchronized (REMOTE_CONFUSION_MATRICES)
+                        synchronized (REMOTE_CONFUSION_MATRIX)
                         {
-                            REMOTE_CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 1, confusionMatrix2);
+                            REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 1, confusionMatrix2);
                         }
                     }
 
@@ -671,9 +689,9 @@ public class Analytics
                     confusionMatrix.setToolTipText(classNames);
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
-                    synchronized (CONFUSION_MATRICES)
+                    synchronized (CONFUSION_MATRIX)
                     {
-                        CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 2, confusionMatrix);
+                        CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 2, confusionMatrix);
                     }
 
                     if (DV.displayRemoteAnalytics)
@@ -683,9 +701,9 @@ public class Analytics
                         confusionMatrix2.setToolTipText(classNames);
                         confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                         confusionMatrix2.setEditable(false);
-                        synchronized (REMOTE_CONFUSION_MATRICES)
+                        synchronized (REMOTE_CONFUSION_MATRIX)
                         {
-                            REMOTE_CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 2, confusionMatrix2);
+                            REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 2, confusionMatrix2);
                         }
                     }
                 }
@@ -717,9 +735,9 @@ public class Analytics
                     JTextArea confusionMatrix = new JTextArea(cm.toString());
                     confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix.setEditable(false);
-                    synchronized (CONFUSION_MATRICES)
+                    synchronized (CONFUSION_MATRIX)
                     {
-                        CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 2, confusionMatrix);
+                        CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 2, confusionMatrix);
                     }
 
                     if (DV.displayRemoteAnalytics)
@@ -729,9 +747,9 @@ public class Analytics
                         confusionMatrix2.setToolTipText(classNames);
                         confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                         confusionMatrix2.setEditable(false);
-                        synchronized (REMOTE_CONFUSION_MATRICES)
+                        synchronized (REMOTE_CONFUSION_MATRIX)
                         {
-                            REMOTE_CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 2, confusionMatrix2);
+                            REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 2, confusionMatrix2);
                         }
                     }
                 }
@@ -863,9 +881,9 @@ public class Analytics
                 confusionMatrix.setToolTipText(classNames);
                 confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix.setEditable(false);
-                synchronized (CONFUSION_MATRICES)
+                synchronized (CONFUSION_MATRIX)
                 {
-                    CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 3, confusionMatrix);
+                    CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix);
                 }
 
                 if (DV.displayRemoteAnalytics)
@@ -875,9 +893,9 @@ public class Analytics
                     confusionMatrix2.setToolTipText(classNames);
                     confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix2.setEditable(false);
-                    synchronized (REMOTE_CONFUSION_MATRICES)
+                    synchronized (REMOTE_CONFUSION_MATRIX)
                     {
-                        REMOTE_CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 3, confusionMatrix2);
+                        REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix2);
                     }
                 }
             }
@@ -909,9 +927,9 @@ public class Analytics
                 JTextArea confusionMatrix = new JTextArea(cm.toString());
                 confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix.setEditable(false);
-                synchronized (CONFUSION_MATRICES)
+                synchronized (CONFUSION_MATRIX)
                 {
-                    CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 3, confusionMatrix);
+                    CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix);
                 }
 
                 if (DV.displayRemoteAnalytics)
@@ -921,9 +939,9 @@ public class Analytics
                     confusionMatrix2.setToolTipText(classNames);
                     confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix2.setEditable(false);
-                    synchronized (REMOTE_CONFUSION_MATRICES)
+                    synchronized (REMOTE_CONFUSION_MATRIX)
                     {
-                        REMOTE_CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 3, confusionMatrix2);
+                        REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix2);
                     }
                 }
             }
@@ -1069,9 +1087,9 @@ public class Analytics
             confusionMatrix.setToolTipText(classNames);
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
-            synchronized (CONFUSION_MATRICES)
+            synchronized (CONFUSION_MATRIX)
             {
-                CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 4, confusionMatrix);
+                CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 4, confusionMatrix);
             }
 
             if (DV.displayRemoteAnalytics)
@@ -1081,9 +1099,9 @@ public class Analytics
                 confusionMatrix2.setToolTipText(classNames);
                 confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix2.setEditable(false);
-                synchronized (REMOTE_CONFUSION_MATRICES)
+                synchronized (REMOTE_CONFUSION_MATRIX)
                 {
-                    REMOTE_CONFUSION_MATRICES.put(DV.prevAllDataCM.size() + 4, confusionMatrix2);
+                    REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 4, confusionMatrix2);
                 }
             }
 
@@ -1189,20 +1207,8 @@ public class Analytics
                     File fileToDelete = new File(fileName);
                     Files.deleteIfExists(fileToDelete.toPath());
 
-                    // set overlap confusion matrix
-                    JTextArea cross_validate = new JTextArea(table.toString());
-                    cross_validate.setFont(cross_validate.getFont().deriveFont(Font.BOLD, 12f));
-                    cross_validate.setEditable(false);
-                    DV.crossValidationPanel.add(cross_validate);
-
-                    if (DV.displayRemoteAnalytics)
-                    {
-                        // set overlap confusion matrix
-                        JTextArea cross_validate2 = new JTextArea(table.toString());
-                        cross_validate2.setFont(cross_validate2.getFont().deriveFont(Font.BOLD, 12f));
-                        cross_validate2.setEditable(false);
-                        DV.remoteCrossValidationPanel.add(cross_validate2);
-                    }
+                    // set cross validation table
+                    CROSS_VALIDATION.add(table.toString());
                 }
             }
             catch (IOException e)
@@ -1304,7 +1310,7 @@ public class Analytics
             while ((output = reader.readLine()) != null)
             {
                 // get angles and threshold
-                if (storeFunction && cnt <= DV.fieldLength)
+                if (storeFunction && cnt <= DV.data.get(0).coordinates[0].length)
                 {
                     LDAFunction.add(Double.parseDouble(output));
                     cnt++;

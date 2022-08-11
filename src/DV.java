@@ -625,7 +625,7 @@ public class DV extends JFrame
         // optimize visualization
         JButton optimizeBtn = new JButton("Optimize Visualization");
         optimizeBtn.setToolTipText("Attempts to optimize angles and threshold");
-        optimizeBtn.addActionListener(e -> DataVisualization.optimizeVisualization());
+        optimizeBtn.addActionListener(e -> DataVisualization.optimizeAngles());
         toolBar.add(optimizeBtn);
         toolBar.addSeparator();
 
@@ -989,7 +989,7 @@ public class DV extends JFrame
                 angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
 
                 for (int i = 0; i < fieldLength; i++)
-                    AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
 
                 // create graphs
                 DataVisualization.drawGraphs();

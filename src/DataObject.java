@@ -116,7 +116,7 @@ public class DataObject
     }
 
 
-    private int[] generateDSCAngles(double[] datapoint)
+    private int[] generateDSCAngles(double[] datapoint, double[] cur_angles)
     {
         int[] angles = new int[(int) Math.ceil(datapoint.length / 2.0)];
 
@@ -137,13 +137,15 @@ public class DataObject
                 angles[cnt] = 0;
             else
                 angles[cnt] = (int) Math.round(Math.toDegrees(Math.atan(value1 / value2)));
+
+            angles[cnt] += cur_angles[cnt];
         }
 
         return angles;
     }
 
 
-    public double updateCoordinatesDSC()
+    public double updateCoordinatesDSC(double[] angles)
     {
         // save the highest point
         double highest = Double.MIN_VALUE;
@@ -162,7 +164,7 @@ public class DataObject
                 datapoint[data[i].length] = data[i][data[i].length-1];
             }
 
-            coordinates[i] = generateCoordinatesDSC(datapoint, generateDSCAngles(datapoint));
+            coordinates[i] = generateCoordinatesDSC(datapoint, generateDSCAngles(datapoint, angles));
 
             // check for new highest
             if (coordinates[i][coordinates[i].length-1][0] > highest)

@@ -46,6 +46,9 @@ public class DataVisualization
      */
     public static void optimizeSetup()
     {
+        // set domain are to max length
+        DV.domainArea = new double[] { -DV.fieldLength, DV.fieldLength };
+
         if (DV.classNumber > 1)
         {
             // setup vertical scaling
@@ -54,6 +57,17 @@ public class DataVisualization
             // get optimal angles and threshold
             if (DV.glc_or_dsc)
                 LDA();
+            else
+            {
+                // set angles to 0
+                Arrays.fill(DV.angles, 0);
+
+                DV.angleSliderPanel.setLayout(new GridLayout(DV.data.get(0).coordinates[0].length, 1));
+
+                // setup angle sliders
+                for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
+                    AngleSliders.createSliderPanel_DSC("feature " + i, 0, i);
+            }
 
             // optimize threshold
             if (DV.glc_or_dsc)
@@ -102,15 +116,12 @@ public class DataVisualization
 
             // setup angle sliders
             for (int i = 0; i < DV.fieldLength; i++)
-                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+                AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
 
             // repaint DV
             DV.mainFrame.repaint();
             DV.mainFrame.revalidate();
         }
-
-        // set domain are to max length
-        DV.domainArea = new double[] { -DV.fieldLength, DV.fieldLength };
     }
 
 
@@ -209,7 +220,7 @@ public class DataVisualization
                 {
                     // update angles and create angle slider
                     DV.angles[cnt] = Double.parseDouble(output);
-                    AngleSliders.createSliderPanel(DV.fieldNames.get(cnt), (int) (DV.angles[cnt] * 100), cnt);
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(cnt), (int) (DV.angles[cnt] * 100), cnt);
                     cnt++;
                 }
                 else
@@ -318,18 +329,6 @@ public class DataVisualization
 
     public static void findBestThreshold(double bestAccuracy)
     {
-        // get current points
-        for (int i = 0; i < DV.data.size(); i++)
-        {
-            if (i == DV.upperClass || DV.lowerClasses.get(i))
-            {
-                if (DV.glc_or_dsc)
-                    DV.data.get(i).updateCoordinatesGLC(DV.angles);
-                else
-                    DV.data.get(i).updateCoordinatesDSC();
-            }
-        }
-
         // store current best threshold
         double bestThreshold = DV.threshold;
 
@@ -338,8 +337,8 @@ public class DataVisualization
         DV.threshold = 0;
 
         // search for best threshold
-        // search range is 15% of total range
-        for (int i = 0; i < 400; i++)
+        // search range is 100% of total range
+        for (int i = 0; i < 200; i++)
         {
             // calculate accuracy with trial threshold
             getAccuracy();
@@ -371,7 +370,7 @@ public class DataVisualization
      * Uses optimizeThreshold() to
      * optimize threshold.
      */
-    public static void optimizeVisualization()
+    public static void optimizeAngles()
      {
          if (DV.classNumber > 1)
          {
@@ -409,7 +408,7 @@ public class DataVisualization
                          fieldAngle = 18000;
 
                      DV.angles[i] = fieldAngle / 100.0;
-                     AngleSliders.createSliderPanel(DV.fieldNames.get(i), fieldAngle, i);
+                     AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), fieldAngle, i);
                  }
 
                  // optimize threshold for new angles
@@ -445,7 +444,7 @@ public class DataVisualization
                  for (int i = 0; i < DV.fieldLength; i++)
                  {
                      DV.angles[i] = currentBestAngles[i];
-                     AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+                     AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
                  }
 
                  // redraw graphs
@@ -470,7 +469,7 @@ public class DataVisualization
                  for (int i = 0; i < DV.fieldLength; i++)
                  {
                      DV.angles[i] = DV.prevAngles[i];
-                     AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+                     AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
                  }
 
                  // redraw graphs
@@ -514,7 +513,7 @@ public class DataVisualization
         for (int i = 0; i < DV.fieldLength; i++)
         {
             DV.angles[i] = DV.prevAngles[i];
-            AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
         }
 
         // redraw graphs
@@ -529,81 +528,65 @@ public class DataVisualization
      */
     public static void getAccuracy()
     {
-        // total number of points and correctly classified points
-        double totalPoints = 0;
-        double correctPoints = 0;
-
-        // update points and add to total
+        // update points
         for (int i = 0; i < DV.data.size(); i++)
         {
             // check if class is visualized
             if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
-                DV.data.get(i).updateCoordinatesGLC(DV.angles);
-                totalPoints += DV.data.get(i).coordinates.length;
+                if (DV.glc_or_dsc)
+                    DV.data.get(i).updateCoordinatesGLC(DV.angles);
+                else
+                    DV.data.get(i).updateCoordinatesDSC(DV.angles);
             }
         }
 
-        // stores how points were classified
-        double[][] pointClassification = new double[2][2];
+        // total correct points and total points
+        double correctPoints = 0;
+        double totalPoints = 0;
 
-        // check every class
         for (int i = 0; i < DV.data.size(); i++)
         {
-            // if class is visualized check points
-            if (i == DV.upperClass)
+            totalPoints += DV.data.get(i).data.length;
+
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
                 for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                 {
-                    // get endpoint
-                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength - 1][0];
+                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
-                    // get classification
-                    if (DV.upperIsLower)
+                    // check if endpoint is within the subset of used data
+                    if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
                     {
-                        if (endpoint <= DV.threshold)
-                            pointClassification[0][0]++;
+                        // get classification
+                        if (i == DV.upperClass && DV.upperIsLower)
+                        {
+                            // check if endpoint is correctly classified
+                            if (endpoint < DV.threshold)
+                                correctPoints++;
+                        }
+                        else if (i == DV.upperClass)
+                        {
+                            // check if endpoint is correctly classified
+                            if (endpoint > DV.threshold)
+                                correctPoints++;
+                        }
+                        else if(DV.lowerClasses.get(i) && DV.upperIsLower)
+                        {
+                            // check if endpoint is correctly classified
+                            if (endpoint > DV.threshold)
+                                correctPoints++;
+                        }
                         else
-                            pointClassification[0][1]++;
-                    }
-                    else
-                    {
-                        if (endpoint >= DV.threshold)
-                            pointClassification[0][0]++;
-                        else
-                            pointClassification[0][1]++;
-                    }
-                }
-            }
-            else if (DV.lowerClasses.get(i))
-            {
-                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
-                {
-                    // get endpoint
-                    double endpoint = DV.data.get(i).coordinates[j][DV.fieldLength - 1][0];
-
-                    // get classification
-                    if (DV.upperIsLower)
-                    {
-                        if (endpoint >= DV.threshold)
-                            pointClassification[1][1]++;
-                        else
-                            pointClassification[1][0]++;
-                    }
-                    else
-                    {
-                        if (endpoint <= DV.threshold)
-                            pointClassification[1][1]++;
-                        else
-                            pointClassification[1][0]++;
+                        {
+                            // check if endpoint is correctly classified
+                            if (endpoint < DV.threshold)
+                                correctPoints++;
+                        }
                     }
                 }
             }
         }
-
-        // get diagonals
-        correctPoints += pointClassification[0][0];
-        correctPoints += pointClassification[1][1];
 
         // get accuracy
         DV.accuracy = (correctPoints / totalPoints) * 100;
@@ -623,7 +606,7 @@ public class DataVisualization
                 if (DV.glc_or_dsc)
                     DV.data.get(i).updateCoordinatesGLC(DV.angles);
                 else
-                    DV.data.get(i).updateCoordinatesDSC();
+                    DV.data.get(i).updateCoordinatesDSC(DV.angles);
             }
         }
 
@@ -881,7 +864,7 @@ public class DataVisualization
             if (DV.glc_or_dsc)
                 tmpScale = dataObject.updateCoordinatesGLC(DV.angles);
             else
-                tmpScale = dataObject.updateCoordinatesDSC();
+                tmpScale = dataObject.updateCoordinatesDSC(DV.angles);
 
             // check for greater scaler
             if (tmpScale > graphScaler)
@@ -1164,13 +1147,16 @@ public class DataVisualization
             plot.setRenderer(2, overlapRenderer);
             plot.setDataset(2, overlap);
 
-            // set domain renderer and dataset
-            domainRenderer.setSeriesStroke(0, domainStroke);
-            domainRenderer.setSeriesStroke(1, domainStroke);
-            domainRenderer.setSeriesPaint(0, DV.domainLines);
-            domainRenderer.setSeriesPaint(1, DV.domainLines);
-            plot.setRenderer(3, domainRenderer);
-            plot.setDataset(3, domain);
+            if (DV.domainActive)
+            {
+                // set domain renderer and dataset
+                domainRenderer.setSeriesStroke(0, domainStroke);
+                domainRenderer.setSeriesStroke(1, domainStroke);
+                domainRenderer.setSeriesPaint(0, DV.domainLines);
+                domainRenderer.setSeriesPaint(1, DV.domainLines);
+                plot.setRenderer(3, domainRenderer);
+                plot.setDataset(3, domain);
+            }
 
             // set line renderer and dataset
             lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
