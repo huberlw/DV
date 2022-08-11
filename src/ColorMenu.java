@@ -10,10 +10,7 @@ public class ColorMenu extends JPanel
 {
     public ColorMenu()
     {
-        // create popup window
-        JFrame colorOptionsFrame = new JFrame("Color Options");
-        colorOptionsFrame.setLocation(DV.mainFrame.getLocation());
-
+        // current component being changed
         AtomicInteger colorOption = new AtomicInteger(0);
 
         // color panel

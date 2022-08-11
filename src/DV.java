@@ -599,14 +599,14 @@ public class DV extends JFrame
         // visualization options
         JButton visOptionsBtn = new JButton("Visualization Options");
         visOptionsBtn.setToolTipText("Open the visualization options menu");
-        visOptionsBtn.addActionListener(e -> new VisualizationMenu(MouseInfo.getPointerInfo().getLocation()));
+        visOptionsBtn.addActionListener(e -> new VisualizationMenu());
         toolBar.add(visOptionsBtn);
         toolBar.addSeparator();
 
         // confusion matrix options
         JButton analyticsBtn = new JButton("Analytic Options");
         analyticsBtn.setToolTipText("Open the analytics options menu");
-        analyticsBtn.addActionListener(e -> new AnalyticsMenu(MouseInfo.getPointerInfo().getLocation()));
+        analyticsBtn.addActionListener(e -> new AnalyticsMenu());
         toolBar.add(analyticsBtn);
         toolBar.addSeparator();
 

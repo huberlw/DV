@@ -8,22 +8,18 @@ public class AnalyticsMenu extends JPanel
 {
     /**
      * Creates Confusion Matrix Menu on mouseLocation
-     * @param mouseLocation location to create menu on
      */
-    public AnalyticsMenu(Point mouseLocation)
+    public AnalyticsMenu()
     {
-        super(new BorderLayout());
-
-        // create popup window
-        JFrame analyticsOptionFrame = new JFrame("Analytics");
-        analyticsOptionFrame.setLocation(mouseLocation);
-
-        // confusion matrix panel
+        // analytics panel
         JPanel analyticsPanel = new JPanel();
+        analyticsPanel.setLayout(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
 
         // set previous confusion matrices
         JCheckBox prevAllDataCheckBox = new JCheckBox("Previous All Data CM", DV.allDataChecked);
         prevAllDataCheckBox.setToolTipText("Toggle previous all data confusion matrices");
+        prevAllDataCheckBox.setFont(prevAllDataCheckBox.getFont().deriveFont(12f));
         prevAllDataCheckBox.addActionListener(e->
         {
             // reverse check
@@ -53,11 +49,17 @@ public class AnalyticsMenu extends JPanel
                 ex.printStackTrace();
             }
         });
-        analyticsPanel.add(prevAllDataCheckBox);
+
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.insets = new Insets(5, 5, 5, 5);
+        analyticsPanel.add(prevAllDataCheckBox, constraints);
 
         // set all data confusion matrix
         JCheckBox allDataCheckBox = new JCheckBox("All Data CM", DV.allDataChecked);
         allDataCheckBox.setToolTipText("Toggle all data confusion matrix");
+        allDataCheckBox.setFont(allDataCheckBox.getFont().deriveFont(12f));
         allDataCheckBox.addActionListener(e->
         {
             // reverse check
@@ -87,11 +89,15 @@ public class AnalyticsMenu extends JPanel
                 ex.printStackTrace();
             }
         });
-        analyticsPanel.add(allDataCheckBox);
+
+        constraints.gridx = 1;
+        constraints.gridy = 0;
+        analyticsPanel.add(allDataCheckBox, constraints);
 
         // set data without overlap confusion matrix
         JCheckBox withoutOverlapCheckBox = new JCheckBox("Data Without Overlap CM", DV.withoutOverlapChecked);
         withoutOverlapCheckBox.setToolTipText("Toggle data without overlap confusion matrix");
+        withoutOverlapCheckBox.setFont(withoutOverlapCheckBox.getFont().deriveFont(12f));
         withoutOverlapCheckBox.addActionListener(e->
         {
             // reverse check
@@ -121,11 +127,15 @@ public class AnalyticsMenu extends JPanel
                 ex.printStackTrace();
             }
         });
-        analyticsPanel.add(withoutOverlapCheckBox);
+
+        constraints.gridx = 0;
+        constraints.gridy = 1;
+        analyticsPanel.add(withoutOverlapCheckBox, constraints);
 
         // set overlap confusion matrix
         JCheckBox overlapCheckBox = new JCheckBox("Overlap Data CM", DV.overlapChecked);
         overlapCheckBox.setToolTipText("Toggle overlap confusion matrix");
+        overlapCheckBox.setFont(overlapCheckBox.getFont().deriveFont(12f));
         overlapCheckBox.addActionListener(e->
         {
             // reverse check
@@ -155,11 +165,15 @@ public class AnalyticsMenu extends JPanel
                 ex.printStackTrace();
             }
         });
-        analyticsPanel.add(overlapCheckBox);
+
+        constraints.gridx = 1;
+        constraints.gridy = 1;
+        analyticsPanel.add(overlapCheckBox, constraints);
 
         // set worst case confusion matrix
         JCheckBox worstCaseCheckBox = new JCheckBox("Worst Case CM", DV.worstCaseChecked);
         worstCaseCheckBox.setToolTipText("Toggle worst case confusion matrix");
+        worstCaseCheckBox.setFont(worstCaseCheckBox.getFont().deriveFont(12f));
         worstCaseCheckBox.addActionListener(e->
         {
             // reverse check
@@ -189,11 +203,15 @@ public class AnalyticsMenu extends JPanel
                 ex.printStackTrace();
             }
         });
-        analyticsPanel.add(worstCaseCheckBox);
+
+        constraints.gridx = 0;
+        constraints.gridy = 2;
+        analyticsPanel.add(worstCaseCheckBox, constraints);
 
         // set user validation set confusion matrix
         JCheckBox userValCheckBox = new JCheckBox("User Validation CM", DV.userValidationChecked);
         userValCheckBox.setToolTipText("Toggle user validation confusion matrix");
+        userValCheckBox.setFont(userValCheckBox.getFont().deriveFont(12f));
         userValCheckBox.addActionListener(e->
         {
             // reverse check
@@ -223,11 +241,15 @@ public class AnalyticsMenu extends JPanel
                 ex.printStackTrace();
             }
         });
-        analyticsPanel.add(userValCheckBox);
+
+        constraints.gridx = 1;
+        constraints.gridy = 2;
+        analyticsPanel.add(userValCheckBox, constraints);
 
         // set cross validation
         JCheckBox crossValCheckBox = new JCheckBox("Cross Validation", DV.userValidationChecked);
         crossValCheckBox.setToolTipText("Toggle user k-fold cross validation table");
+        crossValCheckBox.setFont(crossValCheckBox.getFont().deriveFont(12f));
         crossValCheckBox.addActionListener(e->
         {
             // reverse check
@@ -259,11 +281,15 @@ public class AnalyticsMenu extends JPanel
                 ex.printStackTrace();
             }
         });
-        analyticsPanel.add(crossValCheckBox);
+
+        constraints.gridx = 0;
+        constraints.gridy = 3;
+        analyticsPanel.add(crossValCheckBox, constraints);
 
         // set k number of folds for cross validation
         JButton kFoldsButton = new JButton("k-folds");
         kFoldsButton.setToolTipText("Number for folds for cross validation");
+        kFoldsButton.setFont(kFoldsButton.getFont().deriveFont(12f));
         kFoldsButton.addActionListener(e ->
         {
             // popup asking for number of folds
@@ -347,11 +373,15 @@ public class AnalyticsMenu extends JPanel
                 }
             }
         });
-        analyticsPanel.add(kFoldsButton);
+
+        constraints.gridx = 1;
+        constraints.gridy = 3;
+        analyticsPanel.add(kFoldsButton, constraints);
 
         // open analytics in another window
         JButton separateAnalyticsBtn = new JButton("Analytics Window");
         separateAnalyticsBtn.setToolTipText("Open another window displaying all analytics");
+        separateAnalyticsBtn.setFont(separateAnalyticsBtn.getFont().deriveFont(12f));
         separateAnalyticsBtn.addActionListener(e->
         {
             if (!DV.displayRemoteAnalytics)
@@ -393,10 +423,12 @@ public class AnalyticsMenu extends JPanel
                 });
             }
         });
-        analyticsPanel.add(separateAnalyticsBtn);
 
-        analyticsOptionFrame.add(analyticsPanel);
-        analyticsOptionFrame.pack();
-        analyticsOptionFrame.setVisible(true);
+        constraints.gridx = 0;
+        constraints.gridy = 4;
+        constraints.gridwidth = 2;
+        analyticsPanel.add(separateAnalyticsBtn, constraints);
+
+        JOptionPane.showOptionDialog(DV.mainFrame, analyticsPanel, "Analytics Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
     }
 }

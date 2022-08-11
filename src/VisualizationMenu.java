@@ -11,106 +11,83 @@ public class VisualizationMenu extends JPanel
 {
     /**
      * Creates Visualization Options Menu on mouseLocation
-     * @param mouseLocation location to create menu on
      */
-    public VisualizationMenu(Point mouseLocation)
+    public VisualizationMenu()
     {
-        super(new BorderLayout());
+        // visualization panel
+        JPanel visPanel = new JPanel();
+        visPanel.setLayout(new GridBagLayout());
+        GridBagConstraints constraints = new GridBagConstraints();
 
-        // create popup window
-        JFrame visOptionsFrame = new JFrame("Visualization Options");
-        visOptionsFrame.setLocation(mouseLocation);
-
-        // choose class to visualize as main
-        JPanel chooseUpperClassPanel = new JPanel();
-        JButton chooseUpperClassBtn = new JButton("Upper Class");
-        chooseUpperClassBtn.setToolTipText("Choose class to be visualized on upper graph");
-        chooseUpperClassBtn.addActionListener(e ->
+        // choose plot type
+        JButton plotBtn = new JButton("Plot Type");
+        plotBtn.setToolTipText("Choose GLC-L or DSC2 plot");
+        plotBtn.setFont(plotBtn.getFont().deriveFont(12f));
+        plotBtn.addActionListener(e->
         {
-            int chosen = JOptionPane.showOptionDialog(
-                    visOptionsFrame,
-                    "Choose upper class.\nThe upper class will be visualized on the upper graph.",
-                    "Choose Upper Class",
-                    JOptionPane.YES_NO_CANCEL_OPTION,
-                    JOptionPane.PLAIN_MESSAGE,
-                    null,
-                    DV.uniqueClasses.toArray(),
-                    null);
+            // radio button group
+            ButtonGroup plotType = new ButtonGroup();
+            JRadioButton glc = new JRadioButton("GLC-L", DV.glc_or_dsc);
+            JRadioButton dsc = new JRadioButton("DSC2", DV.glc_or_dsc);
+            plotType.add(glc);
+            plotType.add(dsc);
 
-            if (chosen != -1)
+            // default function panel
+            JPanel plotTypePanel = new JPanel();
+            plotTypePanel.add(new JLabel("Built-In: "));
+            plotTypePanel.add(glc);
+            plotTypePanel.add(dsc);
+
+            JOptionPane.showConfirmDialog(DV.mainFrame, plotTypePanel, "Plot Type", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            DV.glc_or_dsc = glc.isSelected();
+
+            if (DV.data != null)
             {
-                // remove past accuracies and classifications
-                DV.prevAllDataCM.clear();
-                DV.prevAllDataClassifications.clear();
-
-                // set upper class
-                DV.upperClass = chosen;
-
-                // lower class gets all others
-                for (int i = 0; i < DV.classNumber; i++)
-                {
-                    if (i != chosen)
-                        DV.lowerClasses.set(i, true);
-                    else
-                        DV.lowerClasses.set(i, false);
-                }
-
-                // optimize setup then draw graphs
                 DataVisualization.optimizeSetup();
                 DataVisualization.drawGraphs();
-
-                visOptionsFrame.dispatchEvent(new WindowEvent(visOptionsFrame, WindowEvent.WINDOW_CLOSING));
             }
         });
-        chooseUpperClassPanel.add(chooseUpperClassBtn);
 
-        // specify visualization
-        JPanel specifyVisPanel = new JPanel();
-        JButton specifyVisBtn = new JButton("Specify Visualization");
-        specifyVisBtn.setToolTipText("Removes one class from the lower graph");
-        specifyVisBtn.addActionListener(e ->
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.insets = new Insets(5, 5, 5, 5);
+        visPanel.add(plotBtn, constraints);
+
+        // choose class to visualize as main
+        JButton chooseUpperClassBtn = new JButton("Upper Class");
+        chooseUpperClassBtn.setToolTipText("Choose class to be visualized on upper graph");
+        chooseUpperClassBtn.setFont(chooseUpperClassBtn.getFont().deriveFont(12f));
+        chooseUpperClassBtn.addActionListener(e ->
         {
-            // classes on lower graph
-            ArrayList<String> removableClasses = new ArrayList<>();
-            ArrayList<String> classes = new ArrayList<>(DV.uniqueClasses);
-
-            for (int i = 0; i < DV.classNumber; i++)
+            if (DV.data != null)
             {
-                if (DV.lowerClasses.get(i))
-                    removableClasses.add(classes.get(i));
-            }
+                int chosen = JOptionPane.showOptionDialog(
+                        DV.mainFrame,
+                        "Choose upper class.\nThe upper class will be visualized on the upper graph.",
+                        "Choose Upper Class",
+                        JOptionPane.YES_NO_CANCEL_OPTION,
+                        JOptionPane.PLAIN_MESSAGE,
+                        null,
+                        DV.uniqueClasses.toArray(),
+                        null);
 
-            if (removableClasses.size() > 1)
-            {
-                JLabel removableLabel = new JLabel("Removable Classes");
-                JComboBox<Object> removableList = new JComboBox<>(removableClasses.toArray());
-                removableList.setSelectedIndex(0);
-                removableList.setEditable(true);
-
-                JPanel removablePanel = new JPanel();
-                removablePanel.add(removableLabel);
-                removablePanel.add(removableList);
-
-                int choice = JOptionPane.showConfirmDialog(
-                        visOptionsFrame,
-                        removablePanel,
-                        "Remove Class",
-                        JOptionPane.OK_CANCEL_OPTION);
-
-                if (choice == 0)
+                if (chosen != -1)
                 {
-                    // add previous analytics
-                    DV.prevAllDataCM.add(DV.allDataCM);
-                    DV.prevAllDataClassifications.add(DV.allDataClassifications);
+                    // remove past accuracies and classifications
+                    DV.prevAllDataCM.clear();
+                    DV.prevAllDataClassifications.clear();
 
-                    // get class to be removed
-                    int selected = removableList.getSelectedIndex();
-                    String className = removableClasses.get(selected);
+                    // set upper class
+                    DV.upperClass = chosen;
 
-                    // remove class
+                    // lower class gets all others
                     for (int i = 0; i < DV.classNumber; i++)
                     {
-                        if (className.equals(classes.get(i)))
+                        if (i != chosen)
+                            DV.lowerClasses.set(i, true);
+                        else
                             DV.lowerClasses.set(i, false);
                     }
 
@@ -121,46 +98,129 @@ public class VisualizationMenu extends JPanel
             }
             else
             {
-                JOptionPane.showMessageDialog(visOptionsFrame, "Classes cannot be further separated.");
+                JOptionPane.showMessageDialog(
+                        DV.mainFrame,
+                        "Please create a project before choosing the upper class.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: not data",
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
-        specifyVisPanel.add(specifyVisBtn);
+
+        constraints.gridx = 1;
+        constraints.gridy = 0;
+        visPanel.add(chooseUpperClassBtn, constraints);
+
+        // specify visualization
+        JButton specifyVisBtn = new JButton("Specify Visualization");
+        specifyVisBtn.setToolTipText("Removes one class from the lower graph");
+        specifyVisBtn.setFont(specifyVisBtn.getFont().deriveFont(12f));
+        specifyVisBtn.addActionListener(e ->
+        {
+            if (DV.data != null)
+            {
+                // classes on lower graph
+                ArrayList<String> removableClasses = new ArrayList<>();
+                ArrayList<String> classes = new ArrayList<>(DV.uniqueClasses);
+
+                for (int i = 0; i < DV.classNumber; i++)
+                {
+                    if (DV.lowerClasses.get(i))
+                        removableClasses.add(classes.get(i));
+                }
+
+                if (removableClasses.size() > 1)
+                {
+                    JLabel removableLabel = new JLabel("Removable Classes");
+                    JComboBox<Object> removableList = new JComboBox<>(removableClasses.toArray());
+                    removableList.setSelectedIndex(0);
+                    removableList.setEditable(true);
+
+                    JPanel removablePanel = new JPanel();
+                    removablePanel.add(removableLabel);
+                    removablePanel.add(removableList);
+
+                    int choice = JOptionPane.showConfirmDialog(
+                            DV.mainFrame,
+                            removablePanel,
+                            "Remove Class",
+                            JOptionPane.OK_CANCEL_OPTION);
+
+                    if (choice == 0)
+                    {
+                        // add previous analytics
+                        DV.prevAllDataCM.add(DV.allDataCM);
+                        DV.prevAllDataClassifications.add(DV.allDataClassifications);
+
+                        // get class to be removed
+                        int selected = removableList.getSelectedIndex();
+                        String className = removableClasses.get(selected);
+
+                        // remove class
+                        for (int i = 0; i < DV.classNumber; i++)
+                        {
+                            if (className.equals(classes.get(i)))
+                                DV.lowerClasses.set(i, false);
+                        }
+
+                        // optimize setup then draw graphs
+                        DataVisualization.optimizeSetup();
+                        DataVisualization.drawGraphs();
+                    }
+                }
+                else
+                    JOptionPane.showMessageDialog(DV.mainFrame, "Classes cannot be further separated.");
+            }
+            else
+            {
+                JOptionPane.showMessageDialog(
+                        DV.mainFrame,
+                        "Please create a project before specifying the visualization.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: not data",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        constraints.gridx = 0;
+        constraints.gridy = 1;
+        visPanel.add(specifyVisBtn, constraints);
 
         // visualize overlap area
-        JPanel visOverlapPanel = new JPanel();
         JButton visOverlapBtn = new JButton("Visualize Overlap");
         visOverlapBtn.setToolTipText("Visualize the overlap area");
+        visOverlapBtn.setFont(visOverlapBtn.getFont().deriveFont(12f));
         visOverlapBtn.addActionListener(e ->
         {
             if (DV.classNumber > 1 && DV.accuracy < 100)
             {
                 DV.drawOverlap = true;
                 DataVisualization.drawGraphs();
-
-                visOptionsFrame.dispatchEvent(new WindowEvent(visOptionsFrame, WindowEvent.WINDOW_CLOSING));
             }
             else
-                JOptionPane.showMessageDialog(visOptionsFrame, "No overlap area");
+                JOptionPane.showMessageDialog(DV.mainFrame, "No overlap area");
         });
-        visOverlapPanel.add(visOverlapBtn);
 
         // stop visualizing overlap
-        JPanel stopOverlapVisPanel = new JPanel();
         JButton stopOverlapVisBtn = new JButton("Stop Visualizing Overlap");
         stopOverlapVisBtn.setToolTipText("Visualize all data");
+        stopOverlapVisBtn.setFont(stopOverlapVisBtn.getFont().deriveFont(12f));
         stopOverlapVisBtn.addActionListener(e ->
         {
             DV.drawOverlap = false;
             DataVisualization.drawGraphs();
-
-            visOptionsFrame.dispatchEvent(new WindowEvent(visOptionsFrame, WindowEvent.WINDOW_CLOSING));
         });
-        stopOverlapVisPanel.add(stopOverlapVisBtn);
+
+        constraints.gridx = 1;
+        constraints.gridy = 1;
+
+        if (!DV.drawOverlap)
+            visPanel.add(visOverlapBtn, constraints);
+        else
+            visPanel.add(stopOverlapVisBtn, constraints);
 
         // change visualization function for each attribute of each vector
-        JPanel scalarVisFuncPanel = new JPanel();
         JButton scalarVisFuncBtn = new JButton("Scalar Function");
         scalarVisFuncBtn.setToolTipText("Applies given function to all attributes of all data points");
+        scalarVisFuncBtn.setFont(scalarVisFuncBtn.getFont().deriveFont(12f));
         scalarVisFuncBtn.addActionListener(e ->
         {
             // popup asking for number of folds
@@ -173,7 +233,9 @@ public class VisualizationMenu extends JPanel
             JTextField funcField = new JTextField();
             funcField.setPreferredSize(new Dimension(200, 30));
             funcField.setText(DV.scalarFunction);
-            textPanel.add(new JLabel("Function: f(x) = "));
+            JLabel funcLabel = new JLabel("Function: f(x) = ");
+            funcLabel.setFont(funcLabel.getFont().deriveFont(12f));
+            textPanel.add(funcLabel);
             textPanel.add(funcField);
 
             // add text panel
@@ -251,15 +313,18 @@ public class VisualizationMenu extends JPanel
                 }
             }
         });
-        scalarVisFuncPanel.add(scalarVisFuncBtn);
+
+        constraints.gridx = 0;
+        constraints.gridy = 2;
+        visPanel.add(scalarVisFuncBtn, constraints);
 
         /**
          * START CONSTRUCTION ZONE
          */
         // change visualization function for each vector
-        JPanel vectorVisFuncPanel = new JPanel();
         JButton vectorVisFuncBtn = new JButton("n-D Point Function");
         vectorVisFuncBtn.setToolTipText("Applies given function to all n-D points");
+        vectorVisFuncBtn.setFont(vectorVisFuncBtn.getFont().deriveFont(12f));
         vectorVisFuncBtn.addActionListener(e ->
         {
             // popup asking for number of folds
@@ -372,7 +437,9 @@ public class VisualizationMenu extends JPanel
             JTextField funcField = new JTextField();
             funcField.setPreferredSize(new Dimension(200, 30));
             funcField.setText(DV.vectorFunction);
-            textPanel.add(new JLabel("Function: f(x, y) = "));
+            JLabel funcLabel = new JLabel("Function: f(x, y) = ");
+            funcLabel.setFont(funcLabel.getFont().deriveFont(12f));
+            textPanel.add(funcLabel);
             textPanel.add(funcField);
 
             // set text
@@ -540,15 +607,46 @@ public class VisualizationMenu extends JPanel
                 }
             }
         });
-        vectorVisFuncPanel.add(vectorVisFuncBtn);
+
+        constraints.gridx = 1;
+        constraints.gridy = 2;
+        visPanel.add(vectorVisFuncBtn, constraints);
         /**
          * END CONSTRUCTION ZONE
          */
 
+        JCheckBox domainActiveBox = new JCheckBox("Domain Active", DV.domainActive);
+        domainActiveBox.setToolTipText("Whether the domain is active or not.");
+        domainActiveBox.setFont(domainActiveBox.getFont().deriveFont(12f));
+        domainActiveBox.addActionListener(eee ->
+        {
+            DV.domainActive = domainActiveBox.isSelected();
+            if (DV.data != null)
+                DataVisualization.drawGraphs();
+        });
+
+        constraints.gridx = 0;
+        constraints.gridy = 3;
+        visPanel.add(domainActiveBox, constraints);
+
+        JCheckBox drawFirstLineBox = new JCheckBox("First Line", DV.showFirstSeg);
+        drawFirstLineBox.setToolTipText("Whether to draw the first line segment of a graph or not.");
+        drawFirstLineBox.setFont(drawFirstLineBox.getFont().deriveFont(12f));
+        drawFirstLineBox.addActionListener(fle ->
+        {
+            DV.showFirstSeg = drawFirstLineBox.isSelected();
+            if (DV.data != null)
+                DataVisualization.drawGraphs();
+        });
+
+        constraints.gridx = 1;
+        constraints.gridy = 3;
+        visPanel.add(drawFirstLineBox, constraints);
+
         // open analytics in another window
-        JPanel separateVisPanel = new JPanel();
         JButton separateVisBtn = new JButton("Visualization Window");
         separateVisBtn.setToolTipText("Open another window displaying the visualization");
+        separateVisBtn.setFont(separateVisBtn.getFont().deriveFont(12f));
         separateVisBtn.addActionListener(e->
         {
             if (!DV.displayRemoteGraphs)
@@ -574,73 +672,12 @@ public class VisualizationMenu extends JPanel
                     DataVisualization.drawGraphs();
             }
         });
-        separateVisPanel.add(separateVisBtn);
 
-        // open analytics in another window
-        JPanel plotPanel = new JPanel();
-        JButton plotBtn = new JButton("Plot Type");
-        plotBtn.setToolTipText("Choose GLC-L or DSC2 plot");
-        plotBtn.addActionListener(e->
-        {
-            // radio button group
-            ButtonGroup plotType = new ButtonGroup();
-            JRadioButton glc = new JRadioButton("GLC-L", DV.glc_or_dsc);
-            JRadioButton dsc = new JRadioButton("DSC2", DV.glc_or_dsc);
-            plotType.add(glc);
-            plotType.add(dsc);
+        constraints.gridx = 0;
+        constraints.gridy = 4;
+        constraints.gridwidth = 2;
+        visPanel.add(separateVisBtn, constraints);
 
-            // default function panel
-            JPanel plotTypePanel = new JPanel();
-            plotTypePanel.add(new JLabel("Built-In: "));
-            plotTypePanel.add(glc);
-            plotTypePanel.add(dsc);
-
-            JOptionPane.showConfirmDialog(DV.mainFrame, plotTypePanel, "Plot Type", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-            DV.glc_or_dsc = glc.isSelected();
-
-            if (DV.data != null)
-            {
-                DataVisualization.optimizeSetup();
-                DataVisualization.drawGraphs();
-            }
-        });
-        plotPanel.add(plotBtn);
-
-        // options panel
-        JPanel visOptions = new JPanel();
-        visOptions.add(chooseUpperClassPanel);
-
-        // if there are more than two classes
-        visOptions.add(specifyVisPanel);
-
-        // check if not drawing overlap
-        if (!DV.drawOverlap)
-            visOptions.add(visOverlapPanel);
-        else
-            visOptions.add(stopOverlapVisPanel);
-
-        // add functions
-        visOptions.add(scalarVisFuncPanel);
-        visOptions.add(vectorVisFuncPanel);
-
-        visOptions.add(plotPanel);
-
-        // add separate vis panel
-        visOptions.add(separateVisPanel);
-
-        JCheckBox tmp = new JCheckBox("Domain Active");
-        visOptions.add(tmp);
-        tmp.addActionListener(eee ->
-        {
-            DV.domainActive = tmp.isSelected();
-            if (DV.data != null)
-                DataVisualization.drawGraphs();
-        });
-
-
-        visOptionsFrame.add(visOptions);
-        visOptionsFrame.pack();
-        visOptionsFrame.setVisible(true);
+        JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Analytics Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
     }
 }
