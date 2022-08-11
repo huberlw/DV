@@ -94,6 +94,9 @@ public class DV extends JFrame
     // choose plot type: true == glc, false == dsc
     static boolean glc_or_dsc = true;
 
+    // whether to show the first line segment or not
+    static boolean showFirstSeg = true;
+
     /**************************************************
      * FOR ANALYTICS
      *************************************************/

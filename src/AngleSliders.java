@@ -120,7 +120,7 @@ public class AngleSliders
         angleText.setText(Double.toString(angle / 100.0));
 
         // slider for angle
-        JSlider angleSlider = new JSlider(0, 18000, angle);
+        JSlider angleSlider = new JSlider(0, 9000, angle);
         angleSlider.setToolTipText("Change angles of visualization");
         angleSlider.setMinorTickSpacing(1000);
         angleSlider.setPaintTicks(true);

@@ -62,6 +62,13 @@ public class DataVisualization
                 // set angles to 0
                 Arrays.fill(DV.angles, 0);
 
+                // get current points
+                for (int i = 0; i < DV.data.size(); i++)
+                {
+                    if (i == DV.upperClass || DV.lowerClasses.get(i))
+                        DV.data.get(i).updateCoordinatesDSC(DV.angles);
+                }
+
                 DV.angleSliderPanel.setLayout(new GridLayout(DV.data.get(0).coordinates[0].length, 1));
 
                 // setup angle sliders
@@ -389,26 +396,29 @@ public class DataVisualization
              // get count and foundBetter
              int cnt = 0;
              boolean foundBetter = false;
+             int angleRange;
+
+             if (DV.glc_or_dsc)
+                 angleRange = 18000;
+             else
+                 angleRange = 9000;
 
              // try optimizing 200 times
              while (cnt < 200)
              {
-                 // remove angle sliders and set layout
-                 DV.angleSliderPanel.removeAll();
-
                  // get random angles
-                 for (int i = 0; i < DV.fieldLength; i++)
+                 for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
                  {
-                     int gradient = (rand.nextInt(11) - 5) * 100;
+                     //int gradient = (rand.nextInt(11) - 5) * 100;
+                     int gradient = (rand.nextInt(91)) * 100;
                      int fieldAngle = (int) (currentBestAngles[i] * 100) + gradient;
 
                      if (fieldAngle < 0)
                          fieldAngle = 0;
-                     else if (fieldAngle > 18000)
-                         fieldAngle = 18000;
+                     else if (fieldAngle > angleRange)
+                         fieldAngle = angleRange;
 
                      DV.angles[i] = fieldAngle / 100.0;
-                     AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), fieldAngle, i);
                  }
 
                  // optimize threshold for new angles
@@ -430,6 +440,10 @@ public class DataVisualization
                  cnt++;
              }
 
+             // set accuracy and threshold to the best
+             DV.threshold = currentBestThreshold;
+             DV.accuracy = currentBestAccuracy;
+
              // remove angle sliders and set layout
              DV.angleSliderPanel.removeAll();
 
@@ -441,16 +455,20 @@ public class DataVisualization
                  DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
 
                  // update angles
-                 for (int i = 0; i < DV.fieldLength; i++)
+                 for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
                  {
                      DV.angles[i] = currentBestAngles[i];
-                     AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+
+                     if (DV.glc_or_dsc)
+                         AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+                     else
+                         AngleSliders.createSliderPanel_DSC("feature " + i, (int) (DV.angles[i] * 100), i);
                  }
 
                  // redraw graphs
                  drawGraphs();
-                 DV.mainFrame.repaint();
-                 DV.mainFrame.revalidate();
+                 DV.angleSliderPanel.repaint();
+                 DV.angleSliderPanel.revalidate();
 
                  // inform user
                  JOptionPane.showMessageDialog(
@@ -466,16 +484,20 @@ public class DataVisualization
                  DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
 
                  // update angles
-                 for (int i = 0; i < DV.fieldLength; i++)
+                 for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
                  {
                      DV.angles[i] = DV.prevAngles[i];
-                     AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+
+                     if (DV.glc_or_dsc)
+                         AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+                     else
+                         AngleSliders.createSliderPanel_DSC("feature " + i, (int) (DV.angles[i] * 100), i);
                  }
 
                  // redraw graphs
                  drawGraphs();
-                 DV.mainFrame.repaint();
-                 DV.mainFrame.revalidate();
+                 DV.angleSliderPanel.repaint();
+                 DV.angleSliderPanel.revalidate();
 
                  // inform user
                  JOptionPane.showMessageDialog(
@@ -969,7 +991,7 @@ public class DataVisualization
                 {
                     // start line at (0, 0)
                     lines.add(new XYSeries(lineCnt, false, true));
-                    if (DV.glc_or_dsc)
+                    if (DV.showFirstSeg)
                         lines.get(lineCnt).add(0, 0);
                     double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
 
