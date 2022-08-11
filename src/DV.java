@@ -632,7 +632,7 @@ public class DV extends JFrame
         // optimize visualization
         JButton optimizeBtn = new JButton("Optimize Visualization");
         optimizeBtn.setToolTipText("Attempts to optimize angles and threshold");
-        optimizeBtn.addActionListener(e -> DataVisualization.optimizeAngles());
+        optimizeBtn.addActionListener(e -> DataVisualization.optimizeAngles(true));
         toolBar.add(optimizeBtn);
         toolBar.addSeparator();
 

@@ -694,6 +694,6 @@ public class VisualizationMenu extends JPanel
         constraints.gridy = 4;
         visPanel.add(separateVisBtn, constraints);
 
-        JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Analytics Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
+        JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Visualization Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
     }
 }

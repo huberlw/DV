@@ -105,6 +105,9 @@ public class DataVisualization
                     findBestThreshold(0);
             }
 
+            // optimize angles
+            optimizeAngles(false);
+
             // get overlap area
             getOverlap();
         }
@@ -380,7 +383,7 @@ public class DataVisualization
      * Uses optimizeThreshold() to
      * optimize threshold.
      */
-    public static void optimizeAngles()
+    public static void optimizeAngles(boolean informUser)
      {
          if (DV.classNumber > 1)
          {
@@ -406,14 +409,14 @@ public class DataVisualization
              else
                  angleRange = 9000;
 
-             // try optimizing 200 times
-             while (cnt < 200)
+             // try optimizing 500 times
+             while (cnt < 500)
              {
                  // get random angles
                  for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
                  {
-                     //int gradient = (rand.nextInt(11) - 5) * 100;
-                     int gradient = (rand.nextInt(91)) * 100;
+                     int gradient = (rand.nextInt(11) - 5) * 100;
+                     //int gradient = (rand.nextInt(91)) * 100;
                      int fieldAngle = (int) (currentBestAngles[i] * 100) + gradient;
 
                      if (fieldAngle < 0)
@@ -468,17 +471,22 @@ public class DataVisualization
                          AngleSliders.createSliderPanel_DSC("feature " + i, (int) (DV.angles[i] * 100), i);
                  }
 
-                 // redraw graphs
-                 drawGraphs();
-                 DV.angleSliderPanel.repaint();
-                 DV.angleSliderPanel.revalidate();
+
 
                  // inform user
-                 JOptionPane.showMessageDialog(
-                         DV.mainFrame,
-                         "Visualization has been optimized!",
-                         "Optimization Complete",
-                         JOptionPane.INFORMATION_MESSAGE);
+                 if (informUser)
+                 {
+                     // redraw graphs
+                     drawGraphs();
+                     DV.angleSliderPanel.repaint();
+                     DV.angleSliderPanel.revalidate();
+
+                     JOptionPane.showMessageDialog(
+                             DV.mainFrame,
+                             "Visualization has been optimized!",
+                             "Optimization Complete",
+                             JOptionPane.INFORMATION_MESSAGE);
+                 }
              }
              else
              {
@@ -497,17 +505,20 @@ public class DataVisualization
                          AngleSliders.createSliderPanel_DSC("feature " + i, (int) (DV.angles[i] * 100), i);
                  }
 
-                 // redraw graphs
-                 drawGraphs();
-                 DV.angleSliderPanel.repaint();
-                 DV.angleSliderPanel.revalidate();
-
                  // inform user
-                 JOptionPane.showMessageDialog(
-                         DV.mainFrame,
-                         "Was unable to optimize visualization.\nVisualization is already optimal or near optimal.",
-                         "Unable to Optimize",
-                         JOptionPane.INFORMATION_MESSAGE);
+                 if (informUser)
+                 {
+                     // redraw graphs
+                     drawGraphs();
+                     DV.angleSliderPanel.repaint();
+                     DV.angleSliderPanel.revalidate();
+
+                     JOptionPane.showMessageDialog(
+                             DV.mainFrame,
+                             "Was unable to optimize visualization.\nVisualization is already optimal or near optimal.",
+                             "Unable to Optimize",
+                             JOptionPane.INFORMATION_MESSAGE);
+                 }
              }
          }
         else
