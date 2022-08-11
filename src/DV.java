@@ -61,6 +61,7 @@ public class DV extends JFrame
     static Color overlapLines = Color.ORANGE;
     static Color thresholdLine = Color.GREEN;
     static Color background = Color.WHITE;
+    static Color svmLines = new Color(139,69,19,75);
 
     // graph colors
     static Color[] graphColors = new Color[] {
@@ -76,6 +77,9 @@ public class DV extends JFrame
 
     // draw only overlap
     static boolean drawOverlap = false;
+
+    // draw support vectors
+    static boolean drawSVM = false;
 
     // domain active
     static boolean domainActive = true;

@@ -18,7 +18,7 @@ public class ColorMenu extends JPanel
         colors.setLayout(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
 
-        JButton[] colorOptions = new JButton[7];
+        JButton[] colorOptions = new JButton[8];
 
         // set domain line color
         colorOptions[0] = new JButton("Domain Line Color");
@@ -281,7 +281,7 @@ public class ColorMenu extends JPanel
         constraints.gridy = 5;
         colors.add(colorOptions[5], constraints);
 
-        // set lower graph color
+        // set endpoint color
         colorOptions[6] = new JButton("Endpoint Color");
         colorOptions[6].setToolTipText("Sets color of endpoints for upper and lower graphs");
         colorOptions[6].setBorderPainted(false);
@@ -324,9 +324,52 @@ public class ColorMenu extends JPanel
         constraints.gridy = 6;
         colors.add(colorOptions[6], constraints);
 
+        // set lower graph color
+        colorOptions[7] = new JButton("SVM Color");
+        colorOptions[7].setToolTipText("Sets color of support vectors when drawn.");
+        colorOptions[7].setBorderPainted(false);
+        colorOptions[7].setFocusPainted(false);
+        colorOptions[7].setHorizontalAlignment(SwingConstants.LEFT);
+        colorOptions[7].setFont(colorOptions[7].getFont().deriveFont(12f));
+        colorOptions[7].setIcon(createIcon(DV.svmLines));
+        colorOptions[7].addMouseListener(new MouseListener()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
+                colorOption.set(7);
+                colorOptions[7].setBackground(Color.LIGHT_GRAY);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {}
+
+            @Override
+            public void mouseReleased(MouseEvent e) {}
+
+            @Override
+            public void mouseEntered(MouseEvent e)
+            {
+                colorOptions[7].setBackground(new Color(218,218,218));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e)
+            {
+                if (colorOption.get() == 7)
+                    colorOptions[7].setBackground(Color.LIGHT_GRAY);
+                else
+                    colorOptions[7].setBackground(UIManager.getColor("control"));
+            }
+        });
+
+        constraints.gridy = 7;
+        colors.add(colorOptions[7], constraints);
+
         constraints.gridx = 1;
         constraints.gridy = 0;
-        constraints.gridheight = 8;
+        constraints.gridheight = 9;
         constraints.fill = GridBagConstraints.VERTICAL;
         JColorChooser colorChooser = new JColorChooser();
         colors.add(colorChooser, constraints);
@@ -378,12 +421,17 @@ public class ColorMenu extends JPanel
                         DV.endpoints = newColor;
                         colorOptions[6].setIcon(createIcon(newColor));
                     }
+                    case 7 ->
+                    {
+                        DV.svmLines = newColor;
+                        colorOptions[7].setIcon(createIcon(newColor));
+                    }
                 }
             }
         });
 
         constraints.gridx = 1;
-        constraints.gridy = 8;
+        constraints.gridy = 9;
         constraints.gridheight = 1;
         constraints.gridwidth = 1;
         constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -433,6 +481,11 @@ public class ColorMenu extends JPanel
                     {
                         DV.endpoints = newColor;
                         colorOptions[6].setIcon(createIcon(newColor));
+                    }
+                    case 7 ->
+                    {
+                        DV.svmLines = newColor;
+                        colorOptions[7].setIcon(createIcon(newColor));
                     }
                 }
             }

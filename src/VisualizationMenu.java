@@ -643,6 +643,21 @@ public class VisualizationMenu extends JPanel
         constraints.gridy = 3;
         visPanel.add(drawFirstLineBox, constraints);
 
+        JCheckBox svmVisBox = new JCheckBox("Visualization SVM", DV.drawSVM);
+        svmVisBox.setToolTipText("Visualize support vectors with visualization.");
+        svmVisBox.setFont(svmVisBox.getFont().deriveFont(12f));
+        svmVisBox.addActionListener(e ->
+        {
+            DV.drawSVM = svmVisBox.isSelected();
+
+            if (DV.data != null && DV.supportVectors != null)
+                DataVisualization.drawGraphs();
+        });
+
+        constraints.gridx = 0;
+        constraints.gridy = 4;
+        visPanel.add(svmVisBox, constraints);
+
         // open analytics in another window
         JButton separateVisBtn = new JButton("Visualization Window");
         separateVisBtn.setToolTipText("Open another window displaying the visualization");
@@ -673,9 +688,8 @@ public class VisualizationMenu extends JPanel
             }
         });
 
-        constraints.gridx = 0;
+        constraints.gridx = 1;
         constraints.gridy = 4;
-        constraints.gridwidth = 2;
         visPanel.add(separateVisBtn, constraints);
 
         JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Analytics Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);

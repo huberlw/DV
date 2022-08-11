@@ -927,6 +927,11 @@ public class DataVisualization
             XYSeriesCollection graphLines = new XYSeriesCollection();
             ArrayList<XYSeries> lines = new ArrayList<>();
 
+            // create SVM renderer and dataset
+            XYLineAndShapeRenderer svmLineRenderer = new XYLineAndShapeRenderer(true, false);
+            XYSeriesCollection svmSeriesCol = new XYSeriesCollection();
+            ArrayList<XYSeries> svmLines = new ArrayList<>();
+
             // create renderer for domain, overlap, and threshold lines
             XYLineAndShapeRenderer domainRenderer = new XYLineAndShapeRenderer(true, false);
             XYLineAndShapeRenderer overlapRenderer = new XYLineAndShapeRenderer(true, false);
@@ -974,20 +979,20 @@ public class DataVisualization
             XYLineAndShapeRenderer endpointRenderer = new XYLineAndShapeRenderer(false, true);
             XYLineAndShapeRenderer midpointRenderer = new XYLineAndShapeRenderer(false, true);
             XYLineAndShapeRenderer timeLineRenderer = new XYLineAndShapeRenderer(false, true);
+            XYLineAndShapeRenderer svmTimeLineRenderer = new XYLineAndShapeRenderer(false, true);
             XYSeriesCollection endpoints = new XYSeriesCollection();
             XYSeriesCollection midpoints = new XYSeriesCollection();
             XYSeriesCollection timeLine = new XYSeriesCollection();
+            XYSeriesCollection svmTimeLine = new XYSeriesCollection();
             XYSeries endpointSeries = new XYSeries(0, false, true);
             XYSeries midpointSeries = new XYSeries(1, false, true);
             XYSeries timeLineSeries = new XYSeries(2, false, true);
+            XYSeries svmTimeLineSeries = new XYSeries(3, false, true);
 
-            // number of lines
-            int lineCnt = 0;
-
-            // populate series
+            // populate main series
             for (DataObject data : DATA_OBJECTS)
             {
-                for (int i = 0; i < data.data.length; i++, lineCnt++)
+                for (int i = 0, lineCnt = 0; i < data.data.length; i++, lineCnt++)
                 {
                     // start line at (0, 0)
                     lines.add(new XYSeries(lineCnt, false, true));
@@ -1029,10 +1034,59 @@ public class DataVisualization
                 }
             }
 
+            // populate svm series
+            if (DV.drawSVM)
+            {
+                // update coordinates
+                getCoordinates(new ArrayList<>(List.of(DV.supportVectors)));
+
+                for (int i = 0, lineCnt = 0, seriesCnt = 0; i < DV.supportVectors.data.length; i++, lineCnt++)
+                {
+                    // start line at (0, 0)
+                    svmLines.add(new XYSeries(lineCnt, false, true));
+                    if (DV.showFirstSeg)
+                        svmLines.get(lineCnt).add(0, 0);
+                    double endpoint = DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[i].length-1][0];
+
+                    // ensure datapoint is within domain
+                    if (!DV.domainActive || (endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]))
+                    {
+                        for (int j = 0; j < DV.supportVectors.coordinates[i].length; j++)
+                        {
+                            int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
+
+                            svmLines.get(lineCnt).add(DV.supportVectors.coordinates[i][j][0], upOrDown * DV.supportVectors.coordinates[i][j][1]);
+
+                            if (j > 0 && j < DV.supportVectors.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
+                                midpointSeries.add(DV.supportVectors.coordinates[i][j][0], upOrDown * DV.supportVectors.coordinates[i][j][1]);
+
+                            // add endpoint and timeline
+                            if (j == DV.supportVectors.coordinates[i].length - 1)
+                            {
+                                if (UPPER_OR_LOWER == 1)
+                                    endpointSeries.add(DV.supportVectors.coordinates[i][j][0], -DV.supportVectors.coordinates[i][j][1]);
+                                else
+                                    endpointSeries.add(DV.supportVectors.coordinates[i][j][0], DV.supportVectors.coordinates[i][j][1]);
+
+                                svmTimeLineSeries.add(DV.supportVectors.coordinates[i][j][0], 0);
+                            }
+                        }
+                    }
+
+                    // add to dataset if within domain
+                    if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
+                    {
+                        svmSeriesCol.addSeries(svmLines.get(lineCnt));
+                        svmLineRenderer.setSeriesPaint(seriesCnt++, DV.svmLines);
+                    }
+                }
+            }
+
             // add data to series
             endpoints.addSeries(endpointSeries);
-            timeLine.addSeries(timeLineSeries);
             midpoints.addSeries(midpointSeries);
+            timeLine.addSeries(timeLineSeries);
+            svmTimeLine.addSeries(svmTimeLineSeries);
 
             JFreeChart chart = ChartFactory.createXYLineChart(
                     "",
@@ -1180,35 +1234,55 @@ public class DataVisualization
                 plot.setDataset(3, domain);
             }
 
+            // set svm line renderer and dataset
+            svmLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+            svmLineRenderer.setAutoPopulateSeriesStroke(false);
+            plot.setRenderer(4, svmLineRenderer);
+            plot.setDataset(4, svmSeriesCol);
+
+
             // set line renderer and dataset
             lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
             lineRenderer.setAutoPopulateSeriesStroke(false);
-            plot.setRenderer(4, lineRenderer);
-            plot.setDataset(4, graphLines);
+            plot.setRenderer(5, lineRenderer);
+            plot.setDataset(5, graphLines);
 
             // set bar or timeline renderer and dataset
             if (DV.showBars)
             {
                 barRenderer.setShadowVisible(false);
-                plot.setRenderer(5, barRenderer);
-                plot.setDataset(5, bars);
+                plot.setRenderer(6, barRenderer);
+                plot.setDataset(6, bars);
             }
             else
             {
+                if (DV.drawSVM)
+                {
+                    if (UPPER_OR_LOWER == 1)
+                        svmTimeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
+                    else
+                        svmTimeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
+
+                    svmTimeLineRenderer.setSeriesPaint(0, DV.svmLines);
+                }
+
+                plot.setRenderer(6, svmTimeLineRenderer);
+                plot.setDataset(6, svmTimeLine);
+
                 if (UPPER_OR_LOWER == 1)
                     timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
                 else
                     timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
 
-                plot.setRenderer(5, timeLineRenderer);
-                plot.setDataset(5, timeLine);
+                plot.setRenderer(7, timeLineRenderer);
+                plot.setDataset(7, timeLine);
             }
 
             // set midpoint renderer and dataset
             midpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-0.5, -0.5, 1, 1));
             midpointRenderer.setSeriesPaint(0, Color.GRAY);
-            plot.setRenderer(6, midpointRenderer);
-            plot.setDataset(6, midpoints);
+            plot.setRenderer(8, midpointRenderer);
+            plot.setDataset(8, midpoints);
 
             // create the graph panel and add it to the main panel
             ChartPanel chartPanel = new ChartPanel(chart);
