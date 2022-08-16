@@ -69,7 +69,9 @@ public class DV extends JFrame
             new Color(84, 133, 145)       // lower graph (dark cyan)
     };
 
+    // endpoint colors
     static Color endpoints = Color.BLACK;
+    static Color svmEndpoints = new Color(98,74,46);
 
     // show bars instead of endpoints for graphs
     // the height of a bar is equal to the number of points in its location
@@ -80,6 +82,7 @@ public class DV extends JFrame
 
     // draw support vectors
     static boolean drawSVM = false;
+    static boolean drawOnlySVM = false;
 
     // domain active
     static boolean domainActive = true;
@@ -369,7 +372,8 @@ public class DV extends JFrame
         mainFrame.add(sliderPanel, constraints);
 
         // create angles scroll pane
-        angleSliderPanel = new JPanel(new GridLayout(1, 1));
+        angleSliderPanel = new JPanel();
+        angleSliderPanel.setLayout(new BoxLayout(angleSliderPanel, BoxLayout.PAGE_AXIS));
         angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], Resolutions.angleSliderPanel[1]));
         anglesPane = new JScrollPane(angleSliderPanel);
         anglesPane.setPreferredSize(new Dimension(Resolutions.anglesPane[0], Resolutions.anglesPane[1]));

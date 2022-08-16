@@ -18,7 +18,9 @@ public class AnalyticsMenu extends JPanel
 
         // set previous confusion matrices
         JCheckBox prevAllDataCheckBox = new JCheckBox("Previous All Data CM", DV.allDataChecked);
-        prevAllDataCheckBox.setToolTipText("Toggle previous all data confusion matrices");
+        prevAllDataCheckBox.setToolTipText("Toggle previous all data confusion matrices." +
+                                            "For 3 or more classes, show the All Data Confusion Matrices" +
+                                            "for the previous levels of grouping (one classes vs all other classes) ");
         prevAllDataCheckBox.setFont(prevAllDataCheckBox.getFont().deriveFont(12f));
         prevAllDataCheckBox.addActionListener(e->
         {

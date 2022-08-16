@@ -34,7 +34,7 @@ public class VisualizationMenu extends JPanel
 
             // default function panel
             JPanel plotTypePanel = new JPanel();
-            plotTypePanel.add(new JLabel("Built-In: "));
+            plotTypePanel.add(new JLabel("Build-In: "));
             plotTypePanel.add(glc);
             plotTypePanel.add(dsc);
 
@@ -188,12 +188,21 @@ public class VisualizationMenu extends JPanel
 
         // visualize overlap area
         JButton visOverlapBtn = new JButton("Visualize Overlap");
+        JButton stopOverlapVisBtn = new JButton("Stop Visualizing Overlap");
         visOverlapBtn.setToolTipText("Visualize the overlap area");
         visOverlapBtn.setFont(visOverlapBtn.getFont().deriveFont(12f));
         visOverlapBtn.addActionListener(e ->
         {
             if (DV.classNumber > 1 && DV.accuracy < 100)
             {
+                constraints.gridx = 1;
+                constraints.gridy = 1;
+                visPanel.remove(visOverlapBtn);
+                visPanel.add(stopOverlapVisBtn, constraints);
+
+                visPanel.repaint();
+                visPanel.revalidate();
+
                 DV.drawOverlap = true;
                 DataVisualization.drawGraphs();
             }
@@ -202,11 +211,18 @@ public class VisualizationMenu extends JPanel
         });
 
         // stop visualizing overlap
-        JButton stopOverlapVisBtn = new JButton("Stop Visualizing Overlap");
         stopOverlapVisBtn.setToolTipText("Visualize all data");
         stopOverlapVisBtn.setFont(stopOverlapVisBtn.getFont().deriveFont(12f));
         stopOverlapVisBtn.addActionListener(e ->
         {
+            constraints.gridx = 1;
+            constraints.gridy = 1;
+            visPanel.remove(stopOverlapVisBtn);
+            visPanel.add(visOverlapBtn, constraints);
+
+            visPanel.repaint();
+            visPanel.revalidate();
+
             DV.drawOverlap = false;
             DataVisualization.drawGraphs();
         });
@@ -320,9 +336,6 @@ public class VisualizationMenu extends JPanel
         constraints.gridy = 2;
         visPanel.add(scalarVisFuncBtn, constraints);
 
-        /**
-         * START CONSTRUCTION ZONE
-         */
         // change visualization function for each vector
         JButton vectorVisFuncBtn = new JButton("n-D Point Function");
         vectorVisFuncBtn.setToolTipText("Applies given function to all n-D points");
@@ -335,7 +348,7 @@ public class VisualizationMenu extends JPanel
 
             // svm vectors or input vectors
             ButtonGroup vectorType = new ButtonGroup();
-            JRadioButton svmVec = new JRadioButton("SVM Vectors", true);
+            JRadioButton svmVec = new JRadioButton("SVM Support Vectors", true);
             JRadioButton userVec = new JRadioButton("User n-D Points");
             vectorType.add(svmVec);
             vectorType.add(userVec);
@@ -423,7 +436,7 @@ public class VisualizationMenu extends JPanel
 
             // default function panel
             JPanel stockPanel = new JPanel();
-            JLabel stockLabel = new JLabel("Built-In: ");
+            JLabel stockLabel = new JLabel("Build-In: ");
             stockLabel.setFont(stockLabel.getFont().deriveFont(12f));
             stockPanel.add(stockLabel);
             stockPanel.add(svmPolyFunc);
@@ -613,9 +626,65 @@ public class VisualizationMenu extends JPanel
         constraints.gridx = 1;
         constraints.gridy = 2;
         visPanel.add(vectorVisFuncBtn, constraints);
-        /**
-         * END CONSTRUCTION ZONE
-         */
+
+        JButton visSVMBtn = new JButton("Visualize Only SVM");
+        JButton stopVisSVMBtn = new JButton("Stop Visualizing Only SVM");
+        visSVMBtn.setToolTipText("Visualize only support vectors.");
+        visSVMBtn.setFont(visSVMBtn.getFont().deriveFont(12f));
+        visSVMBtn.addActionListener(e ->
+        {
+            if (DV.data != null && DV.supportVectors != null)
+            {
+                constraints.gridx = 0;
+                constraints.gridy = 3;
+                visPanel.remove(visSVMBtn);
+                visPanel.add(stopVisSVMBtn, constraints);
+
+                visPanel.repaint();
+                visPanel.revalidate();
+
+                DV.drawOnlySVM = true;
+                DataVisualization.drawGraphs();
+            }
+        });
+
+        stopVisSVMBtn.setToolTipText("Visualize only support vectors.");
+        stopVisSVMBtn.setFont(stopVisSVMBtn.getFont().deriveFont(12f));
+        stopVisSVMBtn.addActionListener(e ->
+        {
+            if (DV.data != null && DV.supportVectors != null)
+            {
+                constraints.gridx = 0;
+                constraints.gridy = 3;
+                visPanel.remove(stopVisSVMBtn);
+                visPanel.add(visSVMBtn, constraints);
+
+                visPanel.repaint();
+                visPanel.revalidate();
+
+                DV.drawOnlySVM = false;
+                DataVisualization.drawGraphs();
+            }
+        });
+
+        constraints.gridx = 0;
+        constraints.gridy = 3;
+        visPanel.add(visSVMBtn, constraints);
+        
+        JCheckBox svmVisBox = new JCheckBox("Visualize SVM", DV.drawSVM);
+        svmVisBox.setToolTipText("Visualize support vectors along with all other data.");
+        svmVisBox.setFont(svmVisBox.getFont().deriveFont(12f));
+        svmVisBox.addActionListener(e ->
+        {
+            DV.drawSVM = svmVisBox.isSelected();
+
+            if (DV.data != null && DV.supportVectors != null)
+                DataVisualization.drawGraphs();
+        });
+
+        constraints.gridx = 1;
+        constraints.gridy = 3;
+        visPanel.add(svmVisBox, constraints);
 
         JCheckBox domainActiveBox = new JCheckBox("Domain Active", DV.domainActive);
         domainActiveBox.setToolTipText("Whether the domain is active or not.");
@@ -628,7 +697,7 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 0;
-        constraints.gridy = 3;
+        constraints.gridy = 4;
         visPanel.add(domainActiveBox, constraints);
 
         JCheckBox drawFirstLineBox = new JCheckBox("First Line", DV.showFirstSeg);
@@ -642,23 +711,8 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 1;
-        constraints.gridy = 3;
-        visPanel.add(drawFirstLineBox, constraints);
-
-        JCheckBox svmVisBox = new JCheckBox("Visualization SVM", DV.drawSVM);
-        svmVisBox.setToolTipText("Visualize support vectors with visualization.");
-        svmVisBox.setFont(svmVisBox.getFont().deriveFont(12f));
-        svmVisBox.addActionListener(e ->
-        {
-            DV.drawSVM = svmVisBox.isSelected();
-
-            if (DV.data != null && DV.supportVectors != null)
-                DataVisualization.drawGraphs();
-        });
-
-        constraints.gridx = 0;
         constraints.gridy = 4;
-        visPanel.add(svmVisBox, constraints);
+        visPanel.add(drawFirstLineBox, constraints);
 
         // open analytics in another window
         JButton separateVisBtn = new JButton("Visualization Window");
@@ -690,8 +744,9 @@ public class VisualizationMenu extends JPanel
             }
         });
 
-        constraints.gridx = 1;
-        constraints.gridy = 4;
+        constraints.gridx = 0;
+        constraints.gridy = 5;
+        constraints.gridwidth = 2;
         visPanel.add(separateVisBtn, constraints);
 
         JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Visualization Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);

@@ -103,6 +103,7 @@ public class AngleSliders
         // main panel for angle
         // holds textField, slider, and label
         JPanel anglePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
+        anglePanel.setAlignmentX(SwingConstants.LEFT);
         anglePanel.add(angleSlider);
         anglePanel.add(angleText);
         anglePanel.add(angleLabel);
@@ -201,6 +202,7 @@ public class AngleSliders
         // main panel for angle
         // holds textField, slider, and label
         JPanel anglePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
+        anglePanel.setAlignmentX(SwingConstants.LEFT);
         anglePanel.add(angleSlider);
         anglePanel.add(angleText);
         anglePanel.add(angleLabel);

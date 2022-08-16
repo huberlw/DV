@@ -18,7 +18,7 @@ public class ColorMenu extends JPanel
         colors.setLayout(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
 
-        JButton[] colorOptions = new JButton[8];
+        JButton[] colorOptions = new JButton[9];
 
         // set domain line color
         colorOptions[0] = new JButton("Domain Line Color");
@@ -367,9 +367,52 @@ public class ColorMenu extends JPanel
         constraints.gridy = 7;
         colors.add(colorOptions[7], constraints);
 
+        // set lower graph color
+        colorOptions[8] = new JButton("SVM Endpoint Color");
+        colorOptions[8].setToolTipText("Sets color of support vectors endpoints when drawn.");
+        colorOptions[8].setBorderPainted(false);
+        colorOptions[8].setFocusPainted(false);
+        colorOptions[8].setHorizontalAlignment(SwingConstants.LEFT);
+        colorOptions[8].setFont(colorOptions[8].getFont().deriveFont(12f));
+        colorOptions[8].setIcon(createIcon(DV.svmEndpoints));
+        colorOptions[8].addMouseListener(new MouseListener()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
+                colorOption.set(8);
+                colorOptions[8].setBackground(Color.LIGHT_GRAY);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {}
+
+            @Override
+            public void mouseReleased(MouseEvent e) {}
+
+            @Override
+            public void mouseEntered(MouseEvent e)
+            {
+                colorOptions[7].setBackground(new Color(218,218,218));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e)
+            {
+                if (colorOption.get() == 8)
+                    colorOptions[8].setBackground(Color.LIGHT_GRAY);
+                else
+                    colorOptions[8].setBackground(UIManager.getColor("control"));
+            }
+        });
+
+        constraints.gridy = 8;
+        colors.add(colorOptions[8], constraints);
+
         constraints.gridx = 1;
         constraints.gridy = 0;
-        constraints.gridheight = 9;
+        constraints.gridheight = 10;
         constraints.fill = GridBagConstraints.VERTICAL;
         JColorChooser colorChooser = new JColorChooser();
         colors.add(colorChooser, constraints);
@@ -384,54 +427,27 @@ public class ColorMenu extends JPanel
 
             if (newColor != null)
             {
-                switch(colorOption.get())
+                int component = colorOption.get();
+
+                switch(component)
                 {
-                    case 0 ->
-                    {
-                        DV.domainLines = newColor;
-                        colorOptions[0].setIcon(createIcon(newColor));
-                    }
-                    case 1 ->
-                    {
-                        DV.overlapLines = newColor;
-                        colorOptions[1].setIcon(createIcon(newColor));
-                    }
-                    case 2 ->
-                    {
-                        DV.thresholdLine = newColor;
-                        colorOptions[2].setIcon(createIcon(newColor));
-                    }
-                    case 3 ->
-                    {
-                        DV.background = newColor;
-                        colorOptions[3].setIcon(createIcon(newColor));
-                    }
-                    case 4 ->
-                    {
-                        DV.graphColors[0] = newColor;
-                        colorOptions[4].setIcon(createIcon(newColor));
-                    }
-                    case 5 ->
-                    {
-                        DV.graphColors[1] = newColor;
-                        colorOptions[5].setIcon(createIcon(newColor));
-                    }
-                    case 6 ->
-                    {
-                        DV.endpoints = newColor;
-                        colorOptions[6].setIcon(createIcon(newColor));
-                    }
-                    case 7 ->
-                    {
-                        DV.svmLines = newColor;
-                        colorOptions[7].setIcon(createIcon(newColor));
-                    }
+                    case 0 -> DV.domainLines = newColor;
+                    case 1 -> DV.overlapLines = newColor;
+                    case 2 -> DV.thresholdLine = newColor;
+                    case 3 -> DV.background = newColor;
+                    case 4 -> DV.graphColors[0] = newColor;
+                    case 5 -> DV.graphColors[1] = newColor;
+                    case 6 -> DV.endpoints = newColor;
+                    case 7 -> DV.svmLines = newColor;
+                    case 8 -> DV.svmEndpoints = newColor;
                 }
+
+                colorOptions[component].setIcon(createIcon(newColor));
             }
         });
 
         constraints.gridx = 1;
-        constraints.gridy = 9;
+        constraints.gridy = 10;
         constraints.gridheight = 1;
         constraints.gridwidth = 1;
         constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -445,49 +461,22 @@ public class ColorMenu extends JPanel
 
             if (newColor != null)
             {
-                switch(colorOption.get())
+                int component = colorOption.get();
+
+                switch(component)
                 {
-                    case 0 ->
-                    {
-                        DV.domainLines = newColor;
-                        colorOptions[0].setIcon(createIcon(newColor));
-                    }
-                    case 1 ->
-                    {
-                        DV.overlapLines = newColor;
-                        colorOptions[1].setIcon(createIcon(newColor));
-                    }
-                    case 2 ->
-                    {
-                        DV.thresholdLine = newColor;
-                        colorOptions[2].setIcon(createIcon(newColor));
-                    }
-                    case 3 ->
-                    {
-                        DV.background = newColor;
-                        colorOptions[3].setIcon(createIcon(newColor));
-                    }
-                    case 4 ->
-                    {
-                        DV.graphColors[0] = newColor;
-                        colorOptions[4].setIcon(createIcon(newColor));
-                    }
-                    case 5 ->
-                    {
-                        DV.graphColors[1] = newColor;
-                        colorOptions[5].setIcon(createIcon(newColor));
-                    }
-                    case 6 ->
-                    {
-                        DV.endpoints = newColor;
-                        colorOptions[6].setIcon(createIcon(newColor));
-                    }
-                    case 7 ->
-                    {
-                        DV.svmLines = newColor;
-                        colorOptions[7].setIcon(createIcon(newColor));
-                    }
+                    case 0 -> DV.domainLines = newColor;
+                    case 1 -> DV.overlapLines = newColor;
+                    case 2 -> DV.thresholdLine = newColor;
+                    case 3 -> DV.background = newColor;
+                    case 4 -> DV.graphColors[0] = newColor;
+                    case 5 -> DV.graphColors[1] = newColor;
+                    case 6 -> DV.endpoints = newColor;
+                    case 7 -> DV.svmLines = newColor;
+                    case 8 -> DV.svmEndpoints = newColor;
                 }
+
+                colorOptions[component].setIcon(createIcon(newColor));
             }
         }
     }
