@@ -142,6 +142,7 @@ public class DV extends JFrame
     static boolean worstCaseChecked = false;
     static boolean userValidationChecked = true;
     static boolean userValidationImported = false;
+    static boolean svmAnalyticsChecked = false;
     static boolean crossValidationChecked = true;
     static boolean crossValidationNotGenerated = true;
 

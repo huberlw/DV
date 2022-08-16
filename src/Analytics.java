@@ -115,6 +115,11 @@ public class Analytics
                 if (DV.userValidationImported && DV.userValidationChecked)
                     userCM.execute();
 
+                GetSVMAnalytics svmA = new GetSVMAnalytics();
+
+                if (DV.svmAnalyticsChecked && DV.supportVectors != null)
+                    svmA.execute();
+
                 // create k-fold cross validation
                 GetKFoldCrossValidation kFold = new GetKFoldCrossValidation();
 
@@ -137,6 +142,7 @@ public class Analytics
                     if (DV.overlapChecked) overlapCM.get();
                     if (DV.worstCaseChecked) worstCM.get();
                     if (DV.userValidationImported && DV.userValidationChecked) userCM.get();
+                    if (DV.svmAnalyticsChecked && DV.supportVectors != null) svmA.get();
                     if (DV.crossValidationNotGenerated && DV.crossValidationChecked)
                     {
                         DV.crossValidationNotGenerated = false;
@@ -150,7 +156,7 @@ public class Analytics
                 }
 
                 // add confusion matrices in order
-                for (int i = 0; i < DV.prevAllDataCM.size() + 5; i++)
+                for (int i = 0; i < DV.prevAllDataCM.size() + 6; i++)
                 {
                     if (CONFUSION_MATRIX.containsKey(i))
                     {
@@ -1220,6 +1226,65 @@ public class Analytics
         }
     }
 
+
+    private static class GetSVMAnalytics extends SwingWorker<Boolean, Void>
+    {
+        @Override
+        protected Boolean doInBackground()
+        {
+            if (DV.glc_or_dsc)
+                DV.supportVectors.updateCoordinatesGLC(DV.angles);
+            else
+                DV.supportVectors.updateCoordinatesDSC(DV.angles);
+
+            // support vectors within overlap
+            int overlapSVM = 0;
+
+            // check all classes
+            for (int i = 0; i < DV.supportVectors.data.length; i++)
+            {
+                double endpoint = DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[0].length-1][0];
+
+                // if endpoint is within overlap then store point
+                if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                    overlapSVM++;
+            }
+
+            // create confusion matrix
+            StringBuilder cm = new StringBuilder("SVM Support Vector Analytics\n");
+
+            // append number of support vectors
+            cm.append("Number of Support Vectors: ").append(DV.supportVectors.data.length);
+
+            // append percentage of support vectors within the overlap
+            cm.append(String.format("\nPercent of SVM in Overlap: %.2f%%", 100.0 * overlapSVM / DV.supportVectors.data.length));
+
+            // set user validation confusion matrix
+            JTextArea svmAnalytics = new JTextArea( cm.toString());
+            svmAnalytics.setToolTipText(classNames);
+            svmAnalytics.setFont(svmAnalytics.getFont().deriveFont(Font.BOLD, 12f));
+            svmAnalytics.setEditable(false);
+            synchronized (CONFUSION_MATRIX)
+            {
+                CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 5, svmAnalytics);
+            }
+
+            if (DV.displayRemoteAnalytics)
+            {
+                // set user validation confusion matrix
+                JTextArea svmAnalytics2 = new JTextArea( cm.toString());
+                svmAnalytics2.setToolTipText(classNames);
+                svmAnalytics2.setFont(svmAnalytics2.getFont().deriveFont(Font.BOLD, 12f));
+                svmAnalytics2.setEditable(false);
+                synchronized (CONFUSION_MATRIX)
+                {
+                    CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 5, svmAnalytics2);
+                }
+            }
+
+            return true;
+        }
+    }
 
     /**
      * Creates CSV file representing specified data from

@@ -210,7 +210,7 @@ public class AnalyticsMenu extends JPanel
         constraints.gridy = 2;
         analyticsPanel.add(worstCaseCheckBox, constraints);
 
-        // set user validation set confusion matrix
+        // set user validation confusion matrix
         JCheckBox userValCheckBox = new JCheckBox("User Validation CM", DV.userValidationChecked);
         userValCheckBox.setToolTipText("Toggle user validation confusion matrix");
         userValCheckBox.setFont(userValCheckBox.getFont().deriveFont(12f));
@@ -292,7 +292,7 @@ public class AnalyticsMenu extends JPanel
         JButton kFoldsButton = new JButton("k-folds");
         kFoldsButton.setToolTipText("Number for folds for cross validation");
         kFoldsButton.setFont(kFoldsButton.getFont().deriveFont(12f));
-        kFoldsButton.addActionListener(e ->
+        kFoldsButton.addActionListener(e->
         {
             // popup asking for number of folds
             JPanel foldPanel = new JPanel(new BorderLayout());
@@ -380,6 +380,44 @@ public class AnalyticsMenu extends JPanel
         constraints.gridy = 3;
         analyticsPanel.add(kFoldsButton, constraints);
 
+        // set support vectors analytics
+        JCheckBox svmCheckBox = new JCheckBox("SVM Support Vectors", DV.svmAnalyticsChecked);
+        svmCheckBox.setToolTipText("Toggle SVM Support Vector analytics");
+        svmCheckBox.setFont(svmCheckBox.getFont().deriveFont(12f));
+        svmCheckBox.addActionListener(e->
+        {
+            // reverse check
+            DV.svmAnalyticsChecked = !DV.svmAnalyticsChecked;
+
+            // regenerate confusion matrices
+            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+            analytics.execute();
+
+            // wait before repainting and revalidating
+            try
+            {
+                analytics.get();
+
+                // revalidate confusion matrices
+                DV.confusionMatrixPanel.repaint();
+                DV.confusionMatrixPanel.revalidate();
+
+                if (DV.displayRemoteAnalytics)
+                {
+                    DV.remoteConfusionMatrixPanel.repaint();
+                    DV.remoteConfusionMatrixPanel.revalidate();
+                }
+            }
+            catch (InterruptedException | ExecutionException ex)
+            {
+                ex.printStackTrace();
+            }
+        });
+
+        constraints.gridx = 0;
+        constraints.gridy = 4;
+        analyticsPanel.add(svmCheckBox, constraints);
+
         // open analytics in another window
         JButton separateAnalyticsBtn = new JButton("Analytics Window");
         separateAnalyticsBtn.setToolTipText("Open another window displaying all analytics");
@@ -426,9 +464,8 @@ public class AnalyticsMenu extends JPanel
             }
         });
 
-        constraints.gridx = 0;
+        constraints.gridx = 1;
         constraints.gridy = 4;
-        constraints.gridwidth = 2;
         analyticsPanel.add(separateAnalyticsBtn, constraints);
 
         JOptionPane.showOptionDialog(DV.mainFrame, analyticsPanel, "Analytics Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
