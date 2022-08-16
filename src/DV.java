@@ -748,7 +748,7 @@ public class DV extends JFrame
             JCheckBox idCol = new JCheckBox("Does this project use the first column to designate ID?");
             idCol.setFont(idCol.getFont().deriveFont(12f));
             idCol.setAlignmentX(Component.LEFT_ALIGNMENT);
-            JCheckBox classCol = new JCheckBox("Does this project use the last column to designate classes?");
+            JCheckBox classCol = new JCheckBox("Does this project use the last column to designate classes?", true);
             classCol.setAlignmentX(Component.LEFT_ALIGNMENT);
             classCol.setFont(classCol.getFont().deriveFont(12f));
 
@@ -1724,6 +1724,9 @@ public class DV extends JFrame
      */
     private void resetProgram(boolean remove_classes)
     {
+        // reset upper and lower class order
+        DV.upperIsLower = true;
+
         // reset panels
         angleSliderPanel.removeAll();
         graphPanel.removeAll();

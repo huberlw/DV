@@ -227,6 +227,11 @@ public class DataObject
             angle = 180 - angle;
             xyPoint[0] = -(Math.cos(Math.toRadians(angle)) * value);
         }
+        else if (angle < 0)
+        {
+            angle = 180 + angle;
+            xyPoint[0] = -(Math.cos(Math.toRadians(angle)) * value);
+        }
         else
             xyPoint[0] = (Math.cos(Math.toRadians(angle))) * value;
 

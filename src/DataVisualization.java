@@ -398,12 +398,12 @@ public class DataVisualization
              // get count and foundBetter
              int cnt = 0;
              boolean foundBetter = false;
-             int angleRange;
+             int[] angleRange;
 
              if (DV.glc_or_dsc)
-                 angleRange = 18000;
+                 angleRange = new int[]{ 0, 180 };
              else
-                 angleRange = 9000;
+                 angleRange = new int[]{ -90, 90 };
 
              // try optimizing 200 times
              while (cnt < 200)
@@ -411,16 +411,15 @@ public class DataVisualization
                  // get random angles
                  for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
                  {
-                     int gradient = (rand.nextInt(11) - 5) * 100;
-                     //int gradient = (rand.nextInt(91)) * 100;
-                     int fieldAngle = (int) (currentBestAngles[i] * 100) + gradient;
+                     int gradient = (rand.nextInt(11) - 5);
+                     double fieldAngle = currentBestAngles[i] + gradient;
 
-                     if (fieldAngle < 0)
-                         fieldAngle = 0;
-                     else if (fieldAngle > angleRange)
-                         fieldAngle = angleRange;
+                     if (fieldAngle < angleRange[0])
+                         fieldAngle = angleRange[0];
+                     else if (fieldAngle > angleRange[1])
+                         fieldAngle = angleRange[1];
 
-                     DV.angles[i] = fieldAngle / 100.0;
+                     DV.angles[i] = fieldAngle;
                  }
 
                  // optimize threshold for new angles
@@ -935,12 +934,10 @@ public class DataVisualization
             // create main renderer and dataset
             XYLineAndShapeRenderer lineRenderer = new XYLineAndShapeRenderer(true, false);
             XYSeriesCollection graphLines = new XYSeriesCollection();
-            ArrayList<XYSeries> lines = new ArrayList<>();
 
             // create SVM renderer and dataset
             XYLineAndShapeRenderer svmLineRenderer = new XYLineAndShapeRenderer(true, false);
             XYSeriesCollection svmSeriesCol = new XYSeriesCollection();
-            ArrayList<XYSeries> svmLines = new ArrayList<>();
 
             // create renderer for domain, overlap, and threshold lines
             XYLineAndShapeRenderer domainRenderer = new XYLineAndShapeRenderer(true, false);
@@ -1000,10 +997,10 @@ public class DataVisualization
             XYSeriesCollection svmTimeLine = new XYSeriesCollection();
             XYSeries endpointSeries = new XYSeries(0, false, true);
             XYSeries svmEndpointSeries = new XYSeries(0, false, true);
-            XYSeries midpointSeries = new XYSeries(1, false, true);
-            XYSeries svmMidpointSeries = new XYSeries(1, false, true);
-            XYSeries timeLineSeries = new XYSeries(2, false, true);
-            XYSeries svmTimeLineSeries = new XYSeries(3, false, true);
+            XYSeries midpointSeries = new XYSeries(0, false, true);
+            XYSeries svmMidpointSeries = new XYSeries(0, false, true);
+            XYSeries timeLineSeries = new XYSeries(0, false, true);
+            XYSeries svmTimeLineSeries = new XYSeries(0, false, true);
 
             // populate svm series
             if (DV.drawOnlySVM || DV.drawSVM)
@@ -1011,12 +1008,12 @@ public class DataVisualization
                 // update coordinates
                 getCoordinates(new ArrayList<>(List.of(DV.supportVectors)));
 
-                for (int i = 0, lineCnt = 0, seriesCnt = 0; i < DV.supportVectors.data.length; i++, lineCnt++)
+                for (int i = 0, lineCnt = 0; i < DV.supportVectors.data.length; i++, lineCnt++)
                 {
                     // start line at (0, 0)
-                    svmLines.add(new XYSeries(lineCnt, false, true));
+                    XYSeries line = new XYSeries(lineCnt, false, true);
                     if (DV.showFirstSeg)
-                        svmLines.get(lineCnt).add(0, 0);
+                        line.add(0, 0);
                     double endpoint = DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[i].length-1][0];
 
                     // ensure datapoint is within domain
@@ -1026,7 +1023,7 @@ public class DataVisualization
                         {
                             int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
 
-                            svmLines.get(lineCnt).add(DV.supportVectors.coordinates[i][j][0], upOrDown * DV.supportVectors.coordinates[i][j][1]);
+                            line.add(DV.supportVectors.coordinates[i][j][0], upOrDown * DV.supportVectors.coordinates[i][j][1]);
 
                             if (j > 0 && j < DV.supportVectors.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
                                 svmMidpointSeries.add(DV.supportVectors.coordinates[i][j][0], upOrDown * DV.supportVectors.coordinates[i][j][1]);
@@ -1037,16 +1034,14 @@ public class DataVisualization
                                 svmEndpointSeries.add(DV.supportVectors.coordinates[i][j][0], upOrDown * DV.supportVectors.coordinates[i][j][1]);
                                 svmTimeLineSeries.add(DV.supportVectors.coordinates[i][j][0], 0);
                             }
-                            //else
-                                //svmMidpointSeries.add(DV.supportVectors.coordinates[i][j][0], upOrDown * DV.supportVectors.coordinates[i][j][1]);
                         }
                     }
 
                     // add to dataset if within domain
                     if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
                     {
-                        svmSeriesCol.addSeries(svmLines.get(lineCnt));
-                        svmLineRenderer.setSeriesPaint(seriesCnt++, DV.svmLines);
+                        svmSeriesCol.addSeries(line);
+                        svmLineRenderer.setSeriesPaint(lineCnt, DV.svmLines);
                     }
                 }
             }
@@ -1054,14 +1049,16 @@ public class DataVisualization
             if (!DV.drawOnlySVM)
             {
                 // populate main series
+                int lineCnt = 0;
+
                 for (DataObject data : DATA_OBJECTS)
                 {
-                    for (int i = 0, lineCnt = 0; i < data.data.length; i++, lineCnt++)
+                    for (int i = 0; i < data.data.length; i++)
                     {
                         // start line at (0, 0)
-                        lines.add(new XYSeries(lineCnt, false, true));
+                        XYSeries line = new XYSeries(lineCnt++, false, true);
                         if (DV.showFirstSeg)
-                            lines.get(lineCnt).add(0, 0);
+                            line.add(0, 0);
                         double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
 
                         // ensure datapoint is within domain
@@ -1074,7 +1071,7 @@ public class DataVisualization
                             {
                                 int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
 
-                                lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
+                                line.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
                                 if (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
                                     midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
@@ -1085,14 +1082,12 @@ public class DataVisualization
                                     endpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
                                     timeLineSeries.add(data.coordinates[i][j][0], 0);
                                 }
-                                //else
-                                    //midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
                             }
                         }
 
                         // add to dataset if within domain
                         if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
-                            graphLines.addSeries(lines.get(lineCnt));
+                            graphLines.addSeries(line);
                     }
                 }
             }
@@ -1426,7 +1421,6 @@ public class DataVisualization
                     domainMaxLine.clear();
 
                     // clear old lines, midpoints, endpoints, and timeline points
-                    lines.clear();
                     graphLines.removeAllSeries();
                     midpointSeries.clear();
                     endpointSeries.clear();
@@ -1450,9 +1444,9 @@ public class DataVisualization
                         for (int i = 0; i < data.data.length; i++, lineCnt++)
                         {
                             // start line at (0, 0)
-                            lines.add(new XYSeries(lineCnt, false, true));
+                            XYSeries line = new XYSeries(lineCnt, false, true);
                             if (DV.glc_or_dsc)
-                                lines.get(lineCnt).add(0, 0);
+                                line.add(0, 0);
                             double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
 
                             // ensure datapoint is within domain
@@ -1465,7 +1459,7 @@ public class DataVisualization
                                 {
                                     int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
 
-                                    lines.get(lineCnt).add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
+                                    line.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
 
                                     if (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
                                         midpointSeries.add(data.coordinates[i][j][0], upOrDown * data.coordinates[i][j][1]);
@@ -1485,7 +1479,7 @@ public class DataVisualization
 
                             // add to dataset if within domain
                             if (!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1])
-                                graphLines.addSeries(lines.get(lineCnt));
+                                graphLines.addSeries(line);
                         }
                     }
 

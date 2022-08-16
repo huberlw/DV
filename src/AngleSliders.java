@@ -121,7 +121,7 @@ public class AngleSliders
         angleText.setText(Double.toString(angle / 100.0));
 
         // slider for angle
-        JSlider angleSlider = new JSlider(0, 9000, angle);
+        JSlider angleSlider = new JSlider(0, 18000, angle + 9000);
         angleSlider.setToolTipText("Change angles of visualization");
         angleSlider.setMinorTickSpacing(1000);
         angleSlider.setPaintTicks(true);
@@ -133,10 +133,13 @@ public class AngleSliders
 
         // create table for slider labels
         Hashtable<Integer, JLabel> position = new Hashtable<>();
-        position.put(0, new JLabel("0"));           // 0 degrees
-        position.put(3000, new JLabel("30"));       // 30 degrees
-        position.put(6000, new JLabel("60"));       // 60 degrees
-        position.put(9000, new JLabel("90"));       // 90 degrees
+        position.put(0, new JLabel("-90"));        // -90 degrees
+        position.put(3000, new JLabel("-60"));     // -60 degrees
+        position.put(6000, new JLabel("-30"));     // -30 degrees
+        position.put(9000, new JLabel("0"));       // 0 degrees
+        position.put(12000, new JLabel("30"));     // 30 degrees
+        position.put(15000, new JLabel("60"));     // 60 degrees
+        position.put(18000, new JLabel("90"));     // 90 degrees
         angleSlider.setLabelTable(position);
 
         // add listeners for text field and slider
@@ -147,10 +150,10 @@ public class AngleSliders
             double fieldAngle = Double.parseDouble(angleText.getText());
 
             // transform inputted angle to a slider value
-            int sliderValue = (int) (fieldAngle * 100);
+            int sliderValue = (int) (fieldAngle * 100) + 9000;
 
             // check if angle is within 0 and 180 degrees
-            if (sliderValue >= 0 && sliderValue <= 9000)
+            if (sliderValue >= 0 && sliderValue <= 18000)
             {
                 try
                 {
@@ -177,7 +180,7 @@ public class AngleSliders
         angleSlider.addChangeListener(e ->
         {
             // get new angle
-            double fieldAngle = angleSlider.getValue() / 100.0;
+            double fieldAngle = (angleSlider.getValue() - 9000) / 100.0;
 
             try
             {

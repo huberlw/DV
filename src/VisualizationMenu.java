@@ -28,7 +28,7 @@ public class VisualizationMenu extends JPanel
             // radio button group
             ButtonGroup plotType = new ButtonGroup();
             JRadioButton glc = new JRadioButton("GLC-L", DV.glc_or_dsc);
-            JRadioButton dsc = new JRadioButton("DSC2", DV.glc_or_dsc);
+            JRadioButton dsc = new JRadioButton("DSC2", !DV.glc_or_dsc);
             plotType.add(glc);
             plotType.add(dsc);
 
