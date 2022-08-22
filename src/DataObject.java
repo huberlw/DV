@@ -31,10 +31,24 @@ public class DataObject
         // save the highest point
         double highest = Double.MIN_VALUE;
 
+        int cnt = 0;
+        for (int i = 0; i < DV.activeAttributes.size(); i++)
+        {
+            if (DV.activeAttributes.get(i))
+                cnt++;
+        }
+
         // generate coordinates for every datapoint
         for (int i = 0; i < data.length; i++)
         {
-            coordinates[i] = generateCoordinatesGLC(data[i], angles);
+            try
+            {
+                coordinates[i] = generateCoordinatesGLC(data[i], angles, cnt);
+            }
+            catch(Exception e)
+            {
+                e.printStackTrace();
+            }
 
             // check for new highest
             if (coordinates[i][coordinates[i].length-1][0] > highest)
@@ -68,21 +82,29 @@ public class DataObject
      * @param angles weights for each value
      * @return coordinates for datapoint
      */
-    private double[][] generateCoordinatesGLC(double[] dataPoint, double[] angles)
+    private double[][] generateCoordinatesGLC(double[] dataPoint, double[] angles, int active)
     {
         // output points
-        double[][] xyPoints = new double[dataPoint.length][2];
+        double[][] xyPoints = new double[active][2];
 
         // get xyPoints
-        xyPoints[0] = getXYPointGLC(dataPoint[0], angles[0]);
+        int i = 0;
+        while (!DV.activeAttributes.get(i)) i++;
 
-        for (int i = 1; i < dataPoint.length; i++)
+        xyPoints[0] = getXYPointGLC(dataPoint[i], angles[i]);
+        i++;
+
+        for (int j = 1; i < dataPoint.length; i++)
         {
-            xyPoints[i] = getXYPointGLC(dataPoint[i], angles[i]);
+            if (DV.activeAttributes.get(i))
+            {
+                xyPoints[j] = getXYPointGLC(dataPoint[i], angles[i]);
 
-            // add previous points to current points
-            xyPoints[i][0] += xyPoints[i-1][0];
-            xyPoints[i][1] += xyPoints[i-1][1];
+                // add previous points to current points
+                xyPoints[j][0] += xyPoints[j-1][0];
+                xyPoints[j][1] += xyPoints[j-1][1];
+                j++;
+            }
         }
 
         return xyPoints;

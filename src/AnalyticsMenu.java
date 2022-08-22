@@ -22,7 +22,7 @@ public class AnalyticsMenu extends JPanel
                                             "For 3 or more classes, show the All Data Confusion Matrices" +
                                             "for the previous levels of grouping (one classes vs all other classes) ");
         prevAllDataCheckBox.setFont(prevAllDataCheckBox.getFont().deriveFont(12f));
-        prevAllDataCheckBox.addActionListener(e->
+        prevAllDataCheckBox.addActionListener(e ->
         {
             // reverse check
             DV.prevAllDataChecked = !DV.prevAllDataChecked;
@@ -62,7 +62,7 @@ public class AnalyticsMenu extends JPanel
         JCheckBox allDataCheckBox = new JCheckBox("All Data CM", DV.allDataChecked);
         allDataCheckBox.setToolTipText("Toggle all data confusion matrix");
         allDataCheckBox.setFont(allDataCheckBox.getFont().deriveFont(12f));
-        allDataCheckBox.addActionListener(e->
+        allDataCheckBox.addActionListener(e ->
         {
             // reverse check
             DV.allDataChecked = !DV.allDataChecked;
@@ -100,7 +100,7 @@ public class AnalyticsMenu extends JPanel
         JCheckBox withoutOverlapCheckBox = new JCheckBox("Data Without Overlap CM", DV.withoutOverlapChecked);
         withoutOverlapCheckBox.setToolTipText("Toggle data without overlap confusion matrix");
         withoutOverlapCheckBox.setFont(withoutOverlapCheckBox.getFont().deriveFont(12f));
-        withoutOverlapCheckBox.addActionListener(e->
+        withoutOverlapCheckBox.addActionListener(e ->
         {
             // reverse check
             DV.withoutOverlapChecked = !DV.withoutOverlapChecked;
@@ -138,7 +138,7 @@ public class AnalyticsMenu extends JPanel
         JCheckBox overlapCheckBox = new JCheckBox("Overlap Data CM", DV.overlapChecked);
         overlapCheckBox.setToolTipText("Toggle overlap confusion matrix");
         overlapCheckBox.setFont(overlapCheckBox.getFont().deriveFont(12f));
-        overlapCheckBox.addActionListener(e->
+        overlapCheckBox.addActionListener(e ->
         {
             // reverse check
             DV.overlapChecked = !DV.overlapChecked;
@@ -176,7 +176,7 @@ public class AnalyticsMenu extends JPanel
         JCheckBox worstCaseCheckBox = new JCheckBox("Worst Case CM", DV.worstCaseChecked);
         worstCaseCheckBox.setToolTipText("Toggle worst case confusion matrix");
         worstCaseCheckBox.setFont(worstCaseCheckBox.getFont().deriveFont(12f));
-        worstCaseCheckBox.addActionListener(e->
+        worstCaseCheckBox.addActionListener(e ->
         {
             // reverse check
             DV.worstCaseChecked = !DV.worstCaseChecked;
@@ -214,7 +214,7 @@ public class AnalyticsMenu extends JPanel
         JCheckBox userValCheckBox = new JCheckBox("User Validation CM", DV.userValidationChecked);
         userValCheckBox.setToolTipText("Toggle user validation confusion matrix");
         userValCheckBox.setFont(userValCheckBox.getFont().deriveFont(12f));
-        userValCheckBox.addActionListener(e->
+        userValCheckBox.addActionListener(e ->
         {
             // reverse check
             DV.userValidationChecked = !DV.userValidationChecked;
@@ -252,7 +252,7 @@ public class AnalyticsMenu extends JPanel
         JCheckBox crossValCheckBox = new JCheckBox("Cross Validation", DV.userValidationChecked);
         crossValCheckBox.setToolTipText("Toggle user k-fold cross validation table");
         crossValCheckBox.setFont(crossValCheckBox.getFont().deriveFont(12f));
-        crossValCheckBox.addActionListener(e->
+        crossValCheckBox.addActionListener(e ->
         {
             // reverse check
             DV.crossValidationChecked = !DV.crossValidationChecked;
@@ -292,7 +292,7 @@ public class AnalyticsMenu extends JPanel
         JButton kFoldsButton = new JButton("k-folds");
         kFoldsButton.setToolTipText("Number for folds for cross validation");
         kFoldsButton.setFont(kFoldsButton.getFont().deriveFont(12f));
-        kFoldsButton.addActionListener(e->
+        kFoldsButton.addActionListener(e ->
         {
             // popup asking for number of folds
             JPanel foldPanel = new JPanel(new BorderLayout());
@@ -384,7 +384,7 @@ public class AnalyticsMenu extends JPanel
         JCheckBox svmCheckBox = new JCheckBox("SVM Support Vectors", DV.svmAnalyticsChecked);
         svmCheckBox.setToolTipText("Toggle SVM Support Vector analytics");
         svmCheckBox.setFont(svmCheckBox.getFont().deriveFont(12f));
-        svmCheckBox.addActionListener(e->
+        svmCheckBox.addActionListener(e ->
         {
             // reverse check
             DV.svmAnalyticsChecked = !DV.svmAnalyticsChecked;
@@ -422,7 +422,7 @@ public class AnalyticsMenu extends JPanel
         JButton separateAnalyticsBtn = new JButton("Analytics Window");
         separateAnalyticsBtn.setToolTipText("Open another window displaying all analytics");
         separateAnalyticsBtn.setFont(separateAnalyticsBtn.getFont().deriveFont(12f));
-        separateAnalyticsBtn.addActionListener(e->
+        separateAnalyticsBtn.addActionListener(e ->
         {
             if (!DV.displayRemoteAnalytics)
             {

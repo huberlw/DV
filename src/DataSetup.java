@@ -56,11 +56,13 @@ public class DataSetup
             DV.angles = new double[DV.fieldLength];
             DV.prevAngles = new double[DV.fieldLength];
             DV.standardAngles = new double[DV.fieldLength];
+            DV.activeAttributes = new ArrayList<>();
 
             for (int i = 0; i < DV.fieldLength; i++)
             {
                 DV.angles[i] = 45;
                 DV.prevAngles[i] = 45;
+                DV.activeAttributes.add(true);
             }
 
             // get numerical data from string data
@@ -841,7 +843,7 @@ public class DataSetup
             if (maxValues[i] != minValues[i])
             {
                 for (int j = 0; j < data.length; j++)
-                    data[j][i] = (data[j][i] - minValues[i] + 0.1) / (maxValues[i] - minValues[i]);
+                    data[j][i] = (data[j][i] - minValues[i]) / (maxValues[i] - minValues[i]);
 
             }
             else

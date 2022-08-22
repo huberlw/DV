@@ -5,6 +5,8 @@
 4. Allow input of special vectors (angles included)
 5. Update documentation
 6. Make fully resizeable
+7. Reorder attributes option
+8. Remove attributes option
 
 # Wish List
 1. Create more than 1 projection line

@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class VisualizationMenu extends JPanel
 {
@@ -92,6 +93,9 @@ public class VisualizationMenu extends JPanel
                         else
                             DV.lowerClasses.set(i, false);
                     }
+
+                    // generate new cross validation
+                    DV.crossValidationNotGenerated = true;
 
                     // optimize setup then draw graphs
                     DataVisualization.optimizeSetup();
@@ -235,6 +239,139 @@ public class VisualizationMenu extends JPanel
         else
             visPanel.add(stopOverlapVisBtn, constraints);
 
+        JButton reorderBtn = new JButton("Reorder Attributes");
+        reorderBtn.setToolTipText("Reorder attributes in visualization");
+        reorderBtn.setFont(reorderBtn.getFont().deriveFont(12f));
+        reorderBtn.addActionListener(e ->
+        {
+            if (DV.data != null)
+            {
+                JPanel reorder = new JPanel();
+                reorder.setLayout(new GridBagLayout());
+                GridBagConstraints c = new GridBagConstraints();
+
+                c.gridx = 0;
+                c.gridy = 0;
+                c.gridwidth = 2;
+                c.fill = GridBagConstraints.HORIZONTAL;
+
+                reorder.add(new JLabel("Checked attributes will be displayed."), c);
+
+                int yCnt = 0;
+                c.gridwidth = 1;
+
+                JSpinner[] attributes = new JSpinner[DV.fieldLength];
+                AtomicInteger cnt = new AtomicInteger(0);
+
+                for (String field : DV.fieldNames)
+                {
+                    c.gridx = 0;
+                    c.gridy = ++yCnt;
+                    c.weightx = 0.7;
+
+                    reorder.add(new JLabel(field), c);
+
+                    final int curIndex = DV.fieldNames.indexOf(field);
+                    final int index = cnt.get();
+
+                    attributes[index] = new JSpinner();
+                    attributes[index].setValue(curIndex);
+                    attributes[index].addChangeListener(ee ->
+                    {
+                        int newIndex = (Integer) attributes[index].getValue();
+
+                        for (int i = 0; i < DV.fieldLength; i++)
+                        {
+                            if ( i != index && (Integer) attributes[i].getValue() == newIndex)
+                            {
+                                attributes[i].setValue(curIndex);
+                                break;
+                            }
+                        }
+
+                        // reorder fieldnames
+                        String tmp = DV.fieldNames.get(newIndex);
+                        DV.fieldNames.set(newIndex, DV.fieldNames.get(curIndex));
+                        DV.fieldNames.set(curIndex, tmp);
+
+                        // reorder in all data
+                        for (int i = 0; i < DV.data.size(); i++)
+                        {
+                            for (int j = 0; j < DV.data.get(i).data.length; j++)
+                            {
+                                double tmp2 = DV.data.get(i).data[j][newIndex];
+                                DV.data.get(i).data[j][newIndex] = DV.data.get(i).data[j][curIndex];
+                                DV.data.get(i).data[j][curIndex] = tmp2;
+                            }
+                        }
+
+                    });
+
+                    c.gridx = 1;
+                    c.weightx = 0.3;
+
+                    reorder.add(attributes[index], c);
+                    cnt.set(cnt.get()+1);
+                }
+
+                JOptionPane.showMessageDialog(DV.mainFrame, reorder, "Reorder Attributes", JOptionPane.PLAIN_MESSAGE);
+            }
+        });
+
+        constraints.gridx = 0;
+        constraints.gridy = 2;
+        visPanel.add(reorderBtn, constraints);
+
+        JButton removeBtn = new JButton("Remove Attributes");
+        removeBtn.setToolTipText("Remove attributes in visualization");
+        removeBtn.setFont(removeBtn.getFont().deriveFont(12f));
+        removeBtn.addActionListener(e ->
+        {
+            if (DV.data != null)
+            {
+                JPanel removal = new JPanel();
+                removal.setLayout(new BoxLayout(removal, BoxLayout.PAGE_AXIS));
+                removal.add(new JLabel("Checked attributes will be displayed."));
+
+                for (String field : DV.fieldNames)
+                {
+                    final int index = DV.fieldNames.indexOf(field);
+
+                    JCheckBox attribute = new JCheckBox(field, DV.activeAttributes.get(index));
+                    attribute.addActionListener(ee ->
+                    {
+                        DV.activeAttributes.set(index, attribute.isSelected());
+
+                        int cnt = 0;
+                        for (int i = 0; i < DV.activeAttributes.size(); i++)
+                        {
+                            if (DV.activeAttributes.get(i))
+                                cnt++;
+                        }
+
+                        if (cnt > 0)
+                        {
+                            DataVisualization.findBestThreshold(0);
+                            DataVisualization.drawGraphs();
+                        }
+                        else
+                        {
+                            attribute.setSelected(true);
+                            DV.activeAttributes.set(index, true);
+                        }
+                    });
+
+                    removal.add(attribute);
+                }
+
+                JOptionPane.showMessageDialog(DV.mainFrame, removal, "Remove Attributes", JOptionPane.PLAIN_MESSAGE);
+            }
+        });
+
+        constraints.gridx = 1;
+        constraints.gridy = 2;
+        visPanel.add(removeBtn, constraints);
+
         // change visualization function for each attribute of each vector
         JButton scalarVisFuncBtn = new JButton("Scalar Function");
         scalarVisFuncBtn.setToolTipText("Applies given function to all attributes of all data points");
@@ -333,7 +470,7 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 0;
-        constraints.gridy = 2;
+        constraints.gridy = 3;
         visPanel.add(scalarVisFuncBtn, constraints);
 
         // change visualization function for each vector
@@ -381,12 +518,16 @@ public class VisualizationMenu extends JPanel
                         File importFile = fileDialog.getSelectedFile();
 
                         // check if import was successful
-                        boolean success = DataSetup.setupImportData(importFile);
+                        boolean success = DataSetup.setupSupportVectors(importFile);
 
                         // create graphs
                         if (success)
                         {
-                            DataSetup.setupSupportVectors(importFile);
+                            JOptionPane.showMessageDialog(
+                                    DV.mainFrame,
+                                    "Vectors successfully imported.\n",
+                                    "Success: vectors imported",
+                                    JOptionPane.ERROR_MESSAGE);
                         }
                         else
                         {
@@ -436,7 +577,7 @@ public class VisualizationMenu extends JPanel
 
             // default function panel
             JPanel stockPanel = new JPanel();
-            JLabel stockLabel = new JLabel("Build-In: ");
+            JLabel stockLabel = new JLabel("Build-In Function: ");
             stockLabel.setFont(stockLabel.getFont().deriveFont(12f));
             stockPanel.add(stockLabel);
             stockPanel.add(svmPolyFunc);
@@ -520,6 +661,10 @@ public class VisualizationMenu extends JPanel
                             DV.fieldNames = new ArrayList<>();
                             DV.fieldNames.addAll(DV.standardFieldNames);
 
+                            DV.activeAttributes.clear();
+                            for (int i = 0; i < DV.fieldLength; i++)
+                                DV.activeAttributes.add(true);
+
                             DV.data = new ArrayList<>();
                             DV.data.addAll(DV.normalizedData);
 
@@ -586,12 +731,14 @@ public class VisualizationMenu extends JPanel
                                 DV.angles = new double[DV.fieldLength];
                                 DV.prevAngles = new double[DV.fieldLength];
                                 DV.fieldNames.clear();
+                                DV.activeAttributes.clear();
 
                                 for (int i = 0; i < DV.fieldLength; i++)
                                 {
                                     DV.fieldNames.add("feature " + i);
                                     DV.angles[i] = 45;
                                     DV.prevAngles[i] = 45;
+                                    DV.activeAttributes.add(true);
                                 }
 
                                 DV.crossValidationNotGenerated = true;
@@ -624,7 +771,7 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 1;
-        constraints.gridy = 2;
+        constraints.gridy = 3;
         visPanel.add(vectorVisFuncBtn, constraints);
 
         JButton visSVMBtn = new JButton("Visualize Only SVM");
@@ -668,7 +815,7 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 0;
-        constraints.gridy = 3;
+        constraints.gridy = 4;
         visPanel.add(visSVMBtn, constraints);
         
         JCheckBox svmVisBox = new JCheckBox("Visualize SVM", DV.drawSVM);
@@ -683,7 +830,7 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 1;
-        constraints.gridy = 3;
+        constraints.gridy = 4;
         visPanel.add(svmVisBox, constraints);
 
         JCheckBox domainActiveBox = new JCheckBox("Domain Active", DV.domainActive);
@@ -697,7 +844,7 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 0;
-        constraints.gridy = 4;
+        constraints.gridy = 5;
         visPanel.add(domainActiveBox, constraints);
 
         JCheckBox drawFirstLineBox = new JCheckBox("First Line", DV.showFirstSeg);
@@ -711,7 +858,7 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 1;
-        constraints.gridy = 4;
+        constraints.gridy = 5;
         visPanel.add(drawFirstLineBox, constraints);
 
         // open analytics in another window
@@ -745,7 +892,7 @@ public class VisualizationMenu extends JPanel
         });
 
         constraints.gridx = 0;
-        constraints.gridy = 5;
+        constraints.gridy = 6;
         constraints.gridwidth = 2;
         visPanel.add(separateVisBtn, constraints);
 

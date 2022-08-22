@@ -71,7 +71,7 @@ public class DV extends JFrame
 
     // endpoint colors
     static Color endpoints = Color.BLACK;
-    static Color svmEndpoints = new Color(98,74,46);
+    static Color svmEndpoints = new Color(205, 127, 50);
 
     // show bars instead of endpoints for graphs
     // the height of a bar is equal to the number of points in its location
@@ -109,6 +109,9 @@ public class DV extends JFrame
      *************************************************/
     // overlap area
     static double[] overlapArea;
+
+    static boolean useOverlapPercent = false;
+    static boolean overlapPercent;
 
     // threshold point
     static double threshold;
@@ -185,6 +188,9 @@ public class DV extends JFrame
     static int fieldLength;
     static ArrayList<String> standardFieldNames;
     static int standardFieldLength;
+
+    // active attributes
+    static ArrayList<Boolean> activeAttributes;
 
     // initialize with linear function
     static String scalarFunction = "x";
@@ -648,6 +654,13 @@ public class DV extends JFrame
         toolBar.add(undoOptimizeBtn);
         toolBar.addSeparator();
 
+        // normalize angles between [0, 90]
+        JButton normAnglesBtn = new JButton("Normalize Angles");
+        normAnglesBtn.setToolTipText("Normalizes the current angles between 0 and 90 degrees.");
+        normAnglesBtn.addActionListener(e -> DataVisualization.normalizeAngles());
+        toolBar.add(normAnglesBtn);
+        toolBar.addSeparator();
+
         // toggle bar-line
         JButton barLineBtn = new JButton("Toggle Bar-line");
         barLineBtn.setToolTipText("Toggle for showing bar-line graph of endpoint placement");
@@ -670,6 +683,7 @@ public class DV extends JFrame
         resetScreenBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
         optimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\up-right-arrow.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
         undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
+        //normAnglesBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\line-chart.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
         barLineBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
 
         // set toolbar north

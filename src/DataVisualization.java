@@ -406,12 +406,12 @@ public class DataVisualization
                  angleRange = new int[]{ -90, 90 };
 
              // try optimizing 200 times
-             while (cnt < 200)
+             while (cnt < 5000)
              {
                  // get random angles
                  for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
                  {
-                     int gradient = (rand.nextInt(11) - 5);
+                     int gradient = (rand.nextInt(101) - 50);
                      double fieldAngle = currentBestAngles[i] + gradient;
 
                      if (fieldAngle < angleRange[0])
@@ -554,6 +554,57 @@ public class DataVisualization
     }
 
 
+    public static void normalizeAngles()
+    {
+        if (DV.data != null)
+        {
+            double max = Double.MIN_VALUE;
+            double min = Double.MAX_VALUE;
+
+            for (int i = 0; i < DV.angles.length; i++)
+            {
+                if (DV.angles[i] < min)
+                    min = DV.angles[i];
+                else if (DV.angles[i] > max)
+                    max = DV.angles[i];
+            }
+
+            DV.angleSliderPanel.removeAll();
+
+            // normalize between [0, 90]
+            for (int i = 0; i < DV.angles.length; i++)
+            {
+                DV.angles[i] = ((DV.angles[i] - min) / (max - min)) * 180;
+
+                if (DV.glc_or_dsc)
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+                else
+                    AngleSliders.createSliderPanel_DSC("feature " + i, (int) (DV.angles[i] * 100), i);
+            }
+
+            DV.upperIsLower = true;
+
+            // optimize threshold
+            findBestThreshold(0);
+
+            // try again with upperIsLower false
+            double upperIsLowerAccuracy = DV.accuracy;
+            DV.upperIsLower = false;
+
+            findBestThreshold(0);
+
+            // see whether upper is actually lower
+            if (DV.accuracy < upperIsLowerAccuracy)
+            {
+                DV.upperIsLower = true;
+                findBestThreshold(0);
+            }
+
+            drawGraphs();
+        }
+    }
+
+
     /**
      * Gets current accuracy of visualization
      */
@@ -647,113 +698,140 @@ public class DataVisualization
             DV.overlapArea = new double[] { DV.fieldLength, -DV.fieldLength };
             double[] prevOverlap = { DV.fieldLength, -DV.fieldLength };
             double[] totalArea = { DV.fieldLength, -DV.fieldLength };
-
-            // check if graph has misclassified a point
-            boolean[] misclassified = { false, false };
-
-            // check if previous overlap exists
-            boolean[] isPrevious = { false, false };
-
-            // find overlap for all classes
-            for (int i = 0; i < DV.data.size(); i++)
+            if (!DV.useOverlapPercent)
             {
-                if (i == DV.upperClass || DV.lowerClasses.get(i))
+                // check if graph has misclassified a point
+                boolean[] misclassified = { false, false };
+
+                // check if previous overlap exists
+                boolean[] isPrevious = { false, false };
+
+                // find overlap for all classes
+                for (int i = 0; i < DV.data.size(); i++)
                 {
-                    for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                    if (i == DV.upperClass || DV.lowerClasses.get(i))
                     {
-                        double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
-
-                        // get classification
-                        if ((i == DV.upperClass && DV.upperIsLower) || (DV.lowerClasses.get(i) && !DV.upperIsLower))
+                        for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
                         {
-                            // check if endpoint expands total area
-                            if (endpoint < totalArea[0])
-                                totalArea[0] = endpoint;
+                            double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
 
-                            // check if endpoint is misclassified
-                            if (endpoint > DV.threshold)
+                            // get classification
+                            if ((i == DV.upperClass && DV.upperIsLower) || (DV.lowerClasses.get(i) && !DV.upperIsLower))
                             {
-                                // check if endpoint expands overlap area
-                                if (endpoint > DV.overlapArea[1])
-                                {
-                                    prevOverlap[1] = DV.overlapArea[1];
-                                    DV.overlapArea[1] = endpoint;
+                                // check if endpoint expands total area
+                                if (endpoint < totalArea[0])
+                                    totalArea[0] = endpoint;
 
-                                    if (misclassified[1])
+                                // check if endpoint is misclassified
+                                if (endpoint > DV.threshold)
+                                {
+                                    // check if endpoint expands overlap area
+                                    if (endpoint > DV.overlapArea[1])
+                                    {
+                                        prevOverlap[1] = DV.overlapArea[1];
+                                        DV.overlapArea[1] = endpoint;
+
+                                        if (misclassified[1])
+                                            isPrevious[1] = true;
+
+                                        misclassified[1] = true;
+                                    }
+                                    else if (endpoint > prevOverlap[1]) // get largest previous overlap point
+                                    {
+                                        prevOverlap[1] = endpoint;
                                         isPrevious[1] = true;
-
-                                    misclassified[1] = true;
-                                }
-                                else if (endpoint > prevOverlap[1]) // get largest previous overlap point
-                                {
-                                    prevOverlap[1] = endpoint;
-                                    isPrevious[1] = true;
+                                    }
                                 }
                             }
-                        }
-                        else
-                        {
-                            // check if endpoint expands total area
-                            if (endpoint > totalArea[1])
-                                totalArea[1] = endpoint;
-
-                            // check if endpoint is misclassified
-                            if (endpoint < DV.threshold)
+                            else
                             {
-                                // check if endpoint expands overlap area
-                                if (endpoint < DV.overlapArea[0])
-                                {
-                                    prevOverlap[0] = DV.overlapArea[0];
-                                    DV.overlapArea[0] = endpoint;
+                                // check if endpoint expands total area
+                                if (endpoint > totalArea[1])
+                                    totalArea[1] = endpoint;
 
-                                    if (misclassified[0])
+                                // check if endpoint is misclassified
+                                if (endpoint < DV.threshold)
+                                {
+                                    // check if endpoint expands overlap area
+                                    if (endpoint < DV.overlapArea[0])
+                                    {
+                                        prevOverlap[0] = DV.overlapArea[0];
+                                        DV.overlapArea[0] = endpoint;
+
+                                        if (misclassified[0])
+                                            isPrevious[0] = true;
+
+                                        misclassified[0] = true;
+                                    }
+                                    else if (endpoint < prevOverlap[0]) // get largest previous overlap point
+                                    {
+                                        prevOverlap[0] = endpoint;
                                         isPrevious[0] = true;
-
-                                    misclassified[0] = true;
-                                }
-                                else if (endpoint < prevOverlap[0]) // get largest previous overlap point
-                                {
-                                    prevOverlap[0] = endpoint;
-                                    isPrevious[0] = true;
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // if overlap area exceeds 90% or total area, set overlap point to previous overlap point or threshold
-            if ((DV.overlapArea[0] + DV.overlapArea[1]) / (totalArea[0] + totalArea[1]) > 0.9)
+                // if overlap area exceeds 90% or total area, set overlap point to previous overlap point or threshold
+                if ((DV.overlapArea[0] + DV.overlapArea[1]) / (totalArea[0] + totalArea[1]) > 0.9)
+                {
+                    double high = Math.abs(totalArea[1]) - Math.abs(DV.overlapArea[1]);
+
+                    double low = Math.abs(DV.overlapArea[0]) - Math.abs(totalArea[0]);
+
+                    if (high >= low)
+                    {
+                        if (isPrevious[1])
+                            DV.overlapArea[1] = prevOverlap[1];
+                        else
+                            DV.overlapArea[1] = DV.threshold;
+                    }
+                    else
+                    {
+                        if (isPrevious[0])
+                            DV.overlapArea[0] = prevOverlap[0];
+                        else
+                            DV.overlapArea[0] = DV.threshold;
+                    }
+                }
+
+                // if a class was never misclassified set overlap point to the threshold
+                if (misclassified[0] && !misclassified[1])
+                    DV.overlapArea[1] = DV.threshold;
+                else if (!misclassified[0] && misclassified[1])
+                    DV.overlapArea[0] = DV.threshold;
+
+                // set slider
+                DV.overlapSlider.setValue((int) (DV.overlapArea[0] / DV.fieldLength * 200) + 200);
+                DV.overlapSlider.setUpperValue((int) (DV.overlapArea[1] / DV.fieldLength * 200) + 200);
+            }
+            else
             {
-                double high = Math.abs(totalArea[1]) - Math.abs(DV.overlapArea[1]);
+                int totalPoints = 0;
 
-                double low = Math.abs(DV.overlapArea[0]) - Math.abs(totalArea[0]);
+                for (DataObject dataPoint : DV.data)
+                    totalPoints += dataPoint.data.length;
 
-                if (high >= low)
+                double[] data = new double[totalPoints];
+                double[] indices = new double[totalPoints];
+
+                int cnt = 0;
+
+                for (int i = 0; i < DV.data.size(); i++)
                 {
-                    if (isPrevious[1])
-                        DV.overlapArea[1] = prevOverlap[1];
-                    else
-                        DV.overlapArea[1] = DV.threshold;
+                    int len = DV.data.get(i).data.length;
+
+                    for (int j = 0; j < len; j++)
+                    {
+                        data[cnt] = DV.data.get(i).coordinates[j][len-1][0];
+                        indices[cnt] = cnt++;
+                    }
                 }
-                else
-                {
-                    if (isPrevious[0])
-                        DV.overlapArea[0] = prevOverlap[0];
-                    else
-                        DV.overlapArea[0] = DV.threshold;
-                }
+
+
             }
-
-            // if a class was never misclassified set overlap point to the threshold
-            if (misclassified[0] && !misclassified[1])
-                DV.overlapArea[1] = DV.threshold;
-            else if (!misclassified[0] && misclassified[1])
-                DV.overlapArea[0] = DV.threshold;
-
-            // set slider
-            DV.overlapSlider.setValue((int) (DV.overlapArea[0] / DV.fieldLength * 200) + 200);
-            DV.overlapSlider.setUpperValue((int) (DV.overlapArea[1] / DV.fieldLength * 200) + 200);
         }
         else
         {
