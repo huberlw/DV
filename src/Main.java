@@ -12,7 +12,7 @@ public class Main
     {
         // set look and feel to current system
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        /*Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
         // set size
         if(screenSize.getWidth() >= 1280)
@@ -21,7 +21,7 @@ public class Main
                 Resolutions.setResolution(0);
             else
                 Resolutions.setResolution(1);
-        }
+        }*/
 
         // start DV program
         DV dv = new DV();

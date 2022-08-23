@@ -102,11 +102,19 @@ public class AngleSliders
 
         // main panel for angle
         // holds textField, slider, and label
-        JPanel anglePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
-        anglePanel.setAlignmentX(SwingConstants.LEFT);
-        anglePanel.add(angleSlider);
-        anglePanel.add(angleText);
-        anglePanel.add(angleLabel);
+        JPanel anglePanel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+
+        c.gridx = 0;
+        c.gridy = 0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        anglePanel.add(angleSlider, c);
+
+        c.gridy = 1;
+        anglePanel.add(angleLabel, c);
+
+        c.gridx = 1;
+        anglePanel.add(angleText, c);
 
         // add to angle slider panel
         DV.angleSliderPanel.add(anglePanel);
@@ -204,11 +212,22 @@ public class AngleSliders
 
         // main panel for angle
         // holds textField, slider, and label
-        JPanel anglePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
-        anglePanel.setAlignmentX(SwingConstants.LEFT);
-        anglePanel.add(angleSlider);
-        anglePanel.add(angleText);
-        anglePanel.add(angleLabel);
+        JPanel anglePanel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+
+        c.gridx = 0;
+        c.gridy = 0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        anglePanel.add(angleSlider, c);
+
+        c.gridx = 1;
+        anglePanel.add(angleText, c);
+
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridwidth = 2;
+        anglePanel.add(angleLabel, c);
 
         // add to angle slider panel
         DV.angleSliderPanel.add(anglePanel);

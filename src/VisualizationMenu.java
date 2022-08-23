@@ -669,7 +669,6 @@ public class VisualizationMenu extends JPanel
                             DV.data.addAll(DV.normalizedData);
 
                             DV.crossValidationNotGenerated = true;
-                            DV.angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * DV.fieldLength)));
 
                             DataVisualization.optimizeSetup();
                             DataVisualization.drawGraphs();
@@ -742,7 +741,6 @@ public class VisualizationMenu extends JPanel
                                 }
 
                                 DV.crossValidationNotGenerated = true;
-                                DV.angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * DV.fieldLength)));
 
                                 DataVisualization.optimizeSetup();
                                 DataVisualization.drawGraphs();

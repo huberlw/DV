@@ -29,6 +29,7 @@ public class DV extends JFrame
     static JSlider thresholdSlider;
 
     // panels
+    static JPanel mainPanel;
     static JPanel angleSliderPanel;
     static JPanel confusionMatrixPanel;
     static JPanel crossValidationPanel;
@@ -46,12 +47,14 @@ public class DV extends JFrame
     static boolean displayRemoteAnalytics;
 
     // scroll areas
-    JScrollPane graphPane;
     JScrollPane anglesPane;
     JScrollPane analyticsPane;
 
     // main frame for DV
     static JFrame mainFrame;
+
+    // minimum frame size
+    static final int[] minSize = new int[]{ 1280, 720 };
 
     /**************************************************
      * FOR GRAPHS
@@ -211,7 +214,7 @@ public class DV extends JFrame
     {
         // set DV properties
         super("DV");
-        this.setSize(Resolutions.dvWindow[0], Resolutions.dvWindow[1]);
+        this.setSize(minSize[0], minSize[1]);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setExtendedState(this.getExtendedState() & (~JFrame.ICONIFIED));
         this.setLocationRelativeTo(null);
@@ -220,28 +223,24 @@ public class DV extends JFrame
         // set mainFrame to DV
         mainFrame = this;
 
-        // setup layout with constraints
-        mainFrame.setLayout(new GridBagLayout());
-        GridBagConstraints constraints = new GridBagConstraints();
+        // setup layout
+        mainFrame.setLayout(new BorderLayout());
 
         // create menu bar
         createMenuBar();
 
         // create and add toolbar
-        JPanel toolBar = createToolBar();
+        JToolBar toolBar = createToolBar();
+        mainFrame.add(toolBar, BorderLayout.PAGE_START);
 
-        constraints.weightx = 1;
-        constraints.gridx = 0;
-        constraints.gridy = 0;
-        constraints.gridwidth = 1;
-        constraints.anchor = GridBagConstraints.FIRST_LINE_START;
-        mainFrame.add(toolBar, constraints);
+        mainPanel = new JPanel();
+        mainPanel.setLayout(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
 
         // set layouts for remote panels
         remoteGraphPanel = new JPanel();
         remoteGraphPanel.setLayout(new BoxLayout(remoteGraphPanel, BoxLayout.Y_AXIS));
         remoteGraphPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        remoteGraphPanel.setPreferredSize(new Dimension(Resolutions.chartPanel[0], Resolutions.chartPanel[1]));
 
         remoteAnalyticsPanel = new JPanel();
         remoteAnalyticsPanel.setLayout(new BoxLayout(remoteAnalyticsPanel, BoxLayout.Y_AXIS));
@@ -254,26 +253,28 @@ public class DV extends JFrame
 
         // set layout for graphPanel
         graphPanel = new JPanel();
-        graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.Y_AXIS));
+        graphPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gpc = new GridBagConstraints();
+        gpc.gridx = 0;
+        gpc.gridy = 0;
+        gpc.weightx = 1;
+        gpc.weighty = 1;
+        gpc.fill = GridBagConstraints.BOTH;
 
         // add blank graph
-        graphPanel.add(blankGraph());
+        graphPanel.add(blankGraph(), gpc);
 
-        graphPane = new JScrollPane(graphPanel);
-
-        // center graph
-        graphPane.setAlignmentX(Component.CENTER_ALIGNMENT);
-        graphPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        c.gridx = 0;
+        c.gridy = 0;
+        c.weightx = 0.8;
+        c.weighty = 0.7;
+        c.fill = GridBagConstraints.BOTH;
+        mainPanel.add(graphPanel, c);
 
         // set layout and size
         sliderPanel = new JPanel();
-        sliderPanel.setLayout(new BoxLayout(sliderPanel, BoxLayout.Y_AXIS));
-        sliderPanel.setPreferredSize(new Dimension(Resolutions.sliderPanel[0], Resolutions.sliderPanel[1]));
-
-        sliderPanel.add(graphPane);
-
-        // create domain slider
-        JPanel domainSliderPanel = new JPanel();
+        sliderPanel.setLayout(new GridBagLayout());
+        GridBagConstraints sc = new GridBagConstraints();
 
         // set colors minimum and maximum of slider
         domainSlider = new RangeSlider()
@@ -292,22 +293,21 @@ public class DV extends JFrame
         domainSlider.setUpperValue(400);
         domainSlider.setToolTipText("Control visible range of graph");
 
-        // set preferred size and alignment
-        domainSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
-        domainSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         // add to panels
-        domainSliderPanel.add(domainSlider);
-        sliderPanel.add(domainSliderPanel);
+        sc.gridx = 0;
+        sc.gridy = 0;
+        sc.weightx = 1;
+        sc.fill = GridBagConstraints.HORIZONTAL;
+        sc.ipady = 8;
+        sliderPanel.add(domainSlider, sc);
 
         // add label
         JPanel domainSliderLabel = new JPanel();
         domainSliderLabel.add(new JLabel("Setting up Subset of Utilized Data for All Classes"));
         domainSliderLabel.setToolTipText("Control visible range of graph");
-        sliderPanel.add(domainSliderLabel);
-
-        // create overlap slider
-        JPanel overlapSliderPanel = new JPanel();
+        sc.gridy = 1;
+        sc.ipady = 0;
+        sliderPanel.add(domainSliderLabel, sc);
 
         // set colors and minimum and maximum of slider
         overlapSlider = new RangeSlider()
@@ -326,22 +326,20 @@ public class DV extends JFrame
         overlapSlider.setUpperValue(400);
         overlapSlider.setToolTipText("Control overlap area of graph");
 
-        // set preferred size and alignment
-        overlapSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
-        overlapSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        // add to panels
-        overlapSliderPanel.add(overlapSlider);
-        sliderPanel.add(overlapSliderPanel);
+        // add to panel
+        sc.gridy = 2;
+        sc.ipady = 8;
+        sliderPanel.add(overlapSlider, sc);
 
         // add label
         JPanel overlapSliderLabel = new JPanel();
         overlapSliderLabel.add(new JLabel("Setting up Overlap Area for All Classes"));
         overlapSliderLabel.setToolTipText("Control overlap Area of graph");
-        sliderPanel.add(overlapSliderLabel);
+        sc.gridy = 3;
+        sc.ipady = 0;
+        sliderPanel.add(overlapSliderLabel, sc);
 
         // create threshold slider
-        JPanel thresholdSliderPanel = new JPanel();
         thresholdSlider = new JSlider()
         {
             @Override
@@ -358,37 +356,23 @@ public class DV extends JFrame
         thresholdSlider.setValue(200);
         thresholdSlider.setToolTipText("Change threshold value for visualization");
 
-        // set preferred size and alignment
-        thresholdSlider.setPreferredSize(new Dimension(Resolutions.domainSlider[0], Resolutions.domainSlider[1]));
-        thresholdSlider.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         // add to panels
-        thresholdSliderPanel.add(thresholdSlider);
-        sliderPanel.add(thresholdSliderPanel);
+        sc.gridy = 4;
+        sc.ipady = 8;
+        sliderPanel.add(thresholdSlider, sc);
 
         // add label
         JPanel thresholdSliderLabel = new JPanel();
         thresholdSliderLabel.add(new JLabel("Setting up Area of the Class Threshold"));
         thresholdSliderLabel.setToolTipText("Change threshold value for visualization");
-        sliderPanel.add(thresholdSliderLabel);
+        sc.gridy = 5;
+        sc.ipady = 0;
+        sliderPanel.add(thresholdSliderLabel, sc);
 
         // finalize domain panel
-        constraints.weightx = 0.7;
-        constraints.gridx = 0;
-        constraints.gridy = 1;
-        mainFrame.add(sliderPanel, constraints);
-
-        // create angles scroll pane
-        angleSliderPanel = new JPanel();
-        angleSliderPanel.setLayout(new BoxLayout(angleSliderPanel, BoxLayout.PAGE_AXIS));
-        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], Resolutions.angleSliderPanel[1]));
-        anglesPane = new JScrollPane(angleSliderPanel);
-        anglesPane.setPreferredSize(new Dimension(Resolutions.anglesPane[0], Resolutions.anglesPane[1]));
-
-        constraints.weightx = 0.3;
-        constraints.gridx = 1;
-        constraints.gridy = 1;
-        mainFrame.add(anglesPane, constraints);
+        c.gridy = 1;
+        c.weighty = 0.15;
+        mainPanel.add(sliderPanel, c);
 
         // create confusion matrix and cross validation panels
         confusionMatrixPanel = new JPanel(new GridLayout(0, 4, 5, 5));
@@ -402,14 +386,27 @@ public class DV extends JFrame
 
         // create confusion matrix pane
         analyticsPane = new JScrollPane(analyticsPanel);
-        analyticsPane.setPreferredSize(new Dimension(Resolutions.analyticsPane[0], Resolutions.analyticsPane[1]));
         analyticsPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        constraints.weightx = 1;
-        constraints.gridx = 0;
-        constraints.gridy = 2;
-        constraints.gridwidth = 2;
-        mainFrame.add(analyticsPane, constraints);
+        c.weightx = 1;
+        c.gridy = 2;
+        c.gridwidth = 2;
+        mainPanel.add(analyticsPane, c);
+
+        // create angles scroll pane
+        angleSliderPanel = new JPanel();
+        angleSliderPanel.setLayout(new BoxLayout(angleSliderPanel, BoxLayout.PAGE_AXIS));
+        anglesPane = new JScrollPane(angleSliderPanel);
+
+        c.weightx = 0.2;
+        c.weighty = 0.85;
+        c.gridx = 1;
+        c.gridy = 0;
+        c.gridwidth = 1;
+        c.gridheight = 2;
+        mainPanel.add(anglesPane, c);
+
+        mainFrame.add(mainPanel, BorderLayout.CENTER);
 
         // add control panel to mainPanel
         controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -417,28 +414,22 @@ public class DV extends JFrame
         mouseControls.setFont(mouseControls.getFont().deriveFont(Font.BOLD, 12f));
         controlPanel.add(mouseControls);
 
-        JLabel controls = new JLabel("panning = ctrl + hold left mouse button, " +
-                "zooming = scroll wheel, " +
-                "unequal zoom in selected rectangle = hold left mouse button + drag down and right, " +
-                "unequal zoom out = hold left mouse button + drag left or up");
+        JLabel controls = new JLabel("pan = ctrl + hold left click, " +
+                "zoom = scroll wheel, " +
+                "unequal zoom in selected rectangle = hold left click + drag down and right, " +
+                "unequal zoom out = hold left click + drag left or up");
         controls.setFont(controls.getFont().deriveFont(12f));
-
         controlPanel.add(controls);
-        controlPanel.setPreferredSize(new Dimension(Resolutions.uiControlsPanel[0], Resolutions.uiControlsPanel[1]));
 
-        constraints.weightx = 1;
-        constraints.gridx = 0;
-        constraints.gridy = 3;
-        constraints.gridwidth = 2;
-        constraints.insets = new Insets(Resolutions.uiControlsPanel[2], Resolutions.uiControlsPanel[2], 0, 0);
-        constraints.anchor = GridBagConstraints.WEST;
-        mainFrame.add(controlPanel, constraints);
+        mainFrame.add(controlPanel, BorderLayout.PAGE_END);
 
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         mainFrame.revalidate();
         mainFrame.pack();
         mainFrame.repaint();
+
+        mainFrame.setMinimumSize(new Dimension(minSize[0], minSize[1]));
     }
 
 
@@ -596,7 +587,7 @@ public class DV extends JFrame
     /**
      * Creates toolbar for DV Program
      */
-    private JPanel createToolBar()
+    private JToolBar createToolBar()
     {
         // create toolbar
         JToolBar toolBar = new JToolBar();
@@ -686,12 +677,7 @@ public class DV extends JFrame
         //normAnglesBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\line-chart.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
         barLineBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
 
-        // set toolbar north
-        JPanel toolBarPanel = new JPanel();
-        toolBarPanel.setVisible(true);
-        toolBarPanel.add(toolBar);
-
-        return toolBarPanel;
+        return toolBar;
     }
 
 
@@ -737,7 +723,6 @@ public class DV extends JFrame
         chart.setBorderVisible(false);
         ChartPanel chartPanel = new ChartPanel(chart);
         chartPanel.setMouseWheelEnabled(true);
-        chartPanel.setPreferredSize(new Dimension(Resolutions.chartPanel[0], Resolutions.chartPanel[1]));
 
         return chartPanel;
     }
@@ -829,8 +814,6 @@ public class DV extends JFrame
                 {
                     // optimize data setup with Linear Discriminant Analysis
                     DataVisualization.optimizeSetup();
-                    angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
-
                     DataVisualization.drawGraphs();
 
                     // get support vectors
@@ -918,8 +901,6 @@ public class DV extends JFrame
                     {
                         // optimize data setup with Linear Discriminant Analysis
                         DataVisualization.optimizeSetup();
-                        angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
-
                         DataVisualization.drawGraphs();
                     }
                     else
@@ -1011,7 +992,6 @@ public class DV extends JFrame
                 DataVisualization.verticalScale = classNumber > 1 ? 0.4 : 0.8;
 
                 // create angle sliders
-                angleSliderPanel.setPreferredSize(new Dimension(Resolutions.angleSliderPanel[0], (100 * fieldLength)));
                 angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
 
                 for (int i = 0; i < fieldLength; i++)

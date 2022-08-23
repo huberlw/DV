@@ -7,6 +7,8 @@
 6. Make fully resizeable
 7. Reorder attributes option
 8. Remove attributes option
+9. Add icon for angle normalization button
+10. Different normalization styles for angle normalization
 
 # Wish List
 1. Create more than 1 projection line

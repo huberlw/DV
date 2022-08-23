@@ -406,7 +406,7 @@ public class DataVisualization
                  angleRange = new int[]{ -90, 90 };
 
              // try optimizing 200 times
-             while (cnt < 5000)
+             while (cnt < 200)
              {
                  // get random angles
                  for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)
@@ -917,15 +917,23 @@ public class DataVisualization
             return;
         }
 
+        GridBagConstraints gpc = new GridBagConstraints();
+        gpc.gridx = 0;
+        gpc.weightx = 1;
+        gpc.weighty = 1;
+        gpc.fill = GridBagConstraints.BOTH;
+
         // add graphs in order
         for (int i = 0; i < GRAPHS.size(); i++)
         {
+            gpc.gridy = i;
+
             if (GRAPHS.containsKey(i))
             {
-                DV.graphPanel.add(GRAPHS.get(i));
+                DV.graphPanel.add(GRAPHS.get(i), gpc);
 
                 if (DV.displayRemoteGraphs)
-                    DV.remoteGraphPanel.add(REMOTE_GRAPHS.get(i));
+                    DV.remoteGraphPanel.add(REMOTE_GRAPHS.get(i), gpc);
             }
         }
 
@@ -1385,8 +1393,6 @@ public class DataVisualization
 
             if (DV.classNumber == 1)
                 vertical_res *= 2;
-
-            chartPanel.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1] * vertical_res));
 
             // show datapoint when clicked
             chartPanel.addChartMouseListener(new ChartMouseListener()
