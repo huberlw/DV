@@ -343,11 +343,11 @@ public class DataVisualization
 
         // increment equals 2 slider ticks
         double increment = DV.fieldLength / 200.0;
-        DV.threshold = 0;
+        DV.threshold = -DV.fieldLength;
 
         // search for best threshold
         // search range is 100% of total range
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 400; i++)
         {
             // calculate accuracy with trial threshold
             getAccuracy();
@@ -406,7 +406,7 @@ public class DataVisualization
                  angleRange = new int[]{ -90, 90 };
 
              // try optimizing 200 times
-             while (cnt < 200)
+             while (cnt < 2000)
              {
                  // get random angles
                  for (int i = 0; i < DV.data.get(0).coordinates[0].length; i++)

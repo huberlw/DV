@@ -6,7 +6,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class VisualizationMenu extends JPanel
 {
@@ -39,11 +38,11 @@ public class VisualizationMenu extends JPanel
             plotTypePanel.add(glc);
             plotTypePanel.add(dsc);
 
-            JOptionPane.showConfirmDialog(DV.mainFrame, plotTypePanel, "Plot Type", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            int choice = JOptionPane.showConfirmDialog(DV.mainFrame, plotTypePanel, "Plot Type", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
             DV.glc_or_dsc = glc.isSelected();
 
-            if (DV.data != null)
+            if (choice == 0 && DV.data != null)
             {
                 DV.angleSliderPanel.removeAll();
 
@@ -255,64 +254,278 @@ public class VisualizationMenu extends JPanel
                 c.gridwidth = 2;
                 c.fill = GridBagConstraints.HORIZONTAL;
 
-                reorder.add(new JLabel("Checked attributes will be displayed."), c);
+                reorder.add(new JLabel("Attributes will be displayed in the specified order."), c);
 
                 int yCnt = 0;
                 c.gridwidth = 1;
 
-                JSpinner[] attributes = new JSpinner[DV.fieldLength];
-                AtomicInteger cnt = new AtomicInteger(0);
+                final ArrayList<JSpinner> attributes = new ArrayList<>();
+                final ArrayList<Integer> values = new ArrayList<>();
 
-                for (String field : DV.fieldNames)
+                for (int i = 0; i < DV.fieldNames.size(); i++)
                 {
                     c.gridx = 0;
                     c.gridy = ++yCnt;
                     c.weightx = 0.7;
 
-                    reorder.add(new JLabel(field), c);
+                    reorder.add(new JLabel(DV.fieldNames.get(i)), c);
 
-                    final int curIndex = DV.fieldNames.indexOf(field);
-                    final int index = cnt.get();
+                    final int index = i;
 
-                    attributes[index] = new JSpinner();
-                    attributes[index].setValue(curIndex);
-                    attributes[index].addChangeListener(ee ->
+                    attributes.add(new JSpinner());
+                    values.add(i);
+                    attributes.get(i).setValue(i);
+                    attributes.get(i).addChangeListener(ee ->
                     {
-                        int newIndex = (Integer) attributes[index].getValue();
+                        int newVal = (Integer) attributes.get(index).getValue();
+                        int oldVal = values.get(index);
 
-                        for (int i = 0; i < DV.fieldLength; i++)
+                        if (newVal != oldVal)
                         {
-                            if ( i != index && (Integer) attributes[i].getValue() == newIndex)
+                            if (newVal < DV.fieldLength && newVal > -1)
                             {
-                                attributes[i].setValue(curIndex);
-                                break;
+                                int oldIndex;
+                                for (oldIndex = 0; oldIndex < DV.fieldLength; oldIndex++)
+                                {
+                                    if (oldIndex != index && values.get(oldIndex) == newVal)
+                                    {
+                                        values.set(index, newVal);
+                                        values.set(oldIndex, oldVal);
+                                        attributes.get(oldIndex).setValue(oldVal);
+                                        break;
+                                    }
+                                }
+
+                                // reorder fieldnames
+                                String tmpName = DV.fieldNames.get(index);
+                                DV.fieldNames.set(index, DV.fieldNames.get(oldIndex));
+                                DV.fieldNames.set(oldIndex, tmpName);
+
+                                // reorder angles
+                                double tmpAngle = DV.angles[index];
+                                DV.angles[index] = DV.angles[oldIndex];
+                                DV.angles[oldIndex] = tmpAngle;
+
+                                // reorder in all data
+                                for (int k = 0; k < DV.data.size(); k++)
+                                {
+                                    for (int j = 0; j < DV.data.get(k).data.length; j++)
+                                    {
+                                        double tmp = DV.data.get(k).data[j][index];
+                                        DV.data.get(k).data[j][index] = DV.data.get(k).data[j][oldIndex];
+                                        DV.data.get(k).data[j][oldIndex] = tmp;
+                                    }
+                                }
+
+                                DV.angleSliderPanel.removeAll();
+
+                                // update angles
+                                for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
+                                {
+                                    if (DV.glc_or_dsc)
+                                        AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                                    else
+                                        AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+                                }
+
+                                // optimize threshold
+                                if (DV.glc_or_dsc)
+                                    DataVisualization.optimizeThreshold(0);
+                                else
+                                    DataVisualization.findBestThreshold(0);
+
+                                // try again with upperIsLower false
+                                double upperIsLowerAccuracy = DV.accuracy;
+                                DV.upperIsLower = false;
+
+                                if (DV.glc_or_dsc)
+                                    DataVisualization.optimizeThreshold(0);
+                                else
+                                    DataVisualization.findBestThreshold(0);
+
+                                // see whether upper is actually lower
+                                if (DV.accuracy < upperIsLowerAccuracy)
+                                {
+                                    DV.upperIsLower = true;
+
+                                    if (DV.glc_or_dsc)
+                                        DataVisualization.optimizeThreshold(0);
+                                    else
+                                        DataVisualization.findBestThreshold(0);
+                                }
+
+                                DataVisualization.drawGraphs();
+                            }
+                            else
+                            {
+                                attributes.get(index).setValue(oldVal);
                             }
                         }
-
-                        // reorder fieldnames
-                        String tmp = DV.fieldNames.get(newIndex);
-                        DV.fieldNames.set(newIndex, DV.fieldNames.get(curIndex));
-                        DV.fieldNames.set(curIndex, tmp);
-
-                        // reorder in all data
-                        for (int i = 0; i < DV.data.size(); i++)
-                        {
-                            for (int j = 0; j < DV.data.get(i).data.length; j++)
-                            {
-                                double tmp2 = DV.data.get(i).data[j][newIndex];
-                                DV.data.get(i).data[j][newIndex] = DV.data.get(i).data[j][curIndex];
-                                DV.data.get(i).data[j][curIndex] = tmp2;
-                            }
-                        }
-
                     });
 
                     c.gridx = 1;
                     c.weightx = 0.3;
 
-                    reorder.add(attributes[index], c);
-                    cnt.set(cnt.get()+1);
+                    reorder.add(attributes.get(index), c);
                 }
+
+                // order from least to greatest contribution
+                JButton lessToGreat = new JButton("Ascending Contribution");
+                lessToGreat.setToolTipText("Order attribute from least contributing (largest angle) to most contributing (smallest angle).");
+                lessToGreat.addActionListener(ee ->
+                {
+                    // bubble sort ascending
+                    for (int i = 0; i < DV.fieldLength - 1; i++)
+                    {
+                        for (int j = 0; j < DV.fieldLength - i - 1; j++)
+                        {
+                            if (DV.angles[j] < DV.angles[j+1])
+                            {
+                                double tmp1 = DV.angles[j];
+                                DV.angles[j] = DV.angles[j+1];
+                                DV.angles[j+1] = tmp1;
+
+                                String tmp2 = DV.fieldNames.get(j);
+                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
+                                DV.fieldNames.set(j+1, tmp2);
+
+                                // reorder in all data
+                                for (int k = 0; k < DV.data.size(); k++)
+                                {
+                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
+                                    {
+                                        double tmp = DV.data.get(k).data[w][j];
+                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
+                                        DV.data.get(k).data[w][j+1] = tmp;
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    DV.angleSliderPanel.removeAll();
+
+                    // update angles
+                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
+                    {
+                        if (DV.glc_or_dsc)
+                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                        else
+                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+                    }
+
+                    // optimize threshold
+                    if (DV.glc_or_dsc)
+                        DataVisualization.optimizeThreshold(0);
+                    else
+                        DataVisualization.findBestThreshold(0);
+
+                    // try again with upperIsLower false
+                    double upperIsLowerAccuracy = DV.accuracy;
+                    DV.upperIsLower = false;
+
+                    if (DV.glc_or_dsc)
+                        DataVisualization.optimizeThreshold(0);
+                    else
+                        DataVisualization.findBestThreshold(0);
+
+                    // see whether upper is actually lower
+                    if (DV.accuracy < upperIsLowerAccuracy)
+                    {
+                        DV.upperIsLower = true;
+
+                        if (DV.glc_or_dsc)
+                            DataVisualization.optimizeThreshold(0);
+                        else
+                            DataVisualization.findBestThreshold(0);
+                    }
+
+                    DataVisualization.drawGraphs();
+                });
+
+                c.gridx = 0;
+                c.gridy = ++yCnt;
+                c.weightx = 0.5;
+                reorder.add(lessToGreat, c);
+
+                // order from greatest to least contribution
+                JButton greatToLess = new JButton("Descending Contribution");
+                greatToLess.setToolTipText("Order attribute from most contributing (smallest angle) to least contributing (largest angle).");
+                greatToLess.addActionListener(ee ->
+                {
+                    // bubble sort descending
+                    for (int i = 0; i < DV.fieldLength - 1; i++)
+                    {
+                        for (int j = 0; j < DV.fieldLength - i - 1; j++)
+                        {
+                            if (DV.angles[j] > DV.angles[j+1])
+                            {
+                                double tmp1 = DV.angles[j];
+                                DV.angles[j] = DV.angles[j+1];
+                                DV.angles[j+1] = tmp1;
+
+                                String tmp2 = DV.fieldNames.get(j);
+                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
+                                DV.fieldNames.set(j+1, tmp2);
+
+                                // reorder in all data
+                                for (int k = 0; k < DV.data.size(); k++)
+                                {
+                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
+                                    {
+                                        double tmp = DV.data.get(k).data[w][j];
+                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
+                                        DV.data.get(k).data[w][j+1] = tmp;
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    DV.angleSliderPanel.removeAll();
+
+                    // update angles
+                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
+                    {
+                        if (DV.glc_or_dsc)
+                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                        else
+                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+                    }
+
+                    // optimize threshold
+                    if (DV.glc_or_dsc)
+                        DataVisualization.optimizeThreshold(0);
+                    else
+                        DataVisualization.findBestThreshold(0);
+
+                    // try again with upperIsLower false
+                    double upperIsLowerAccuracy = DV.accuracy;
+                    DV.upperIsLower = false;
+
+                    if (DV.glc_or_dsc)
+                        DataVisualization.optimizeThreshold(0);
+                    else
+                        DataVisualization.findBestThreshold(0);
+
+                    // see whether upper is actually lower
+                    if (DV.accuracy < upperIsLowerAccuracy)
+                    {
+                        DV.upperIsLower = true;
+
+                        if (DV.glc_or_dsc)
+                            DataVisualization.optimizeThreshold(0);
+                        else
+                            DataVisualization.findBestThreshold(0);
+                    }
+
+                    DataVisualization.drawGraphs();
+                });
+                c.gridx = 1;
+                c.weightx = 0.5;
+                reorder.add(greatToLess, c);
 
                 JOptionPane.showMessageDialog(DV.mainFrame, reorder, "Reorder Attributes", JOptionPane.PLAIN_MESSAGE);
             }
