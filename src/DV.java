@@ -674,7 +674,7 @@ public class DV extends JFrame
         resetScreenBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
         optimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\up-right-arrow.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
         undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
-        //normAnglesBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\line-chart.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
+        normAnglesBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\between.png"), normAnglesBtn.getHeight() - offset, normAnglesBtn.getHeight() - offset));
         barLineBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\bar-graph.png"), barLineBtn.getHeight() - offset, barLineBtn.getHeight() - offset));
 
         return toolBar;

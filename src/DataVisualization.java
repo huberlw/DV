@@ -900,6 +900,9 @@ public class DataVisualization
             lowerGraph.execute();
         }
 
+        //AddTimeLine timeLine = new AddTimeLine(new ArrayList<>(List.of(upperObjects, lowerObjects)), graphScaler);
+        //timeLine.execute();
+
         // wait for threads to finish
         try
         {
@@ -910,6 +913,8 @@ public class DataVisualization
             upperGraph.get();
             if (DV.hasClasses && lowerGraph != null)
                 lowerGraph.get();
+
+            //timeLine.get();
         }
         catch (ExecutionException | InterruptedException e)
         {
@@ -1906,4 +1911,531 @@ public class DataVisualization
             return true;
         }
     }
+
+    /*private static class AddTimeLine extends SwingWorker<Boolean, Void>
+    {
+        final ArrayList<ArrayList<DataObject>> DATA_OBJECTS;
+        final double GRAPH_SCALER;
+
+        AddTimeLine(ArrayList<ArrayList<DataObject>> dataObjects, double graphScaler)
+        {
+            this.DATA_OBJECTS = dataObjects;
+            this.GRAPH_SCALER = graphScaler;
+        }
+
+        @Override
+        protected Boolean doInBackground()
+        {
+            // create renderer for domain, overlap, and threshold lines
+            XYLineAndShapeRenderer domainRenderer = new XYLineAndShapeRenderer(true, false);
+            XYLineAndShapeRenderer overlapRenderer = new XYLineAndShapeRenderer(true, false);
+            XYLineAndShapeRenderer thresholdRenderer = new XYLineAndShapeRenderer(true, false);
+            XYSeriesCollection domain = new XYSeriesCollection();
+            XYSeriesCollection overlap = new XYSeriesCollection();
+            XYSeriesCollection threshold = new XYSeriesCollection();
+            XYSeries domainMaxLine = new XYSeries(-1, false, true);
+            XYSeries domainMinLine = new XYSeries(-2, false, true);
+            XYSeries overlapMaxLine = new XYSeries(-3, false, true);
+            XYSeries overlapMinLine = new XYSeries(-4, false, true);
+            XYSeries thresholdLine = new XYSeries(0, false, true);
+
+            // set domain lines
+            domainMinLine.add(DV.domainArea[0], 0);
+            domainMinLine.add(DV.domainArea[0], 1);
+            domainMaxLine.add(DV.domainArea[1], 0);
+            domainMaxLine.add(DV.domainArea[1], 1);
+
+            // add domain series to collection
+            domain.addSeries(domainMaxLine);
+            domain.addSeries(domainMinLine);
+
+            // set overlap lines
+            overlapMinLine.add(DV.overlapArea[0], 0);
+            overlapMinLine.add(DV.overlapArea[0], 1);
+            overlapMaxLine.add(DV.overlapArea[1], 0);
+            overlapMaxLine.add(DV.overlapArea[1], 1);
+
+            // add overlap series to collection
+            overlap.addSeries(overlapMaxLine);
+            overlap.addSeries(overlapMinLine);
+
+            // get threshold line
+            thresholdLine.add(DV.threshold, 0);
+            thresholdLine.add(DV.threshold, 1);
+
+            // add threshold series to collection
+            threshold.addSeries(thresholdLine);
+
+            // renderer for endpoint, midpoint, and timeline
+            XYLineAndShapeRenderer timeLineRenderer = new XYLineAndShapeRenderer(false, true);
+            XYLineAndShapeRenderer svmTimeLineRenderer = new XYLineAndShapeRenderer(false, true);
+            XYSeriesCollection timeLine = new XYSeriesCollection();
+            XYSeriesCollection svmTimeLine = new XYSeriesCollection();
+            ArrayList<XYSeries> timeLineSeries = new ArrayList<>();
+            XYSeries svmTimeLineSeries = new XYSeries(0, false, true);
+
+            // populate svm series
+            if (DV.drawOnlySVM || DV.drawSVM)
+            {
+                // update coordinates
+                getCoordinates(new ArrayList<>(List.of(DV.supportVectors)));
+
+                for (int i = 0; i < DV.supportVectors.data.length; i++)
+                {
+                    double endpoint = DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[i].length-1][0];
+
+                    // ensure datapoint is within domain
+                    if (!DV.domainActive || (endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]))
+                        svmTimeLineSeries.add(DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[i].length-1][0], 0);
+                }
+            }
+
+            // add data to series
+            svmTimeLine.addSeries(svmTimeLineSeries);
+
+            for (int d = 0; d < DATA_OBJECTS.size(); d++)
+            {
+                timeLineSeries.add(new XYSeries(d, false, true));
+
+                if (!DV.drawOnlySVM)
+                {
+                    for (DataObject data : DATA_OBJECTS.get(d))
+                    {
+                        for (int i = 0; i < data.data.length; i++)
+                        {
+                            double endpoint = data.coordinates[i][data.coordinates[i].length-1][0];
+
+                            // ensure datapoint is within domain
+                            // if drawing overlap, ensure datapoint is within overlap
+                            if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
+                                    (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
+                                timeLineSeries.get(d).add(data.coordinates[i][data.coordinates[i].length-1][0], 0);
+                        }
+                    }
+
+                    // add data to series
+                    timeLine.addSeries(timeLineSeries.get(d));
+                }
+            }
+
+            JFreeChart chart = ChartFactory.createXYLineChart(
+                    "",
+                    "",
+                    "",
+                    timeLine,
+                    PlotOrientation.VERTICAL,
+                    false,
+                    true,
+                    false);
+
+            // format chart
+            chart.setBorderVisible(false);
+            chart.setPadding(RectangleInsets.ZERO_INSETS);
+
+            // get plot
+            XYPlot plot = (XYPlot) chart.getPlot();
+
+            // format plot
+            plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                    new Paint[] { DV.graphColors[0] },
+                    DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                    DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                    DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                    DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+            plot.getRangeAxis().setVisible(false);
+            plot.getDomainAxis().setVisible(false);
+            plot.setOutlinePaint(null);
+            plot.setOutlineVisible(false);
+            plot.setInsets(RectangleInsets.ZERO_INSETS);
+            plot.setDomainPannable(true);
+            plot.setRangePannable(true);
+            plot.setBackgroundPaint(DV.background);
+            plot.setDomainGridlinePaint(Color.GRAY);
+            plot.setRangeGridlinePaint(Color.GRAY);
+
+            // set domain and range of graph
+            double bound = GRAPH_SCALER * DV.fieldLength;
+            double tick = DV.fieldLength / 10.0;
+
+            // set domain
+            ValueAxis domainView = plot.getDomainAxis();
+            domainView.setRange(-bound, bound);
+            NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+            xAxis.setTickUnit(new NumberTickUnit(tick));
+
+            // set range
+            ValueAxis rangeView = plot.getRangeAxis();
+            NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+            yAxis.setTickUnit(new NumberTickUnit(tick));
+            rangeView.setRange(0, bound * verticalScale);
+
+            // create basic strokes
+            BasicStroke thresholdOverlapStroke = new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
+            BasicStroke domainStroke = new BasicStroke(1f);
+
+            // set threshold renderer and dataset
+            thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
+            thresholdRenderer.setSeriesPaint(0, DV.thresholdLine);
+            plot.setRenderer(0, thresholdRenderer);
+            plot.setDataset(0, threshold);
+
+            // set overlap renderer and dataset
+            overlapRenderer.setSeriesStroke(0, thresholdOverlapStroke);
+            overlapRenderer.setSeriesStroke(1, thresholdOverlapStroke);
+            overlapRenderer.setSeriesPaint(0, DV.overlapLines);
+            overlapRenderer.setSeriesPaint(1, DV.overlapLines);
+            plot.setRenderer(1, overlapRenderer);
+            plot.setDataset(1, overlap);
+
+            if (DV.domainActive)
+            {
+                // set domain renderer and dataset
+                domainRenderer.setSeriesStroke(0, domainStroke);
+                domainRenderer.setSeriesStroke(1, domainStroke);
+                domainRenderer.setSeriesPaint(0, DV.domainLines);
+                domainRenderer.setSeriesPaint(1, DV.domainLines);
+                plot.setRenderer(2, domainRenderer);
+                plot.setDataset(2, domain);
+            }
+
+            // set bar or timeline renderer and dataset
+            svmTimeLineRenderer.setSeriesPaint(0, DV.svmLines);
+            plot.setRenderer(3, svmTimeLineRenderer);
+            plot.setDataset(3, svmTimeLine);
+
+            for (int i = 0; i < DATA_OBJECTS.size(); i++)
+            {
+                if (i == 0)
+                    timeLineRenderer.setSeriesShape(i, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
+                else
+                    timeLineRenderer.setSeriesShape(i, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
+
+                timeLineRenderer.setSeriesPaint(i, DV.graphColors[i]);
+            }
+
+            plot.setRenderer(4, timeLineRenderer);
+            plot.setDataset(4, timeLine);
+
+            // create the graph panel and add it to the main panel
+            ChartPanel chartPanel = new ChartPanel(chart);
+            chartPanel.setMouseWheelEnabled(true);
+
+            // set chart size
+            int vertical_res = 1;
+
+            if (DV.classNumber == 1)
+                vertical_res *= 2;
+
+            // show datapoint when clicked
+
+            // add domain listeners
+            DV.domainSlider.addMouseMotionListener(new MouseMotionListener()
+            {
+                @Override
+                public void mouseDragged(MouseEvent e)
+                {
+                    RangeSlider slider = (RangeSlider) e.getSource();
+                    DV.domainArea[0] = (slider.getValue() - 200) * DV.fieldLength / 200.0;
+                    DV.domainArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
+
+                    // draw lines as active (thicker)
+                    BasicStroke activeStroke = new BasicStroke(4f);
+                    domainRenderer.setSeriesStroke(0, activeStroke);
+                    domainRenderer.setSeriesStroke(1, activeStroke);
+
+                    // clear old domain lines
+                    domainMinLine.clear();
+                    domainMaxLine.clear();
+
+                    // clear old lines, midpoints, endpoints, and timeline points
+                    timeLineSeries.clear();
+
+                    // turn notify off
+                    chart.setNotify(false);
+
+                    // set overlap line
+                    domainMinLine.add(DV.domainArea[0], 0);
+                    domainMinLine.add(DV.domainArea[0], 1);
+                    domainMaxLine.add(DV.domainArea[1], 0);
+                    domainMaxLine.add(DV.domainArea[1], 1);
+
+                    // populate series
+                    timeLineSeries.clear();
+
+                    for (int d = 0; d < DATA_OBJECTS.size(); d++)
+                    {
+                        timeLineSeries.add(new XYSeries(d, false, true));
+
+                        if (!DV.drawOnlySVM)
+                        {
+                            for (DataObject data : DATA_OBJECTS.get(d))
+                            {
+                                for (int i = 0; i < data.data.length; i++)
+                                {
+                                    double endpoint = data.coordinates[i][data.coordinates[i].length-1][0];
+
+                                    // ensure datapoint is within domain
+                                    // if drawing overlap, ensure datapoint is within overlap
+                                    if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
+                                            (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
+                                        timeLineSeries.get(d).add(data.coordinates[i][data.coordinates[i].length-1][0], 0);
+                                }
+                            }
+
+                            // add data to series
+                            timeLine.addSeries(timeLineSeries.get(d));
+                        }
+                    }
+
+                    // update graph
+                    chart.setNotify(true);
+
+                    // generate analytics
+                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                    analytics.execute();
+
+                    // wait for generation
+                    try
+                    {
+                        analytics.get();
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        ex.printStackTrace();
+                    }
+
+                    // revalidate graphs and confusion matrices
+                    DV.analyticsPanel.repaint();
+                    DV.analyticsPanel.revalidate();
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {}
+            });
+
+            DV.domainSlider.addMouseListener(new MouseListener()
+            {
+                @Override
+                public void mouseClicked(MouseEvent e) {}
+
+                @Override
+                public void mousePressed(MouseEvent e)
+                {
+                    // draw lines as active (thicker)
+                    BasicStroke activeStroke = new BasicStroke(4f);
+                    domainRenderer.setSeriesStroke(0, activeStroke);
+                    domainRenderer.setSeriesStroke(1, activeStroke);
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e)
+                {
+                    // draw lines as inactive (normal)
+                    BasicStroke inactiveStroke = new BasicStroke(2f);
+                    domainRenderer.setSeriesStroke(0, inactiveStroke);
+                    domainRenderer.setSeriesStroke(1, inactiveStroke);
+                }
+
+                @Override
+                public void mouseEntered(MouseEvent e) {}
+
+                @Override
+                public void mouseExited(MouseEvent e) {}
+            });
+
+            // add overlap listeners
+            DV.overlapSlider.addMouseMotionListener(new MouseMotionListener()
+            {
+                @Override
+                public void mouseDragged(MouseEvent e)
+                {
+                    RangeSlider slider = (RangeSlider) e.getSource();
+                    DV.overlapArea[0] = (slider.getValue() - 200) * DV.fieldLength / 200.0;
+                    DV.overlapArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
+
+                    // draw lines as active (thicker)
+                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
+                    overlapRenderer.setSeriesStroke(0, activeStroke);
+                    overlapRenderer.setSeriesStroke(1, activeStroke);
+
+                    // clear old lines
+                    overlapMinLine.clear();
+                    overlapMaxLine.clear();
+
+                    // turn notify off
+                    chart.setNotify(false);
+
+                    // set overlap line
+                    overlapMinLine.add(DV.overlapArea[0], 0);
+                    overlapMinLine.add(DV.overlapArea[0], 1);
+                    overlapMaxLine.add(DV.overlapArea[1], 0);
+                    overlapMaxLine.add(DV.overlapArea[1], 1);
+
+                    // update graph
+                    chart.setNotify(true);
+
+                    // generate analytics
+                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                    analytics.execute();
+
+                    // wait for generation
+                    try
+                    {
+                        analytics.get();
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        ex.printStackTrace();
+                    }
+
+                    // revalidate graphs and confusion matrices
+                    DV.analyticsPanel.repaint();
+                    DV.analyticsPanel.revalidate();
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {}
+            });
+
+            DV.overlapSlider.addMouseListener(new MouseListener()
+            {
+                @Override
+                public void mouseClicked(MouseEvent e) {}
+
+                @Override
+                public void mousePressed(MouseEvent e)
+                {
+                    // draw lines as active (thicker)
+                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
+                    overlapRenderer.setSeriesStroke(0, activeStroke);
+                    overlapRenderer.setSeriesStroke(1, activeStroke);
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e)
+                {
+                    // draw lines as inactive (normal)
+                    BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
+                    overlapRenderer.setSeriesStroke(0, inactiveStroke);
+                    overlapRenderer.setSeriesStroke(1, inactiveStroke);
+                }
+
+                @Override
+                public void mouseEntered(MouseEvent e) {}
+
+                @Override
+                public void mouseExited(MouseEvent e) {}
+            });
+
+            // add threshold listeners
+            DV.thresholdSlider.addMouseMotionListener(new MouseMotionListener()
+            {
+                @Override
+                public void mouseDragged(MouseEvent e)
+                {
+                    // get position
+                    JSlider slider = (JSlider) e.getSource();
+                    DV.threshold = (slider.getValue() - 200) * DV.fieldLength / 200.0;
+
+                    // draw line as active (thicker)
+                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
+                    thresholdRenderer.setSeriesStroke(0, activeStroke);
+
+                    // clear old line
+                    thresholdLine.clear();
+
+                    // turn notify off
+                    chart.setNotify(false);
+
+                    // set threshold line
+                    thresholdLine.add(DV.threshold, 0);
+                    thresholdLine.add(DV.threshold, 1);
+
+                    // update graph
+                    chart.setNotify(true);
+
+                    // generate analytics
+                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                    analytics.execute();
+
+                    // wait for generation
+                    try
+                    {
+                        analytics.get();
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        ex.printStackTrace();
+                    }
+
+                    // revalidate graphs and confusion matrices
+                    DV.analyticsPanel.repaint();
+                    DV.analyticsPanel.revalidate();
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {}
+            });
+
+            DV.thresholdSlider.addMouseListener(new MouseListener()
+            {
+                @Override
+                public void mouseClicked(MouseEvent e) {}
+
+                @Override
+                public void mousePressed(MouseEvent e)
+                {
+                    // draw lines as active (thicker)
+                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
+                    thresholdRenderer.setSeriesStroke(0, activeStroke);
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e)
+                {
+                    // draw lines as inactive (normal)
+                    BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
+                    thresholdRenderer.setSeriesStroke(0, inactiveStroke);
+                }
+
+                @Override
+                public void mouseEntered(MouseEvent e) {}
+
+                @Override
+                public void mouseExited(MouseEvent e) {}
+            });
+
+            // add graph to graph panel
+            synchronized (GRAPHS)
+            {
+                GRAPHS.put(1, chartPanel);
+            }
+
+            if (DV.displayRemoteGraphs)
+            {
+                try
+                {
+                    // create the graph panel and add it to the main panel
+                    ChartPanel chartPanel2 = new ChartPanel((JFreeChart) chart.clone());
+                    chartPanel2.setMouseWheelEnabled(true);
+                    chartPanel2.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1] * vertical_res));
+
+                    // show datapoint when clicked
+
+
+                    // add graph to graph panel
+                    synchronized (REMOTE_GRAPHS)
+                    {
+                        REMOTE_GRAPHS.put(1, chartPanel2);
+                    }
+                }
+                catch(CloneNotSupportedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+
+            return true;
+        }
+    }*/
 }
