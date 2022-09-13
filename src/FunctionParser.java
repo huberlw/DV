@@ -1,4 +1,3 @@
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.DoubleUnaryOperator;
 
@@ -480,19 +479,5 @@ public class FunctionParser
                 return x;
             }
         }.parse();
-    }
-
-    public static void main(String[] args)
-    {
-        //Map<String,Double> variables = new HashMap<>();
-        Map<String, VectorExpression> variables = new HashMap<>();
-
-        //Expression exp = parseScalerExpression("x + e^2", variables);
-        Expression exp = parseVectorExpression("e^(-1/3 * norm(vSub(x, y))^2)", variables);
-        //Expression exp = parseVectorExpression("(1/3 * dot(x, y) + 1)^3", variables);
-        variables.put("x", () -> new double[]{1, 2, 3});
-        variables.put("y", () -> new double[]{3, 2, 1});
-
-        System.out.println(exp.eval());
     }
 }

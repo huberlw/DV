@@ -52,13 +52,18 @@ public class DataObject
 
             // check for new highest
             if (coordinates[i][coordinates[i].length-1][0] > highest)
-                highest = coordinates[i][coordinates[i].length-1][1];
+                highest = coordinates[i][coordinates[i].length-1][0];
             else if (coordinates[i][coordinates[i].length-1][1] > highest)
                 highest = coordinates[i][coordinates[i].length-1][1];
         }
 
+        highest += DV.fieldLength / 10.0;
+
         // get vertical scaling
-        double vertical_scale = 0.4;
+        /**
+         * CONSTRUCTION
+         */
+        double vertical_scale = (DV.mainPanel.getHeight() * 0.7) / (DV.graphPanel.getWidth() * 0.8);
 
         if (DV.classNumber == 1)
             vertical_scale *= 2;
@@ -117,7 +122,7 @@ public class DataObject
      * @param angle weight of value
      * @return coordinates for value
      */
-    private double[] getXYPointGLC(double value, double angle)
+    public static double[] getXYPointGLC(double value, double angle)
     {
         double[] xyPoint = new double[2];
 

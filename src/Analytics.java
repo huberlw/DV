@@ -485,7 +485,7 @@ public class Analytics
             String fileName = "source\\Python\\DWO_CM.csv";
 
             // create file for python process
-            createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
+            createCSVFileForAnalytics(new ArrayList<>(List.of(upper, lower)), fileName);
 
             // get confusion matrix with LDA
             ArrayList<String> cmValues = LDAForConfusionMatrices(true, fileName);
@@ -661,7 +661,7 @@ public class Analytics
                 String fileName = "source\\Python\\OL_CM.csv";
 
                 // create file for python process
-                createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
+                createCSVFileForAnalytics(new ArrayList<>(List.of(upper, lower)), fileName);
 
                 // get confusion matrix with LDA
                 ArrayList<String> cmValues = LDAForConfusionMatrices(false, fileName);
@@ -1168,7 +1168,7 @@ public class Analytics
             String fileName = "source\\Python\\k_fold.csv";
 
             // create file for python process
-            createCSVFileForConfusionMatrix(new ArrayList<>(List.of(upper, lower)), fileName);
+            createCSVFileForAnalytics(new ArrayList<>(List.of(upper, lower)), fileName);
 
             // create k-fold (python) process
             ProcessBuilder cv = new ProcessBuilder("cmd", "/c",
@@ -1292,7 +1292,7 @@ public class Analytics
      * @param data data to be used in csv file
      * @param fileName name of file to be created
      */
-    private static void createCSVFileForConfusionMatrix(ArrayList<ArrayList<double[]>> data, String fileName)
+    private static void createCSVFileForAnalytics(ArrayList<ArrayList<double[]>> data, String fileName)
     {
         try
         {

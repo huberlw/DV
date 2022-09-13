@@ -52,6 +52,12 @@ public class DataSetup
             DV.standardFieldNames = DV.fieldNames;
             DV.standardFieldLength = DV.fieldLength;
 
+            // initialize original attribute order
+            DV.originalAttributeOrder = new ArrayList<>();
+
+            for (int i = 0; i < DV.fieldLength; i++)
+                DV.originalAttributeOrder.add(i);
+
             // initializes angles to 45 degrees
             DV.angles = new double[DV.fieldLength];
             DV.prevAngles = new double[DV.fieldLength];
@@ -90,12 +96,32 @@ public class DataSetup
                     DV.data = createDataObjects(splitByClass);
                     DV.normalizedData = createDataObjects(splitByClass);
                     DV.originalData = createDataObjects(originalByClass);
+
+                    DV.highlights = new boolean[DV.classNumber][];
+
+                    for (int i = 0; i < DV.classNumber; i++)
+                    {
+                        DV.highlights[i] = new boolean[DV.data.get(i).data.length];
+
+                        for (int j = 0; j < DV.data.get(i).data.length; j++)
+                            DV.highlights[i][j] = false;
+                    }
                 }
                 else
                 {
                     DV.data = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
                     DV.normalizedData = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
                     DV.originalData = createDataObjects(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])));
+
+                    DV.highlights = new boolean[DV.classNumber][];
+
+                    for (int i = 0; i < DV.classNumber; i++)
+                    {
+                        DV.highlights[i] = new boolean[DV.data.get(i).data.length];
+
+                        for (int j = 0; j < DV.data.get(i).data.length; j++)
+                            DV.highlights[i][j] = false;
+                    }
                 }
 
                 return true;
@@ -1007,7 +1033,7 @@ public class DataSetup
      * @param message Message to display to users
      * @return min and max values
      */
-    private static double[] manualMinMaxEntry(String message)
+    public static double[] manualMinMaxEntry(String message)
     {
         // ask user for manual entry or default column to 0.5
         Object[] options = { "Manual Entry", "Default to 0.5" };

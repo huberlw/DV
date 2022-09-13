@@ -2,9 +2,11 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
+import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class VisualizationMenu extends JPanel
@@ -306,6 +308,11 @@ public class VisualizationMenu extends JPanel
                                 DV.angles[index] = DV.angles[oldIndex];
                                 DV.angles[oldIndex] = tmpAngle;
 
+                                // reorder original
+                                int tmp3 = DV.originalAttributeOrder.get(index);
+                                DV.originalAttributeOrder.set(index, DV.originalAttributeOrder.get(oldIndex));
+                                DV.originalAttributeOrder.set(oldIndex, tmp3);
+
                                 // reorder in all data
                                 for (int k = 0; k < DV.data.size(); k++)
                                 {
@@ -369,9 +376,246 @@ public class VisualizationMenu extends JPanel
                     reorder.add(attributes.get(index), c);
                 }
 
+                // original attribute order
+                JButton original = new JButton("Original Order");
+                original.setToolTipText("Order attributes in their original order.");
+                original.addActionListener(ee ->
+                {
+                    // bubble sort ascending
+                    for (int i = 0; i < DV.originalAttributeOrder.size() - 1; i++)
+                    {
+                        for (int j = 0; j < DV.originalAttributeOrder.size() - i - 1; j++)
+                        {
+                            if (DV.originalAttributeOrder.get(j) < DV.originalAttributeOrder.get(j+1))
+                            {
+                                int tmp1 = DV.originalAttributeOrder.get(j);
+                                DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
+                                DV.originalAttributeOrder.set(j+1, tmp1);
+
+                                double tmp2 = DV.angles[j];
+                                DV.angles[j] = DV.angles[j+1];
+                                DV.angles[j+1] = tmp2;
+
+                                String tmp3 = DV.fieldNames.get(j);
+                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
+                                DV.fieldNames.set(j+1, tmp3);
+
+                                // reorder in all data
+                                for (int k = 0; k < DV.data.size(); k++)
+                                {
+                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
+                                    {
+                                        double tmp = DV.data.get(k).data[w][j];
+                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
+                                        DV.data.get(k).data[w][j+1] = tmp;
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    DV.angleSliderPanel.removeAll();
+
+                    // update angles
+                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
+                    {
+                        if (DV.glc_or_dsc)
+                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                        else
+                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+                    }
+
+                    // optimize threshold
+                    if (DV.glc_or_dsc)
+                        DataVisualization.optimizeThreshold(0);
+                    else
+                        DataVisualization.findBestThreshold(0);
+
+                    // try again with upperIsLower false
+                    double upperIsLowerAccuracy = DV.accuracy;
+                    DV.upperIsLower = false;
+
+                    if (DV.glc_or_dsc)
+                        DataVisualization.optimizeThreshold(0);
+                    else
+                        DataVisualization.findBestThreshold(0);
+
+                    // see whether upper is actually lower
+                    if (DV.accuracy < upperIsLowerAccuracy)
+                    {
+                        DV.upperIsLower = true;
+
+                        if (DV.glc_or_dsc)
+                            DataVisualization.optimizeThreshold(0);
+                        else
+                            DataVisualization.findBestThreshold(0);
+                    }
+
+                    DataVisualization.drawGraphs();
+                });
+
+                c.gridx = 0;
+                c.gridy = ++yCnt;
+                c.weightx = 0.5;
+                reorder.add(original, c);
+
+                // decision tree attribute order
+                JButton dt = new JButton("Decision Tree Order");
+                dt.setToolTipText("Order attributes according to a Decision Tree.");
+                dt.addActionListener(ee ->
+                {
+                    // get decision tree order
+                    double[] dt_weight = new double[DV.fieldLength];
+
+                    // create dt (python) process
+                    ProcessBuilder tree = new ProcessBuilder("cmd", "/c",
+                            "source\\Python\\DecisionTree\\DecisionTree.exe",
+                            "source\\Python\\DV_data.csv");
+
+                    try
+                    {
+                        // create file for python process
+                        DataVisualization.createCSVFile();
+
+                        // run python (LDA) process
+                        Process process = tree.start();
+
+                        // read python outputs
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                        String output;
+
+                        int cnt = 0;
+
+                        // get attribute order
+                        while ((output = reader.readLine()) != null)
+                            dt_weight[cnt++] = Double.parseDouble(output);
+
+                        // delete created file
+                        File fileToDelete = new File("source\\Python\\DV_data.csv");
+                        Files.deleteIfExists(fileToDelete.toPath());
+                    }
+                    catch (IOException dte)
+                    {
+                        JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Decision Tree", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    // sort to original
+                    for (int i = 0; i < DV.originalAttributeOrder.size() - 1; i++)
+                    {
+                        for (int j = 0; j < DV.originalAttributeOrder.size() - i - 1; j++)
+                        {
+                            if (DV.originalAttributeOrder.get(j) < DV.originalAttributeOrder.get(j+1))
+                            {
+                                int tmp1 = DV.originalAttributeOrder.get(j);
+                                DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
+                                DV.originalAttributeOrder.set(j+1, tmp1);
+
+                                double tmp2 = DV.angles[j];
+                                DV.angles[j] = DV.angles[j+1];
+                                DV.angles[j+1] = tmp2;
+
+                                String tmp3 = DV.fieldNames.get(j);
+                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
+                                DV.fieldNames.set(j+1, tmp3);
+
+                                // reorder in all data
+                                for (int k = 0; k < DV.data.size(); k++)
+                                {
+                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
+                                    {
+                                        double tmp = DV.data.get(k).data[w][j];
+                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
+                                        DV.data.get(k).data[w][j+1] = tmp;
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // bubble sort ascending
+                    for (int i = 0; i < DV.fieldLength - 1; i++)
+                    {
+                        for (int j = 0; j < DV.fieldLength - i - 1; j++)
+                        {
+                            if (dt_weight[j] < dt_weight[j+1])
+                            {
+                                double tmp1 = dt_weight[j];
+                                dt_weight[j] = dt_weight[j+1];
+                                dt_weight[j+1] = tmp1;
+
+                                tmp1 = DV.angles[j];
+                                DV.angles[j] = DV.angles[j+1];
+                                DV.angles[j+1] = tmp1;
+
+                                String tmp2 = DV.fieldNames.get(j);
+                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
+                                DV.fieldNames.set(j+1, tmp2);
+
+                                // reorder in all data
+                                for (int k = 0; k < DV.data.size(); k++)
+                                {
+                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
+                                    {
+                                        double tmp = DV.data.get(k).data[w][j];
+                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
+                                        DV.data.get(k).data[w][j+1] = tmp;
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    DV.angleSliderPanel.removeAll();
+
+                    // update angles
+                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
+                    {
+                        if (DV.glc_or_dsc)
+                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                        else
+                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+                    }
+
+                    // optimize threshold
+                    if (DV.glc_or_dsc)
+                        DataVisualization.optimizeThreshold(0);
+                    else
+                        DataVisualization.findBestThreshold(0);
+
+                    // try again with upperIsLower false
+                    double upperIsLowerAccuracy = DV.accuracy;
+                    DV.upperIsLower = false;
+
+                    if (DV.glc_or_dsc)
+                        DataVisualization.optimizeThreshold(0);
+                    else
+                        DataVisualization.findBestThreshold(0);
+
+                    // see whether upper is actually lower
+                    if (DV.accuracy < upperIsLowerAccuracy)
+                    {
+                        DV.upperIsLower = true;
+
+                        if (DV.glc_or_dsc)
+                            DataVisualization.optimizeThreshold(0);
+                        else
+                            DataVisualization.findBestThreshold(0);
+                    }
+
+                    DataVisualization.drawGraphs();
+                });
+
+                c.gridx = 1;
+                c.weightx = 0.5;
+                reorder.add(dt, c);
+
                 // order from least to greatest contribution
                 JButton lessToGreat = new JButton("Ascending Contribution");
-                lessToGreat.setToolTipText("Order attribute from least contributing (largest angle) to most contributing (smallest angle).");
+                lessToGreat.setToolTipText("Order attributes from least contributing (largest angle) to most contributing (smallest angle).");
                 lessToGreat.addActionListener(ee ->
                 {
                     // bubble sort ascending
@@ -388,6 +632,10 @@ public class VisualizationMenu extends JPanel
                                 String tmp2 = DV.fieldNames.get(j);
                                 DV.fieldNames.set(j, DV.fieldNames.get(j+1));
                                 DV.fieldNames.set(j+1, tmp2);
+
+                                int tmp3 = DV.originalAttributeOrder.get(j);
+                                DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
+                                DV.originalAttributeOrder.set(j+1, tmp3);
 
                                 // reorder in all data
                                 for (int k = 0; k < DV.data.size(); k++)
@@ -451,7 +699,7 @@ public class VisualizationMenu extends JPanel
 
                 // order from greatest to least contribution
                 JButton greatToLess = new JButton("Descending Contribution");
-                greatToLess.setToolTipText("Order attribute from most contributing (smallest angle) to least contributing (largest angle).");
+                greatToLess.setToolTipText("Order attributes from most contributing (smallest angle) to least contributing (largest angle).");
                 greatToLess.addActionListener(ee ->
                 {
                     // bubble sort descending
@@ -468,6 +716,10 @@ public class VisualizationMenu extends JPanel
                                 String tmp2 = DV.fieldNames.get(j);
                                 DV.fieldNames.set(j, DV.fieldNames.get(j+1));
                                 DV.fieldNames.set(j+1, tmp2);
+
+                                int tmp3 = DV.originalAttributeOrder.get(j);
+                                DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
+                                DV.originalAttributeOrder.set(j+1, tmp3);
 
                                 // reorder in all data
                                 for (int k = 0; k < DV.data.size(); k++)
@@ -546,14 +798,16 @@ public class VisualizationMenu extends JPanel
                 removal.setLayout(new BoxLayout(removal, BoxLayout.PAGE_AXIS));
                 removal.add(new JLabel("Checked attributes will be displayed."));
 
+                JCheckBox[] attributes = new JCheckBox[DV.fieldNames.size()];
+
                 for (String field : DV.fieldNames)
                 {
                     final int index = DV.fieldNames.indexOf(field);
 
-                    JCheckBox attribute = new JCheckBox(field, DV.activeAttributes.get(index));
-                    attribute.addActionListener(ee ->
+                    attributes[index] = new JCheckBox(field, DV.activeAttributes.get(index));
+                    attributes[index].addActionListener(ee ->
                     {
-                        DV.activeAttributes.set(index, attribute.isSelected());
+                        DV.activeAttributes.set(index, attributes[index].isSelected());
 
                         int cnt = 0;
                         for (int i = 0; i < DV.activeAttributes.size(); i++)
@@ -569,13 +823,72 @@ public class VisualizationMenu extends JPanel
                         }
                         else
                         {
-                            attribute.setSelected(true);
+                            attributes[index].setSelected(true);
                             DV.activeAttributes.set(index, true);
                         }
                     });
 
-                    removal.add(attribute);
+                    removal.add(attributes[index]);
                 }
+
+                JButton dtRemove = new JButton("Decision Tree");
+                dtRemove.setToolTipText("Remove attributes with low importance in a decision tree");
+                dtRemove.addActionListener(dte ->
+                {
+                    // get decision tree order
+                    double[] dt_weight = new double[DV.fieldLength];
+
+                    // create dt (python) process
+                    ProcessBuilder tree = new ProcessBuilder("cmd", "/c",
+                            "source\\Python\\DecisionTree\\DecisionTree.exe",
+                            "source\\Python\\DV_data.csv");
+
+                    try
+                    {
+                        // create file for python process
+                        DataVisualization.createCSVFile();
+
+                        // run python (LDA) process
+                        Process process = tree.start();
+
+                        // read python outputs
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                        String output;
+
+                        int cnt = 0;
+
+                        // get attribute order
+                        while ((output = reader.readLine()) != null)
+                            dt_weight[cnt++] = Double.parseDouble(output);
+
+                        // delete created file
+                        File fileToDelete = new File("source\\Python\\DV_data.csv");
+                        Files.deleteIfExists(fileToDelete.toPath());
+                    }
+                    catch (IOException er)
+                    {
+                        JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Decision Tree", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+
+                    for (int i = 0; i < dt_weight.length; i++)
+                    {
+                        if (dt_weight[i] == 0)
+                        {
+                            attributes[i].setSelected(false);
+                            DV.activeAttributes.set(i, false);
+                        }
+                        else
+                        {
+                            attributes[i].setSelected(true);
+                            DV.activeAttributes.set(i, true);
+                        }
+                    }
+
+                    DataVisualization.findBestThreshold(0);
+                    DataVisualization.drawGraphs();
+                });
+
+                removal.add(dtRemove);
 
                 JOptionPane.showMessageDialog(DV.mainFrame, removal, "Remove Attributes", JOptionPane.PLAIN_MESSAGE);
             }

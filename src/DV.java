@@ -107,6 +107,9 @@ public class DV extends JFrame
     // whether to show the first line segment or not
     static boolean showFirstSeg = true;
 
+    // whether to highlight a point or not
+    static boolean[][] highlights;
+
     /**************************************************
      * FOR ANALYTICS
      *************************************************/
@@ -114,7 +117,7 @@ public class DV extends JFrame
     static double[] overlapArea;
 
     static boolean useOverlapPercent = false;
-    static boolean overlapPercent;
+    static double overlapPercent;
 
     // threshold point
     static double threshold;
@@ -173,6 +176,14 @@ public class DV extends JFrame
     static double[] prevAngles;
     static double[] standardAngles;
 
+    // weights for LDF
+    static double[][] scale;
+
+    /**
+     * CONSTRUCTION
+     */
+    static boolean activeLDF = false;
+
     // normalized and original data
     static ArrayList<DataObject> data;
     static ArrayList<DataObject> normalizedData;
@@ -191,6 +202,7 @@ public class DV extends JFrame
     static int fieldLength;
     static ArrayList<String> standardFieldNames;
     static int standardFieldLength;
+    static ArrayList<Integer> originalAttributeOrder;
 
     // active attributes
     static ArrayList<Boolean> activeAttributes;
@@ -989,7 +1001,10 @@ public class DV extends JFrame
                 DataSetup.setupProjectData(projectFile);
 
                 // set vertical scale of graphs
-                DataVisualization.verticalScale = classNumber > 1 ? 0.4 : 0.8;
+                /**
+                 * CONSTRUCTION
+                 */
+                //DataVisualization.verticalScale = classNumber > 1 ? 0.4 : 0.8;
 
                 // create angle sliders
                 angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
@@ -1625,7 +1640,7 @@ public class DV extends JFrame
      * Creates informative popup explaining Min-Max normalization
      * and z-Score Min-Max normalization
      */
-    private void normalizationInfoPopup()
+    public static void normalizationInfoPopup()
     {
         JOptionPane.showMessageDialog(
                 mainFrame,

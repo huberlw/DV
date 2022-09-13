@@ -232,4 +232,128 @@ public class AngleSliders
         // add to angle slider panel
         DV.angleSliderPanel.add(anglePanel);
     }
+
+    public static JPanel createWeightSliderPanel_GLC(String fieldName, int scale, int weightNum, String ruleBase, String className, String opClassName, int curClass, int index, int upper_or_lower, int bound)
+    {
+        // text for angle
+        JTextField angleText = new JTextField(4);
+        angleText.setToolTipText("Change weight of visualization");
+        angleText.setFont(angleText.getFont().deriveFont(12f));
+        angleText.setText(Integer.toString(scale));
+
+        // slider for angle
+        JSlider angleSlider = new JSlider(0, 500, scale);
+        angleSlider.setToolTipText("Change weight of visualization");
+        angleSlider.setMinorTickSpacing(1);
+        angleSlider.setPaintTicks(true);
+        angleSlider.setPaintLabels(true);
+
+        // label for angle
+        JLabel angleLabel = new JLabel();
+        if (bound == 0)
+            angleLabel.setText(fieldName + " Lower Scale: " + scale + "%");
+        else
+            angleLabel.setText(fieldName + " Upper Scale: " + scale + "%");
+        angleLabel.setToolTipText("Change scale of attribute");
+
+        // create table for slider labels
+        Hashtable<Integer, JLabel> position = new Hashtable<>();
+        position.put(0, new JLabel("0"));
+        position.put(100, new JLabel("100"));
+        position.put(200, new JLabel("200"));
+        position.put(300, new JLabel("300"));
+        position.put(400, new JLabel("400"));
+        position.put(500, new JLabel("500"));
+        angleSlider.setLabelTable(position);
+
+        // add listeners for text field and slider
+        // action listener for text field
+        angleText.addActionListener(e ->
+        {
+            // get raw value of inputted angle
+            int sliderValue = Integer.parseInt(angleText.getText());
+
+            // check if angle is within 0 and 180 degrees
+            if (sliderValue >= 0 && sliderValue <= 500)
+            {
+                try
+                {
+                    // set slider to new value
+                    angleSlider.setValue(sliderValue);
+
+                    // set angle label to new value
+                    if (bound == 0)
+                        angleLabel.setText(fieldName + " Lower Scale: " + sliderValue + "%");
+                    else
+                        angleLabel.setText(fieldName + " Upper Scale: " + sliderValue + "%");
+
+                    // set angle to new value
+                    DV.scale[bound][weightNum] = sliderValue / 100.0;
+                }
+                catch (NumberFormatException nfe)
+                {
+                    System.err.println("Illegal Input");
+                }
+
+                // redraw rule
+                DataVisualization.drawLDFRule(ruleBase, className, opClassName, curClass, index);
+
+                // redraw graphs
+                DataVisualization.drawLDF(curClass, index, upper_or_lower);
+            }
+        });
+
+        // change listener for slider
+        angleSlider.addChangeListener(e ->
+        {
+            // get new angle
+            int sliderValue = angleSlider.getValue();
+
+            try
+            {
+                // set text field to new value
+                angleText.setText(Integer.toString(sliderValue));
+
+                // set angle label to new value
+                if (bound == 0)
+                    angleLabel.setText(fieldName + " Lower Scale: " + sliderValue + "%");
+                else
+                    angleLabel.setText(fieldName + " Upper Scale: " + sliderValue + "%");
+
+                // set angle to new value
+                DV.scale[bound][weightNum] = sliderValue / 100.0;
+            }
+            catch (NumberFormatException nfe)
+            {
+                System.err.println("Illegal Input");
+            }
+
+            // redraw rule
+            DataVisualization.drawLDFRule(ruleBase, className, opClassName, curClass, index);
+
+            // redraw graphs
+            DataVisualization.drawLDF(curClass, index, upper_or_lower);
+        });
+
+        // main panel for angle
+        // holds textField, slider, and label
+        JPanel weightPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+
+        c.gridx = 0;
+        c.gridy = 0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        weightPanel.add(angleSlider, c);
+
+        c.gridx = 1;
+        weightPanel.add(angleText, c);
+
+        c.gridx = 0;
+        c.gridy = 1;
+        c.gridwidth = 2;
+        weightPanel.add(angleLabel, c);
+
+        // add to angle slider panel
+        return weightPanel;
+    }
 }
