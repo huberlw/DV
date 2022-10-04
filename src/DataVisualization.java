@@ -1,10 +1,13 @@
 import Sliders.RangeSlider;
+import Sliders.RangeSliderUI;
 import org.jfree.chart.*;
+import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.XYItemEntity;
+import org.jfree.chart.labels.StandardXYItemLabelGenerator;
 import org.jfree.chart.plot.*;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
@@ -18,6 +21,7 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.io.*;
 import java.nio.file.Files;
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -31,6 +35,11 @@ public class DataVisualization
 
     final static JPanel ldfPanel = new JPanel();
     final static JPanel labelPanel = new JPanel();
+    final static JTabbedPane limitSliderPane = new JTabbedPane();
+
+    static JSlider[][] angleSliders;
+    static RangeSlider[] sliders;
+    static JLabel[] sliderLabels;
 
 
     /**
@@ -1250,7 +1259,7 @@ public class DataVisualization
 
                                 // create panels for graph and weight sliders
                                 JFrame ldfFrame = new JFrame();
-                                ldfFrame.setLocationRelativeTo(null);
+                                ldfFrame.setLocationRelativeTo(DV.mainFrame);
                                 ldfFrame.addWindowListener(new WindowAdapter()
                                 {
                                     @Override
@@ -1267,28 +1276,117 @@ public class DataVisualization
                                 String ldfInfoBase = chosenDataPoint + "<br/><br/>" + "<b>Generalized Rule: </b>";
                                 drawLDFRule(ldfInfoBase, curClassName.toString(), opClassName.toString(), curClass, index);
 
+                                // add labels
                                 c.gridx = 0;
                                 c.gridy = 0;
                                 c.ipady = 10;
                                 c.fill = GridBagConstraints.BOTH;
                                 ldfFrame.add(labelPanel, c);
 
-
+                                // add graphs
                                 c.gridy = 1;
                                 c.weightx = 0.8;
                                 c.weighty = 1;
                                 ldfFrame.add(ldfPanel, c);
 
-                                JPanel scalePanel = new JPanel();
-                                scalePanel.setLayout(new BoxLayout(scalePanel, BoxLayout.PAGE_AXIS));
-                                JScrollPane scaleScroll = new JScrollPane(scalePanel);
+                                JPanel[] sliderPanels = new JPanel[DV.fieldLength];
+                                sliders = new RangeSlider[DV.fieldLength];
+                                sliderLabels = new JLabel[DV.fieldLength];
+                                DV.limits = new double[DV.fieldLength][];
+                                DV.discrete = new boolean[DV.fieldLength];
+
+                                limitSliderPane.removeAll();
+
+                                for (int i = 0; i < DV.fieldLength; i++)
+                                {
+                                    sliderPanels[i] = new JPanel();
+                                    sliderPanels[i].setLayout(new GridBagLayout());
+
+                                    sliders[i] = new RangeSlider()
+                                    {
+                                        @Override
+                                        public void updateUI()
+                                        {
+                                            setUI(new RangeSliderUI(this, Color.DARK_GRAY, Color.RED, Color.BLUE));
+                                            updateLabelUIs();
+                                        }
+                                    };
+
+                                    DV.discrete[i] = false;
+                                    DV.limits[i] = new double[]{0, 5 * DV.data.get(curClass).data[index][i]};
+
+                                    sliders[i].setMinimum(0);
+                                    sliders[i].setMaximum(500);
+                                    sliders[i].setMajorTickSpacing(1);
+                                    sliders[i].setValue(0);
+                                    sliders[i].setUpperValue(500);
+                                    sliders[i].setToolTipText("Sets lower and upper limits for " + DV.fieldNames.get(i));
+                                    JLabel sl = new JLabel(limitSliderLabel(curClass, index, i));
+                                    sl.setFont(sl.getFont().deriveFont(16f));
+                                    sliderLabels[i] = sl;
+
+                                    // add label
+                                    GridBagConstraints panelC = new GridBagConstraints();
+                                    panelC.gridx = 0;
+                                    panelC.gridy = 0;
+                                    panelC.weightx = 1;
+                                    panelC.ipady = 20;
+                                    panelC.fill = GridBagConstraints.HORIZONTAL;
+                                    sliderPanels[i].add(sliderLabels[i], panelC);
+
+                                    // add discrete point option
+                                    JCheckBox dBox = new JCheckBox("<html><b>Discrete Attribute:</b> " + DV.discrete[i] + "</html>", DV.discrete[i]);
+                                    dBox.setFont(dBox.getFont().deriveFont(16f));
+                                    dBox.setToolTipText("Whether the current attribute is discrete. Discrete attributes are always whole numbers.");
+                                    final int finalI = i;
+                                    final int finalCurClass = curClass;
+                                    final int finalIndex = index;
+                                    dBox.addChangeListener(de ->
+                                    {
+                                        DV.discrete[finalI] = dBox.isSelected();
+                                        dBox.setText("<html><b>Discrete Attribute:</b> " + DV.discrete[finalI] + "</html>");
+
+                                        drawLDF(finalCurClass, finalIndex, y < 0 ? 1 : 0, ldfInfoBase, curClassName.toString(), opClassName.toString());
+                                    });
+
+                                    panelC.gridy = 1;
+                                    sliderPanels[i].add(dBox, panelC);
+
+                                    // add slider
+                                    panelC.gridy = 2;
+                                    sliderPanels[i].add(sliders[i], panelC);
+
+                                    limitSliderPane.add(DV.fieldNames.get(i), sliderPanels[i]);
+                                }
+
+                                // add limit sliders
+                                c.gridy = 2;
+                                c.weighty = 0;
+                                ldfFrame.add(limitSliderPane, c);
+
+                                JPanel lowerScalePanel = new JPanel();
+                                lowerScalePanel.setLayout(new BoxLayout(lowerScalePanel, BoxLayout.PAGE_AXIS));
+                                JScrollPane lowerScaleScroll = new JScrollPane(lowerScalePanel);
+
+                                JPanel upperScalePanel = new JPanel();
+                                upperScalePanel.setLayout(new BoxLayout(upperScalePanel, BoxLayout.PAGE_AXIS));
+                                JScrollPane upperScaleScroll = new JScrollPane(upperScalePanel);
+
+                                JTabbedPane scaleTabs = new JTabbedPane();
+                                scaleTabs.add("Lower Scale", lowerScaleScroll);
+                                scaleTabs.add("Upper Scale", upperScaleScroll);
+
+                                // create anglesliders
+                                angleSliders = new JSlider[DV.fieldLength][2];
 
                                 for (int i = 0; i < DV.fieldLength; i++)
                                 {
                                     if ((DV.data.get(curClass).data[index][i] != 0 && DV.angles[i] <= 90) || DV.angles[i] > 90)
                                     {
                                         // lower
-                                        scalePanel.add(AngleSliders.createWeightSliderPanel_GLC(
+                                        angleSliders[i][0] = new JSlider(0, 500, (int)(DV.scale[0][i] * 100));
+                                        lowerScalePanel.add(AngleSliders.createWeightSliderPanel_GLC(
+                                                angleSliders[i][0],
                                                 DV.fieldNames.get(i),
                                                 (int)(DV.scale[0][i] * 100),
                                                 i,
@@ -1301,7 +1399,9 @@ public class DataVisualization
                                                 0));
 
                                         // upper
-                                        scalePanel.add(AngleSliders.createWeightSliderPanel_GLC(
+                                        angleSliders[i][1] = new JSlider(0, 500, (int)(DV.scale[1][i] * 100));
+                                        upperScalePanel.add(AngleSliders.createWeightSliderPanel_GLC(
+                                                angleSliders[i][1],
                                                 DV.fieldNames.get(i),
                                                 (int)(DV.scale[1][i] * 100),
                                                 i,
@@ -1315,12 +1415,16 @@ public class DataVisualization
                                     }
                                 }
 
+                                // add scales
                                 c.gridx = 1;
+                                c.gridy = 1;
                                 c.weightx = 0.2;
-                                ldfFrame.add(scaleScroll, c);
+                                c.weighty = 1;
+                                c.gridheight = 2;
+                                ldfFrame.add(scaleTabs, c);
 
-                                // draw graph
-                                drawLDF(curClass, index, y < 0 ? 1 : 0);
+                                // draw graphs
+                                drawLDF(curClass, index, y < 0 ? 1 : 0, ldfInfoBase, curClassName.toString(), opClassName.toString());
 
                                 // show
                                 ldfFrame.setVisible(true);
@@ -1455,13 +1559,13 @@ public class DataVisualization
         labelPanel.repaint();
     }
 
-    public static void drawLDF(int curClass, int index, int upper_or_lower)
+    public static void drawLDF(int curClass, int index, int upper_or_lower, String ruleBase, String className, String opClassName)
     {
         // clear panel
         ldfPanel.removeAll();
         ldfPanel.setLayout(new BoxLayout(ldfPanel, BoxLayout.PAGE_AXIS));
 
-        // create graph
+        // lines, endpoints, and timeline points
         XYLineAndShapeRenderer originalLineRenderer = new XYLineAndShapeRenderer(true, false);
         XYLineAndShapeRenderer originalEndpointRenderer = new XYLineAndShapeRenderer(false, true);
         XYLineAndShapeRenderer originalTimelineRenderer = new XYLineAndShapeRenderer(false, true);
@@ -1661,6 +1765,12 @@ public class DataVisualization
         XYSeriesCollection pcUpperWeightedLine = new XYSeriesCollection();
         XYSeriesCollection pcUpperWeightedEndpoint = new XYSeriesCollection();
 
+        // limit lines
+        XYLineAndShapeRenderer pcLowerLimitRenderer = new XYLineAndShapeRenderer(false, true);
+        XYLineAndShapeRenderer pcUpperLimitRenderer = new XYLineAndShapeRenderer(false, true);
+        XYSeriesCollection pcLowerLimits = new XYSeriesCollection();
+        XYSeriesCollection pcUpperLimits = new XYSeriesCollection();
+
         XYSeries pcLine1 = new XYSeries(0, false, true);
         XYSeries pcLine2 = new XYSeries(0, false, true);
         XYSeries pcLine3 = new XYSeries(0, false, true);
@@ -1669,6 +1779,8 @@ public class DataVisualization
         XYSeries pcEnd2 = new XYSeries(0, false, true);
         XYSeries pcEnd3 = new XYSeries(0, false, true);
 
+        XYSeries upLim = new XYSeries(0, false, true);
+        XYSeries lowLim = new XYSeries(0, false, true);
 
         for (int i = 0, invalid = 0; i < DV.fieldLength; i++)
         {
@@ -1677,11 +1789,88 @@ public class DataVisualization
                 pcLine1.add(i - invalid,  DV.data.get(curClass).data[index][i]);
                 pcEnd1.add(i - invalid,  DV.data.get(curClass).data[index][i]);
 
-                pcLine2.add(i - invalid,  DV.data.get(curClass).data[index][i] * DV.scale[0][i]);
-                pcEnd2.add(i - invalid,  DV.data.get(curClass).data[index][i] * DV.scale[0][i]);
+                double lowY = DV.data.get(curClass).data[index][i] * DV.scale[0][i];
+                double upY = DV.data.get(curClass).data[index][i] * DV.scale[1][i];
+                double lowLimitY = (sliders[i].getValue() / 100.0) * DV.data.get(curClass).data[index][i];
+                double upLimitY = (sliders[i].getUpperValue() / 100.0) * DV.data.get(curClass).data[index][i];
 
-                pcLine3.add(i - invalid,  DV.data.get(curClass).data[index][i] * DV.scale[1][i]);
-                pcEnd3.add(i - invalid,  DV.data.get(curClass).data[index][i] * DV.scale[1][i]);
+                if (DV.discrete[i])
+                {
+                    // transform to real value
+                    // undo min-max normalization
+                    lowY *= (DV.max[i] - DV.min[i]);
+                    lowY += DV.min[i];
+
+                    upY *= (DV.max[i] - DV.min[i]);
+                    upY += DV.min[i];
+
+                    lowLimitY *= (DV.max[i] - DV.min[i]);
+                    lowLimitY += DV.min[i];
+
+                    upLimitY *= (DV.max[i] - DV.min[i]);
+                    upLimitY += DV.min[i];
+
+                    // undo z-score
+                    if (DV.zScoreMinMax)
+                    {
+                        lowY *= DV.sd[i];
+                        lowY += DV.mean[i];
+
+                        upY *= DV.sd[i];
+                        upY += DV.mean[i];
+
+                        lowLimitY *= DV.sd[i];
+                        lowLimitY += DV.mean[i];
+
+                        upLimitY *= DV.sd[i];
+                        upLimitY += DV.mean[i];
+                    }
+
+                    // round real value to whole number
+                    lowY = Math.round(lowY);
+                    upY = Math.round(upY);
+                    lowLimitY = Math.round(lowLimitY);
+                    upLimitY = Math.round(upLimitY);
+
+                    // transform back to normalized value
+                    // z-score
+                    if (DV.zScoreMinMax)
+                    {
+                        lowY -= DV.mean[i];
+                        lowY /= DV.sd[i];
+
+                        upY -= DV.mean[i];
+                        upY /= DV.sd[i];
+
+                        lowLimitY -= DV.mean[i];
+                        lowLimitY /= DV.sd[i];
+
+                        upLimitY -= DV.mean[i];
+                        upLimitY /= DV.sd[i];
+                    }
+
+                    // min-max normalization
+                    lowY -= DV.min[i];
+                    lowY /= (DV.max[i] - DV.min[i]);
+
+                    upY -= DV.min[i];
+                    upY /= (DV.max[i] - DV.min[i]);
+
+                    lowLimitY -= DV.min[i];
+                    lowLimitY /= (DV.max[i] - DV.min[i]);
+
+                    upLimitY -= DV.min[i];
+                    upLimitY /= (DV.max[i] - DV.min[i]);
+                }
+
+                pcLine2.add(i - invalid,  lowY);
+                pcEnd2.add(i - invalid,  lowY);
+
+                pcLine3.add(i - invalid,  upY);
+                pcEnd3.add(i - invalid,  upY);
+
+                lowLim.add(i - invalid, lowLimitY);
+                upLim.add(i - invalid, upLimitY);
             }
             else invalid++;
         }
@@ -1692,6 +1881,8 @@ public class DataVisualization
         pcOriginalEndpoint.addSeries(pcEnd1);
         pcLowerWeightedEndpoint.addSeries(pcEnd2);
         pcUpperWeightedEndpoint.addSeries(pcEnd3);
+        pcLowerLimits.addSeries(lowLim);
+        pcUpperLimits.addSeries(upLim);
 
         JFreeChart pcChart = ChartFactory.createXYLineChart(
                 "",
@@ -1728,6 +1919,9 @@ public class DataVisualization
         pcPlot.setDomainGridlinePaint(Color.GRAY);
 
         // set domain
+        ValueAxis domainView = pcPlot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength);
+
         NumberAxis xAxis = (NumberAxis) pcPlot.getDomainAxis();
         xAxis.setTickUnit(new NumberTickUnit(1));
 
@@ -1735,41 +1929,309 @@ public class DataVisualization
         NumberAxis yAxis = (NumberAxis) pcPlot.getRangeAxis();
         yAxis.setTickUnit(new NumberTickUnit(0.25));
 
+        pcLowerLimitRenderer.setSeriesShape(0, new Rectangle2D.Double(-12.5, -5, 25, 10));
+        pcLowerLimitRenderer.setSeriesPaint(0, Color.RED);
+        pcLowerLimitRenderer.setBaseItemLabelGenerator(new StandardXYItemLabelGenerator()
+        {
+            @Override
+            public String generateLabel(XYDataset dataset, int series, int item)
+            {
+                // x-value is always in integer for this PC plot (0, 1, 2,...)
+                int xVal = (int) dataset.getXValue(series, item);
+                double yVal = dataset.getYValue(series, item);
+
+                // undo min-max normalization
+                yVal *= (DV.max[xVal] - DV.min[xVal]);
+                yVal += DV.min[xVal];
+
+                // undo z-score
+                if (DV.zScoreMinMax)
+                {
+                    yVal *= DV.sd[xVal];
+                    yVal += DV.mean[xVal];
+                }
+
+                if (DV.discrete[xVal])
+                    return String.format("%.0f", yVal);
+                else
+                    return String.format("%.2f", yVal);
+            }
+        });
+        pcLowerLimitRenderer.setBaseItemLabelsVisible(true);
+        pcPlot.setRenderer(0, pcLowerLimitRenderer);
+        pcPlot.setDataset(0, pcLowerLimits);
+
+        pcUpperLimitRenderer.setSeriesShape(0, new Rectangle2D.Double(-12.5, -5, 25, 10));
+        pcUpperLimitRenderer.setSeriesPaint(0, Color.BLUE);
+        pcUpperLimitRenderer.setBaseItemLabelGenerator(new StandardXYItemLabelGenerator()
+        {
+            @Override
+            public String generateLabel(XYDataset dataset, int series, int item)
+            {
+                // x-value is always in integer for this PC plot (0, 1, 2,...)
+                int xVal = (int) dataset.getXValue(series, item);
+                double yVal = dataset.getYValue(series, item);
+
+                // undo min-max normalization
+                yVal *= (DV.max[xVal] - DV.min[xVal]);
+                yVal += DV.min[xVal];
+
+                // undo z-score
+                if (DV.zScoreMinMax)
+                {
+                    yVal *= DV.sd[xVal];
+                    yVal += DV.mean[xVal];
+                }
+
+                if (DV.discrete[xVal])
+                    return String.format("%.0f", yVal);
+                else
+                    return String.format("%.2f", yVal);
+            }
+        });
+        pcUpperLimitRenderer.setBaseItemLabelsVisible(true);
+        pcPlot.setRenderer(1, pcUpperLimitRenderer);
+        pcPlot.setDataset(1, pcUpperLimits);
+
         pcOriginalEndpointRenderer.setSeriesShape(0, new Rectangle2D.Double(-2.5, -2.5, 5, 5));
-        pcPlot.setRenderer(0, pcOriginalEndpointRenderer);
-        pcPlot.setDataset(0, pcOriginalEndpoint);
+        pcPlot.setRenderer(2, pcOriginalEndpointRenderer);
+        pcPlot.setDataset(2, pcOriginalEndpoint);
 
         pcLowerWeightedEndpointRenderer.setSeriesShape(0, new Rectangle2D.Double(-2.5, -2.5, 5, 5));
         pcLowerWeightedEndpointRenderer.setSeriesPaint(0, Color.RED);
-        pcPlot.setRenderer(1, pcLowerWeightedEndpointRenderer);
-        pcPlot.setDataset(1, pcLowerWeightedEndpoint);
+        pcLowerWeightedEndpointRenderer.setBaseItemLabelGenerator(new StandardXYItemLabelGenerator()
+        {
+            @Override
+            public String generateLabel(XYDataset dataset, int series, int item)
+            {
+                // x-value is always in integer for this PC plot (0, 1, 2,...)
+                int xVal = (int) dataset.getXValue(series, item);
+                double yVal = dataset.getYValue(series, item);
+
+                // undo min-max normalization
+                yVal *= (DV.max[xVal] - DV.min[xVal]);
+                yVal += DV.min[xVal];
+
+                // undo z-score
+                if (DV.zScoreMinMax)
+                {
+                    yVal *= DV.sd[xVal];
+                    yVal += DV.mean[xVal];
+                }
+
+                if (DV.discrete[xVal])
+                    return String.format("%.0f", yVal);
+                else
+                    return String.format("%.2f", yVal);
+            }
+        });
+        pcLowerWeightedEndpointRenderer.setBaseItemLabelsVisible(true);
+        pcPlot.setRenderer(3, pcLowerWeightedEndpointRenderer);
+        pcPlot.setDataset(3, pcLowerWeightedEndpoint);
 
         pcUpperWeightedEndpointRenderer.setSeriesShape(0, new Rectangle2D.Double(-2.5, -2.5, 5, 5));
         pcUpperWeightedEndpointRenderer.setSeriesPaint(0, Color.BLUE);
-        pcPlot.setRenderer(2, pcUpperWeightedEndpointRenderer);
-        pcPlot.setDataset(2, pcUpperWeightedEndpoint);
+        pcUpperWeightedEndpointRenderer.setBaseItemLabelGenerator(new StandardXYItemLabelGenerator()
+        {
+            @Override
+            public String generateLabel(XYDataset dataset, int series, int item)
+            {
+                // x-value is always in integer for this PC plot (0, 1, 2,...)
+                int xVal = (int) dataset.getXValue(series, item);
+                double yVal = dataset.getYValue(series, item);
+
+                // undo min-max normalization
+                yVal *= (DV.max[xVal] - DV.min[xVal]);
+                yVal += DV.min[xVal];
+
+                // undo z-score
+                if (DV.zScoreMinMax)
+                {
+                    yVal *= DV.sd[xVal];
+                    yVal += DV.mean[xVal];
+                }
+
+                if (DV.discrete[xVal])
+                    return String.format("%.0f", yVal);
+                else
+                    return String.format("%.2f", yVal);
+            }
+        });
+        pcUpperWeightedEndpointRenderer.setBaseItemLabelsVisible(true);
+        pcPlot.setRenderer(4, pcUpperWeightedEndpointRenderer);
+        pcPlot.setDataset(4, pcUpperWeightedEndpoint);
 
         pcOriginalLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         pcOriginalLineRenderer.setAutoPopulateSeriesStroke(false);
-        pcPlot.setRenderer(3, pcOriginalLineRenderer);
-        pcPlot.setDataset(3, pcOriginalLine);
+        pcPlot.setRenderer(5, pcOriginalLineRenderer);
+        pcPlot.setDataset(5, pcOriginalLine);
 
         pcLowerWeightedLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         pcLowerWeightedLineRenderer.setSeriesPaint(0, Color.RED);
         pcLowerWeightedLineRenderer.setAutoPopulateSeriesStroke(false);
-        pcPlot.setRenderer(4, pcLowerWeightedLineRenderer);
-        pcPlot.setDataset(4, pcLowerWeightedLine);
+        pcPlot.setRenderer(6, pcLowerWeightedLineRenderer);
+        pcPlot.setDataset(6, pcLowerWeightedLine);
 
         pcUpperWeightedLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         pcUpperWeightedLineRenderer.setSeriesPaint(0, Color.BLUE);
         pcUpperWeightedLineRenderer.setAutoPopulateSeriesStroke(false);
-        pcPlot.setRenderer(5, pcUpperWeightedLineRenderer);
-        pcPlot.setDataset(5, pcUpperWeightedLine);
+        pcPlot.setRenderer(7, pcUpperWeightedLineRenderer);
+        pcPlot.setDataset(7, pcUpperWeightedLine);
+
+        // add mouse listeners to limits
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            sliders[i].addMouseMotionListener(new MouseMotionListener()
+            {
+                @Override
+                public void mouseDragged(MouseEvent e)
+                {
+                    upLim.clear();
+                    lowLim.clear();
+
+                    for (int i = 0, invalid = 0; i < DV.fieldLength; i++)
+                    {
+                        if ((DV.data.get(curClass).data[index][i] != 0 && DV.angles[i] <= 90) || DV.angles[i] > 90)
+                        {
+                            // update slider label
+                            sliderLabels[i].setText(limitSliderLabel(curClass, index, i));
+
+                            // update limit values
+                            DV.limits[i][0] = (sliders[i].getValue() / 100.0) * DV.data.get(curClass).data[index][i];
+                            DV.limits[i][1] = (sliders[i].getUpperValue() / 100.0) * DV.data.get(curClass).data[index][i];
+
+                            // update limits on graph
+                            lowLim.add(i - invalid, DV.limits[i][0]);
+                            upLim.add(i - invalid, DV.limits[i][1]);
+
+                            boolean changed = false;
+
+                            if (DV.data.get(curClass).data[index][i] * DV.scale[0][i] < DV.limits[i][0])
+                            {
+                                DV.scale[0][i] = DV.limits[i][0] / DV.data.get(curClass).data[index][i];
+                                angleSliders[i][0].setValue((int)(DV.scale[0][i] * 100));
+
+                                // redraw graphs
+                                changed = true;
+                            }
+
+                            if (DV.data.get(curClass).data[index][i] * DV.scale[1][i] < DV.limits[i][0])
+                            {
+                                DV.scale[1][i] = DV.limits[i][0] / DV.data.get(curClass).data[index][i];
+                                angleSliders[i][1].setValue((int)(DV.scale[1][i] * 100));
+
+                                // redraw graphs
+                                changed = true;
+                            }
+
+                            if (DV.data.get(curClass).data[index][i] * DV.scale[0][i] > DV.limits[i][1])
+                            {
+                                DV.scale[0][i] = DV.limits[i][1] / DV.data.get(curClass).data[index][i];
+                                angleSliders[i][0].setValue((int)(DV.scale[0][i] * 100));
+
+                                // redraw graphs
+                                changed = true;
+                            }
+
+                            if (DV.data.get(curClass).data[index][i] * DV.scale[1][i] > DV.limits[i][1])
+                            {
+                                DV.scale[1][i] = DV.limits[i][1] / DV.data.get(curClass).data[index][i];
+                                angleSliders[i][1].setValue((int)(DV.scale[1][i] * 100));
+
+                                // redraw graphs
+                                changed = true;
+                            }
+
+                            if (changed)
+                            {
+                                drawLDFRule(ruleBase, className, opClassName, curClass, index);
+                                drawLDF(curClass, index, upper_or_lower, ruleBase, className, opClassName);
+                            }
+                        }
+                        else invalid++;
+                    }
+
+                    limitSliderPane.revalidate();
+                    limitSliderPane.repaint();
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {}
+            });
+        }
 
         ldfPanel.add(new ChartPanel(pcChart));
 
         ldfPanel.revalidate();
         ldfPanel.repaint();
+    }
+
+    private static String limitSliderLabel(int curClass, int index, int attribute)
+    {
+        double upperVal = (sliders[attribute].getUpperValue() / 100.0) * DV.data.get(curClass).data[index][attribute];
+        double lowerVal = (sliders[attribute].getValue() / 100.0) * DV.data.get(curClass).data[index][attribute];
+
+        // undo min-max normalization
+        upperVal *= (DV.max[attribute] - DV.min[attribute]);
+        upperVal += DV.min[attribute];
+
+        lowerVal *= (DV.max[attribute] - DV.min[attribute]);
+        lowerVal += DV.min[attribute];
+
+        // undo z-score
+        if (DV.zScoreMinMax)
+        {
+            upperVal *= DV.sd[attribute];
+            upperVal += DV.mean[attribute];
+
+            lowerVal *= DV.sd[attribute];
+            lowerVal += DV.mean[attribute];
+        }
+
+        String label;
+
+        // if discrete round to whole number
+        if (DV.discrete[attribute])
+        {
+            upperVal = Math.round(upperVal);
+            lowerVal = Math.round(lowerVal);
+
+            label = "<html>" + "<b>Limits for " + DV.fieldNames.get(attribute) +
+                    "<br>Upper Limit:</b> " + upperVal + "\t<b>Lower Limit:</b> " + lowerVal + "</html>";
+
+            // transform back to normalized value
+            // z-score
+            if (DV.zScoreMinMax)
+            {
+                upperVal -= DV.mean[attribute];
+                upperVal /= DV.sd[attribute];
+
+                lowerVal -= DV.mean[attribute];
+                lowerVal /= DV.sd[attribute];
+            }
+
+            // min-max normalization
+            upperVal -= DV.min[attribute];
+            upperVal /= (DV.max[attribute] - DV.min[attribute]);
+
+            lowerVal -= DV.min[attribute];
+            lowerVal /= (DV.max[attribute] - DV.min[attribute]);
+
+            // change sliders to match rounded whole number
+            sliders[attribute].setUpperValue((int)(upperVal / DV.data.get(curClass).data[index][attribute] * 100.0));
+            sliders[attribute].setValue((int)(lowerVal / DV.data.get(curClass).data[index][attribute] * 100.0));
+        }
+        else
+        {
+            // round to two decimals
+            upperVal = Math.round(upperVal * 100) / 100.0;
+            lowerVal = Math.round(lowerVal * 100) / 100.0;
+
+            label = "<html>" + "<b>Limits for " + DV.fieldNames.get(attribute) +
+                    "<br>Upper Limit:</b> " + upperVal + "\t<b>Lower Limit:</b> " + lowerVal + "</html>";
+        }
+
+        return label;
     }
 
 
@@ -1932,7 +2394,6 @@ public class DataVisualization
             {
                 // populate main series
                 int lineCnt = -1;
-                int misCnt = -1;
 
                 for (DataObject data : DATA_OBJECTS)
                 {
@@ -1966,209 +2427,47 @@ public class DataVisualization
                                 if (j == data.coordinates[i].length - 1)
                                 {
                                     endpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
-
                                     timeLineSeries.add(data.coordinates[i][j][0], 0);
+
+                                    graphLines.addSeries(line);
+                                    endpoints.addSeries(endpointSeries);
+
+                                    if (DV.highlights[UPPER_OR_LOWER][i])
+                                        lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
+                                    else
+                                        lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
 
                                     if (UPPER_OR_LOWER == 0 && DV.upperIsLower)
                                     {
                                         // check if endpoint is correctly classified
                                         if (endpoint < DV.threshold)
-                                        {
-                                            // add series
-                                            graphLines.addSeries(line);
-                                            endpoints.addSeries(endpointSeries);
-
-                                            // set series paint
                                             endpointRenderer.setSeriesPaint(i, DV.endpoints);
-
-                                            if (DV.highlights[UPPER_OR_LOWER][i])
-                                                lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                            else
-                                                lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
-                                        }
                                         else
-                                        {
-                                            // get and remove series from collection
-                                            /*int index = endpoints.getSeriesIndex(++misCnt);
-                                            XYSeries seriesSwap1 = endpoints.getSeries(index);
-                                            endpoints.removeSeries(index);
-                                            XYSeries seriesSwap2 = graphLines.getSeries(index);
-                                            graphLines.removeSeries(index);
-
-                                            // swap keys
-                                            seriesSwap1.setKey(lineCnt);
-                                            endpointSeries.setKey(misCnt);
-                                            seriesSwap2.setKey(lineCnt);
-                                            line.setKey(misCnt);
-
-                                            // add series to collection
-                                            endpoints.addSeries(endpointSeries);
-                                            endpoints.addSeries(seriesSwap1);
-                                            graphLines.addSeries(line);
-                                            graphLines.addSeries(seriesSwap2);
-
-                                            endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);*/
-
-                                            // add series
-                                            graphLines.addSeries(line);
-                                            endpoints.addSeries(endpointSeries);
                                             endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
-
-                                            if (DV.highlights[UPPER_OR_LOWER][i])
-                                                lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                            else
-                                                lineRenderer.setSeriesPaint(lineCnt, lighten(DV.graphColors[UPPER_OR_LOWER]));
-                                        }
                                     }
                                     else if (UPPER_OR_LOWER == 0)
                                     {
                                         // check if endpoint is correctly classified
                                         if (endpoint > DV.threshold)
-                                        {
-                                            // add series
-                                            graphLines.addSeries(line);
-                                            endpoints.addSeries(endpointSeries);
-
-                                            // set series paint
                                             endpointRenderer.setSeriesPaint(i, DV.endpoints);
-                                            if (DV.highlights[UPPER_OR_LOWER][i])
-                                                lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                            else
-                                                lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
-                                        }
                                         else
-                                        {
-                                            // get and remove series from collection
-                                            // get and remove series from collection
-                                            /*int index = endpoints.getSeriesIndex(++misCnt);
-                                            XYSeries seriesSwap1 = endpoints.getSeries(index);
-                                            endpoints.removeSeries(index);
-                                            XYSeries seriesSwap2 = graphLines.getSeries(index);
-                                            graphLines.removeSeries(index);
-
-                                            // swap keys
-                                            seriesSwap1.setKey(lineCnt);
-                                            endpointSeries.setKey(misCnt);
-                                            seriesSwap2.setKey(lineCnt);
-                                            line.setKey(misCnt);
-
-                                            // add series to collection
-                                            endpoints.addSeries(endpointSeries);
-                                            endpoints.addSeries(seriesSwap1);
-                                            graphLines.addSeries(line);
-                                            graphLines.addSeries(seriesSwap2);
-
-                                            endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);*/
-
-                                            // add series
-                                            graphLines.addSeries(line);
-                                            endpoints.addSeries(endpointSeries);
                                             endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
-
-                                            if (DV.highlights[UPPER_OR_LOWER][i])
-                                                lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                            else
-                                                lineRenderer.setSeriesPaint(lineCnt, lighten(DV.graphColors[UPPER_OR_LOWER]));
-                                        }
                                     }
                                     else if(UPPER_OR_LOWER == 1 && DV.upperIsLower)
                                     {
                                         // check if endpoint is correctly classified
                                         if (endpoint > DV.threshold)
-                                        {
-                                            // add series
-                                            graphLines.addSeries(line);
-                                            endpoints.addSeries(endpointSeries);
-
-                                            // set series paint
                                             endpointRenderer.setSeriesPaint(i, DV.endpoints);
-                                            if (DV.highlights[UPPER_OR_LOWER][i])
-                                                lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                            else
-                                                lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
-                                        }
                                         else
-                                        {
-                                            // get and remove series from collection
-                                            /*int index = endpoints.getSeriesIndex(++misCnt);
-                                            XYSeries seriesSwap1 = endpoints.getSeries(index);
-                                            endpoints.removeSeries(index);
-                                            XYSeries seriesSwap2 = graphLines.getSeries(index);
-                                            graphLines.removeSeries(index);
-
-                                            // swap keys
-                                            seriesSwap1.setKey(lineCnt);
-                                            endpointSeries.setKey(misCnt);
-                                            seriesSwap2.setKey(lineCnt);
-                                            line.setKey(misCnt);
-
-                                            // add series to collection
-                                            endpoints.addSeries(endpointSeries);
-                                            endpoints.addSeries(seriesSwap1);
-                                            graphLines.addSeries(line);
-                                            graphLines.addSeries(seriesSwap2);*/
-
-                                            // add series
-                                            graphLines.addSeries(line);
-                                            endpoints.addSeries(endpointSeries);
-
                                             endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);
-
-                                            if (DV.highlights[UPPER_OR_LOWER][i])
-                                                lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                            else
-                                                lineRenderer.setSeriesPaint(lineCnt, lighten(DV.graphColors[UPPER_OR_LOWER]));
-                                        }
                                     }
                                     else
                                     {
                                         // check if endpoint is correctly classified
                                         if (endpoint < DV.threshold)
-                                        {
-                                            // add series
-                                            graphLines.addSeries(line);
-                                            endpoints.addSeries(endpointSeries);
-
-                                            // set series paint
                                             endpointRenderer.setSeriesPaint(i, DV.endpoints);
-                                            if (DV.highlights[UPPER_OR_LOWER][i])
-                                                lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                            else
-                                                lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
-                                        }
                                         else
-                                        {
-                                            // get and remove series from collection
-                                            /*int index = endpoints.getSeriesIndex(++misCnt);
-                                            XYSeries seriesSwap1 = endpoints.getSeries(index);
-                                            endpoints.removeSeries(index);
-                                            XYSeries seriesSwap2 = graphLines.getSeries(index);
-                                            graphLines.removeSeries(index);
-
-                                            // swap keys
-                                            seriesSwap1.setKey(lineCnt);
-                                            endpointSeries.setKey(misCnt);
-                                            seriesSwap2.setKey(lineCnt);
-                                            line.setKey(misCnt);
-
-                                            // add series to collection
-                                            endpoints.addSeries(endpointSeries);
-                                            endpoints.addSeries(seriesSwap1);
-                                            graphLines.addSeries(line);
-                                            graphLines.addSeries(seriesSwap2);
-
-                                            endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);*/
-
-                                            // add series
-                                            graphLines.addSeries(line);
-                                            endpoints.addSeries(endpointSeries);
                                             endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
-
-                                            if (DV.highlights[UPPER_OR_LOWER][i])
-                                                lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                            else
-                                                lineRenderer.setSeriesPaint(lineCnt, lighten(DV.graphColors[UPPER_OR_LOWER]));
-                                        }
                                     }
 
                                     endpointRenderer.setSeriesShape(i, new Ellipse2D.Double(-1, -1, 2, 2));
@@ -2402,11 +2701,6 @@ public class DataVisualization
                     DV.domainArea[0] = (slider.getValue() - 200) * DV.fieldLength / 200.0;
                     DV.domainArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
 
-                    // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f);
-                    domainRenderer.setSeriesStroke(0, activeStroke);
-                    domainRenderer.setSeriesStroke(1, activeStroke);
-
                     // clear old domain lines
                     domainMinLine.clear();
                     domainMaxLine.clear();
@@ -2414,7 +2708,7 @@ public class DataVisualization
                     // clear old lines, midpoints, endpoints, and timeline points
                     graphLines.removeAllSeries();
                     midpointSeries.clear();
-                    //endpointSeries.clear();
+                    endpoints.removeAllSeries();
                     timeLineSeries.clear();
 
                     // turn notify off
@@ -2433,12 +2727,6 @@ public class DataVisualization
                     {
                         for (int i = 0; i < data.data.length; i++)
                         {
-                            int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
-
-                            // start line at (0, 0)
-                            XYSeries line = new XYSeries(++lineCnt, false, true);
-                            if (DV.showFirstSeg)
-                                line.add(0, upOrDown * buffer);
                             double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
 
                             // ensure datapoint is within domain
@@ -2446,6 +2734,15 @@ public class DataVisualization
                             if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
                                     (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
                             {
+                                int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
+
+                                // start line at (0, 0)
+                                XYSeries line = new XYSeries(++lineCnt, false, true);
+                                XYSeries endpointSeries = new XYSeries(lineCnt, false, true);
+
+                                if (DV.showFirstSeg)
+                                    line.add(0, upOrDown * buffer);
+
                                 // add points to lines
                                 for (int j = 0; j < data.coordinates[i].length; j++)
                                 {
@@ -2457,11 +2754,16 @@ public class DataVisualization
                                     // add endpoint and timeline
                                     if (j == data.coordinates[i].length - 1)
                                     {
-                                        XYSeries endpointSeries = new XYSeries(i, false, true);
                                         endpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
-
-                                        endpoints.addSeries(endpointSeries);
                                         timeLineSeries.add(data.coordinates[i][j][0], 0);
+
+                                        graphLines.addSeries(line);
+                                        endpoints.addSeries(endpointSeries);
+
+                                        if (DV.highlights[UPPER_OR_LOWER][i])
+                                            lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
+                                        else
+                                            lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
 
                                         if (UPPER_OR_LOWER == 0 && DV.upperIsLower)
                                         {
@@ -2469,7 +2771,7 @@ public class DataVisualization
                                             if (endpoint < DV.threshold)
                                                 endpointRenderer.setSeriesPaint(i, DV.endpoints);
                                             else
-                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);
+                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
                                         }
                                         else if (UPPER_OR_LOWER == 0)
                                         {
@@ -2477,7 +2779,7 @@ public class DataVisualization
                                             if (endpoint > DV.threshold)
                                                 endpointRenderer.setSeriesPaint(i, DV.endpoints);
                                             else
-                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);
+                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
                                         }
                                         else if(UPPER_OR_LOWER == 1 && DV.upperIsLower)
                                         {
@@ -2485,7 +2787,7 @@ public class DataVisualization
                                             if (endpoint > DV.threshold)
                                                 endpointRenderer.setSeriesPaint(i, DV.endpoints);
                                             else
-                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[0]);
+                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);
                                         }
                                         else
                                         {
@@ -2493,46 +2795,11 @@ public class DataVisualization
                                             if (endpoint < DV.threshold)
                                                 endpointRenderer.setSeriesPaint(i, DV.endpoints);
                                             else
-                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[0]);
+                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
                                         }
 
                                         endpointRenderer.setSeriesShape(i, new Ellipse2D.Double(-1, -1, 2, 2));
                                     }
-                                }
-
-                                graphLines.addSeries(line);
-
-                                if (UPPER_OR_LOWER == 0 && DV.upperIsLower)
-                                {
-                                    // check if endpoint is correctly classified
-                                    if (endpoint < DV.threshold)
-                                        lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[0]);
-                                    else
-                                        lineRenderer.setSeriesPaint(lineCnt, Color.YELLOW);
-                                }
-                                else if (UPPER_OR_LOWER == 0)
-                                {
-                                    // check if endpoint is correctly classified
-                                    if (endpoint > DV.threshold)
-                                        lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[0]);
-                                    else
-                                        lineRenderer.setSeriesPaint(lineCnt, Color.YELLOW);
-                                }
-                                else if(UPPER_OR_LOWER == 1 && DV.upperIsLower)
-                                {
-                                    // check if endpoint is correctly classified
-                                    if (endpoint > DV.threshold)
-                                        lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[1]);
-                                    else
-                                        lineRenderer.setSeriesPaint(lineCnt, Color.YELLOW);
-                                }
-                                else
-                                {
-                                    // check if endpoint is correctly classified
-                                    if (endpoint < DV.threshold)
-                                        lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[1]);
-                                    else
-                                        lineRenderer.setSeriesPaint(lineCnt, Color.YELLOW);
                                 }
                             }
                         }

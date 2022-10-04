@@ -233,7 +233,7 @@ public class AngleSliders
         DV.angleSliderPanel.add(anglePanel);
     }
 
-    public static JPanel createWeightSliderPanel_GLC(String fieldName, int scale, int weightNum, String ruleBase, String className, String opClassName, int curClass, int index, int upper_or_lower, int bound)
+    public static JPanel createWeightSliderPanel_GLC(final JSlider angleSlider, String fieldName, int scale, int weightNum, String ruleBase, String className, String opClassName, int curClass, int index, int upper_or_lower, int bound)
     {
         // text for angle
         JTextField angleText = new JTextField(4);
@@ -242,7 +242,6 @@ public class AngleSliders
         angleText.setText(Integer.toString(scale));
 
         // slider for angle
-        JSlider angleSlider = new JSlider(0, 500, scale);
         angleSlider.setToolTipText("Change weight of visualization");
         angleSlider.setMinorTickSpacing(1);
         angleSlider.setPaintTicks(true);
@@ -276,6 +275,18 @@ public class AngleSliders
             // check if angle is within 0 and 180 degrees
             if (sliderValue >= 0 && sliderValue <= 500)
             {
+                // check is sliderValue is within limits
+                if (bound == 0)
+                {
+                    if (DV.data.get(curClass).data[index][weightNum] * sliderValue / 100.0 < DV.limits[weightNum][bound])
+                        return;
+                }
+                else
+                {
+                    if (DV.data.get(curClass).data[index][weightNum] * sliderValue / 100.0 > DV.limits[weightNum][bound])
+                        return;
+                }
+
                 try
                 {
                     // set slider to new value
@@ -299,7 +310,7 @@ public class AngleSliders
                 DataVisualization.drawLDFRule(ruleBase, className, opClassName, curClass, index);
 
                 // redraw graphs
-                DataVisualization.drawLDF(curClass, index, upper_or_lower);
+                DataVisualization.drawLDF(curClass, index, upper_or_lower, ruleBase, className, opClassName);
             }
         });
 
@@ -308,6 +319,24 @@ public class AngleSliders
         {
             // get new angle
             int sliderValue = angleSlider.getValue();
+
+            // check is sliderValue is within limits
+            if (bound == 0)
+            {
+                if (DV.data.get(curClass).data[index][weightNum] * sliderValue / 100.0 < DV.limits[weightNum][bound])
+                {
+                    angleSlider.setValue((int)(DV.limits[weightNum][bound] / DV.data.get(curClass).data[index][weightNum] * 100));
+                    sliderValue = angleSlider.getValue();
+                }
+            }
+            else
+            {
+                if (DV.data.get(curClass).data[index][weightNum] * sliderValue / 100.0 > DV.limits[weightNum][bound])
+                {
+                    angleSlider.setValue((int)(DV.limits[weightNum][bound] / DV.data.get(curClass).data[index][weightNum] * 100));
+                    sliderValue = angleSlider.getValue();
+                }
+            }
 
             try
             {
@@ -332,7 +361,7 @@ public class AngleSliders
             DataVisualization.drawLDFRule(ruleBase, className, opClassName, curClass, index);
 
             // redraw graphs
-            DataVisualization.drawLDF(curClass, index, upper_or_lower);
+            DataVisualization.drawLDF(curClass, index, upper_or_lower, ruleBase, className, opClassName);
         });
 
         // main panel for angle

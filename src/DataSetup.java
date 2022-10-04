@@ -11,6 +11,14 @@ public class DataSetup
     static ArrayList<String> allClasses;
     static ArrayList<String> validationClasses;
 
+    // min/max for each feature
+    static double[] maxValues;
+    static double[] minValues;
+
+    // mean/sd for each feature
+    static double[] mean;
+    static double[] sd;
+
     /**
      * Sets up DV with data from datafile
      * @param dataFile .csv file holding data
@@ -123,6 +131,11 @@ public class DataSetup
                             DV.highlights[i][j] = false;
                     }
                 }
+
+                DV.max = Arrays.copyOf(maxValues, maxValues.length);
+                DV.min = Arrays.copyOf(minValues, minValues.length);
+                DV.mean = Arrays.copyOf(mean, mean.length);
+                DV.sd = Arrays.copyOf(sd, sd.length);
 
                 return true;
             }
@@ -778,15 +791,15 @@ public class DataSetup
     private static double[][] normalizeData(double[][] data)
     {
         // min and max values of each column
-        double[] maxValues = new double[data[0].length];
-        double[] minValues = new double[data[0].length];
+        maxValues = new double[data[0].length];
+        minValues = new double[data[0].length];
 
         // do z-Score Min-Max or Min-Max normalization
         if (DV.zScoreMinMax)
         {
             // mean and standard deviation per column
-            double[] mean = new double[data[0].length];
-            double[] sd = new double[data[0].length];
+            mean = new double[data[0].length];
+            sd = new double[data[0].length];
 
             // get mean for each column
             for (int i = 0; i < data[0].length; i++)
@@ -870,7 +883,6 @@ public class DataSetup
             {
                 for (int j = 0; j < data.length; j++)
                     data[j][i] = (data[j][i] - minValues[i]) / (maxValues[i] - minValues[i]);
-
             }
             else
             {

@@ -176,8 +176,17 @@ public class DV extends JFrame
     static double[] prevAngles;
     static double[] standardAngles;
 
-    // weights for LDF
+    // attributes of LDF
     static double[][] scale;
+    static double[][] limits;
+    static boolean[] discrete;
+    static int strips = 4;
+
+    // min, max, mean, and sd for each column of data
+    static double[] max;
+    static double[] min;
+    static double[] mean;
+    static double[] sd;
 
     /**
      * CONSTRUCTION
@@ -626,6 +635,13 @@ public class DV extends JFrame
         analyticsBtn.setToolTipText("Open the analytics options menu");
         analyticsBtn.addActionListener(e -> new AnalyticsMenu());
         toolBar.add(analyticsBtn);
+        toolBar.addSeparator();
+
+        // confusion matrix options
+        JButton ldfRuleBtn = new JButton("LDF Rule");
+        ldfRuleBtn.setToolTipText("Open the LDF Rule menu");
+        ldfRuleBtn.addActionListener(e -> new LDFRule());
+        toolBar.add(ldfRuleBtn);
         toolBar.addSeparator();
 
         // resets screen
