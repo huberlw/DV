@@ -1,5 +1,4 @@
 import javax.swing.*;
-import java.awt.*;
 
 public class Main
 {
@@ -12,16 +11,6 @@ public class Main
     {
         // set look and feel to current system
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        /*Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-
-        // set size
-        if(screenSize.getWidth() >= 1280)
-        {
-            if(screenSize.getWidth() >= 1920)
-                Resolutions.setResolution(0);
-            else
-                Resolutions.setResolution(1);
-        }*/
 
         // start DV program
         DV dv = new DV();

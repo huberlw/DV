@@ -637,11 +637,18 @@ public class DV extends JFrame
         toolBar.add(analyticsBtn);
         toolBar.addSeparator();
 
-        // confusion matrix options
+        // create LDF rules for all data
         JButton ldfRuleBtn = new JButton("LDF Rule");
         ldfRuleBtn.setToolTipText("Open the LDF Rule menu");
         ldfRuleBtn.addActionListener(e -> new LDFRule());
         toolBar.add(ldfRuleBtn);
+        toolBar.addSeparator();
+
+        // create hyperblocks for all data
+        JButton hpBtn = new JButton("Hyperblocks");
+        hpBtn.setToolTipText("Generate hyperblocks for all data");
+        hpBtn.addActionListener(e -> new HyperBlockVisualization());
+        toolBar.add(hpBtn);
         toolBar.addSeparator();
 
         // resets screen
@@ -699,6 +706,7 @@ public class DV extends JFrame
         colorOptionsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\color-palette.png"), colorOptionsBtn.getHeight() - offset, colorOptionsBtn.getHeight() - offset));
         visOptionsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\line-chart.png"), visOptionsBtn.getHeight() - offset, visOptionsBtn.getHeight() - offset));
         analyticsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\statistics.png"), analyticsBtn.getHeight() - offset, analyticsBtn.getHeight() - offset));
+        ldfRuleBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\selection.png"), ldfRuleBtn.getHeight() - offset, ldfRuleBtn.getHeight() - offset));
         resetScreenBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
         optimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\up-right-arrow.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
         undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
@@ -842,11 +850,21 @@ public class DV extends JFrame
                 {
                     // optimize data setup with Linear Discriminant Analysis
                     DataVisualization.optimizeSetup();
-                    DataVisualization.drawGraphs();
+
+                    try
+                    {
+                        new HyperBlockVisualization();
+                    }
+                    catch(Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+
+                    /*DataVisualization.drawGraphs();
 
                     // get support vectors
                     if (DV.data.size() > 1)
-                        DataVisualization.SVM();
+                        DataVisualization.SVM();*/
                 }
                 else
                 {

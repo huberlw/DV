@@ -1,7 +1,6 @@
 import Sliders.RangeSlider;
 import Sliders.RangeSliderUI;
 import org.jfree.chart.*;
-import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
 import org.jfree.chart.axis.ValueAxis;
@@ -21,7 +20,6 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.io.*;
 import java.nio.file.Files;
-import java.text.NumberFormat;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -110,7 +108,7 @@ public class DataVisualization
             DV.angleSliderPanel.removeAll();
 
             // bubble sort ascending
-            for (int i = 0; i < DV.fieldLength - 1; i++)
+            /*for (int i = 0; i < DV.fieldLength - 1; i++)
             {
                 for (int j = 0; j < DV.fieldLength - i - 1; j++)
                 {
@@ -120,16 +118,16 @@ public class DataVisualization
                         DV.angles[j] = DV.angles[j+1];
                         DV.angles[j+1] = tmp1;
 
-                        /***
+                        *//***
                          * FIX FOR SVM SUPPORT VECTORS
-                         */
-                        /*String tmp2 = DV.fieldNames.get(j);
+                         *//*
+                        *//*String tmp2 = DV.fieldNames.get(j);
                         DV.fieldNames.set(j, DV.fieldNames.get(j+1));
                         DV.fieldNames.set(j+1, tmp2);
 
                         int tmp3 = DV.originalAttributeOrder.get(j);
                         DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
-                        DV.originalAttributeOrder.set(j+1, tmp3);*/
+                        DV.originalAttributeOrder.set(j+1, tmp3);*//*
 
                         // reorder in all data
                         for (int k = 0; k < DV.data.size(); k++)
@@ -144,7 +142,7 @@ public class DataVisualization
                         }
                     }
                 }
-            }
+            }*/
 
             // update angles
             for (int j = 0; j < DV.fieldLength; j++)
@@ -2235,20 +2233,6 @@ public class DataVisualization
     }
 
 
-    private static Color lighten(Color color)
-    {
-        int red = color.getRed();
-        int green = color.getGreen();
-        int blue = color.getBlue();
-
-        // lighten for contrast
-        red = Math.min((int) (red + (red * 0.65)), 255);
-        green = Math.min((int)(green + (green * 0.65)), 255);
-        blue = Math.min((int)(blue + (blue * 0.65)), 255);
-
-        return new Color(red, green, blue);
-    }
-
     /**
      * Draw graph with specified parameters
      */
@@ -2441,36 +2425,36 @@ public class DataVisualization
                                     {
                                         // check if endpoint is correctly classified
                                         if (endpoint < DV.threshold)
-                                            endpointRenderer.setSeriesPaint(i, DV.endpoints);
+                                            endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
                                         else
-                                            endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
+                                            endpointRenderer.setSeriesPaint(lineCnt, Color.RED);//DV.graphColors[1])
                                     }
                                     else if (UPPER_OR_LOWER == 0)
                                     {
                                         // check if endpoint is correctly classified
                                         if (endpoint > DV.threshold)
-                                            endpointRenderer.setSeriesPaint(i, DV.endpoints);
+                                            endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
                                         else
-                                            endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
+                                            endpointRenderer.setSeriesPaint(lineCnt, Color.RED);//DV.graphColors[1])
                                     }
                                     else if(UPPER_OR_LOWER == 1 && DV.upperIsLower)
                                     {
                                         // check if endpoint is correctly classified
                                         if (endpoint > DV.threshold)
-                                            endpointRenderer.setSeriesPaint(i, DV.endpoints);
+                                            endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
                                         else
-                                            endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);
+                                            endpointRenderer.setSeriesPaint(lineCnt, Color.RED);//DV.graphColors[1]);
                                     }
                                     else
                                     {
                                         // check if endpoint is correctly classified
                                         if (endpoint < DV.threshold)
-                                            endpointRenderer.setSeriesPaint(i, DV.endpoints);
+                                            endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
                                         else
-                                            endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
+                                            endpointRenderer.setSeriesPaint(lineCnt, Color.RED);//DV.graphColors[1])
                                     }
 
-                                    endpointRenderer.setSeriesShape(i, new Ellipse2D.Double(-1, -1, 2, 2));
+                                    endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                                 }
                             }
                         }
@@ -2521,7 +2505,7 @@ public class DataVisualization
             plot.setDomainGridlinePaint(Color.GRAY);
             plot.setRangeGridlinePaint(Color.GRAY);
             plot.setSeriesRenderingOrder(SeriesRenderingOrder.REVERSE);
-            System.out.println(plot.getSeriesRenderingOrder());
+            //System.out.println(plot.getSeriesRenderingOrder());
 
             // set domain and range of graph
             double bound = GRAPH_SCALER * DV.fieldLength;
@@ -2603,10 +2587,10 @@ public class DataVisualization
             plot.setRenderer(0, svmEndpointRenderer);
             plot.setDataset(0, svmEndpoints);
 
-            System.out.println("THIS IS CLASS " + UPPER_OR_LOWER + ": Endpoints -> " + endpoints.getSeriesCount());
+            /*System.out.println("THIS IS CLASS " + UPPER_OR_LOWER + ": Endpoints -> " + endpoints.getSeriesCount());
             System.out.println("THIS IS CLASS " + UPPER_OR_LOWER + ": Midpoints -> " + midpoints.getSeriesCount());
             System.out.println("THIS IS CLASS " + UPPER_OR_LOWER + ": Timeline -> " + timeLine.getSeriesCount());
-            System.out.println("THIS IS CLASS " + UPPER_OR_LOWER + ": Lines -> " + graphLines.getSeriesCount());
+            System.out.println("THIS IS CLASS " + UPPER_OR_LOWER + ": Lines -> " + graphLines.getSeriesCount());*/
 
             // set endpoint renderer and dataset
             plot.setRenderer(1, endpointRenderer);
