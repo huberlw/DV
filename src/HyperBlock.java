@@ -2,21 +2,21 @@ import java.util.ArrayList;
 
 public class HyperBlock
 {
-    ArrayList<double[]> hyper_block;
-    double radius;
+    ArrayList<ArrayList<double[]>> hyper_block;
+    int classNum;
     String className;
+    String attribute;
 
-    double[] maximums;
-    double[] minimums;
+    ArrayList<double[]> maximums;
+    ArrayList<double[]> minimums;
 
     // create hyperblock
-    HyperBlock(ArrayList<double[]> hyper_block, double radius)
+    HyperBlock(ArrayList<ArrayList<double[]>> hyper_block)
     {
         this.hyper_block = hyper_block;
-        this.radius = radius;
 
-        maximums = new double[DV.fieldLength];
-        minimums = new double[DV.fieldLength];
+        maximums = new ArrayList<>();
+        minimums = new ArrayList<>();
 
         getBounds();
     }
@@ -24,18 +24,24 @@ public class HyperBlock
 
     public void getBounds()
     {
-        for (int i = 0; i < DV.fieldLength; i++)
+        for (int h = 0; h < hyper_block.size(); h++)
         {
-            maximums[i] = Double.MIN_VALUE;
-            minimums[i] = Double.MAX_VALUE;
-        }
+            maximums.add(new double[DV.fieldLength]);
+            minimums.add(new double[DV.fieldLength]);
 
-        for (double[] dbs : hyper_block)
-        {
-            for (int j = 0; j < DV.fieldLength; j++)
+            for (int i = 0; i < DV.fieldLength; i++)
             {
-                maximums[j] = Math.max(maximums[j], dbs[j]);
-                minimums[j] = Math.min(minimums[j], dbs[j]);
+                maximums.get(h)[i] = -Double.MIN_VALUE;
+                minimums.get(h)[i] = Double.MAX_VALUE;
+            }
+
+            for (double[] dbs : hyper_block.get(h))
+            {
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    maximums.get(h)[j] = Math.max(maximums.get(h)[j], dbs[j]);
+                    minimums.get(h)[j] = Math.min(minimums.get(h)[j], dbs[j]);
+                }
             }
         }
     }
