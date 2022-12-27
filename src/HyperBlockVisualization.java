@@ -1,6 +1,7 @@
 import org.jfree.chart.*;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.axis.TickUnits;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.DefaultDrawingSupplier;
 import org.jfree.chart.plot.PlotOrientation;
@@ -48,6 +49,9 @@ public class HyperBlockVisualization
 
     // artificial datapoints
     ArrayList<ArrayList<double[]>> artificial = new ArrayList<>();
+    ArrayList<Double> acc = new ArrayList<>();
+    ArrayList<Integer> misclassified = new ArrayList<>();
+    ArrayList<Integer> block_size = new ArrayList<>();
 
     int totalBlockCnt;
     int overlappingBlockCnt;
@@ -74,7 +78,8 @@ public class HyperBlockVisualization
     XYSeriesCollection artLines;
 
 
-    class BlockComparator implements Comparator<HyperBlock> {
+    class BlockComparator implements Comparator<HyperBlock>
+    {
 
         // override the compare() method
         public int compare(HyperBlock b1, HyperBlock b2)
@@ -158,6 +163,7 @@ public class HyperBlockVisualization
         }*/
 
         generateHyperblocks3();
+        blockCheck();
 
         JFrame tmpFrame = new JFrame();
         tmpFrame.setLayout(new GridBagLayout());
@@ -198,7 +204,7 @@ public class HyperBlockVisualization
         tmp += "<b>Class:</b> " + hyper_blocks.get(visualized_block).className + "<br/>";
         tmp += "<b>Seed Attribute:</b> " + hyper_blocks.get(visualized_block).attribute+ "<br/>";
         tmp += "<b>Datapoints:</b> " + hb_size + "<br/>";
-        //tmp += "<b>Accuracy:</b> " + accuracy.get(visualized_block) + "</html>";
+        tmp += "<b>Accuracy:</b> " + (Math.round(acc.get(visualized_block) * 10000) / 100.0) + "%</html>";
 
         graphLabel.setText(tmp);
 
@@ -294,7 +300,7 @@ public class HyperBlockVisualization
             curBlockLabel += "<b>Class:</b> " + hyper_blocks.get(visualized_block).className + "<br/>";
             curBlockLabel += "<b>Seed Attribute:</b> " + hyper_blocks.get(visualized_block).attribute + "<br/>";
             curBlockLabel += "<b>Datapoints:</b> " + tmp_size + "<br/>";
-            //curBlockLabel += "<b>Accuracy:</b> " + accuracy.get(visualized_block) + "</html>";
+            curBlockLabel += "<b>Accuracy:</b> " + (Math.round(acc.get(visualized_block) * 10000) / 100.0) + "%</html>";
 
             graphLabel.setText(curBlockLabel);
         });
@@ -339,7 +345,7 @@ public class HyperBlockVisualization
             curBlockLabel += "<b>Class:</b> " + hyper_blocks.get(visualized_block).className + "<br/>";
             curBlockLabel += "<b>Seed Attribute:</b> " + hyper_blocks.get(visualized_block).attribute + "<br/>";
             curBlockLabel += "<b>Datapoints:</b> " + tmp_size + "<br/>";
-            //curBlockLabel += "<b>Accuracy:</b> " + accuracy.get(visualized_block) + "</html>";
+            curBlockLabel += "<b>Accuracy:</b> " + (Math.round(acc.get(visualized_block) * 10000) / 100.0) + "%</html>";
 
             graphLabel.setText(curBlockLabel);
         });
@@ -355,7 +361,7 @@ public class HyperBlockVisualization
             {
                 pcGraphPanel.add(drawPCBlockTiles(objects));
                 glcGraphPanel.add(drawGLCBlockTiles(objects));
-                graphLabel.setText("<html><b>All Blocks</b></html>");
+                graphLabel.setText("");
             }
             else
             {
@@ -374,7 +380,7 @@ public class HyperBlockVisualization
                 curBlockLabel += "<b>Class:</b> " + hyper_blocks.get(visualized_block).className + "<br/>";
                 curBlockLabel += "<b>Seed Attribute:</b> " + hyper_blocks.get(visualized_block).attribute + "<br/>";
                 curBlockLabel += "<b>Datapoints:</b> " + tmp_size + "<br/>";
-                //curBlockLabel += "<b>Accuracy:</b> " + accuracy.get(visualized_block) + "</html>";
+                curBlockLabel += "<b>Accuracy:</b> " + (Math.round(acc.get(visualized_block) * 10000) / 100.0) + "%</html>";
 
                 graphLabel.setText(curBlockLabel);
             }
@@ -391,8 +397,6 @@ public class HyperBlockVisualization
         tmpFrame.revalidate();
         tmpFrame.pack();
         tmpFrame.repaint();
-
-        blockCheck();
     }
 
     private void blockCheck()
@@ -460,6 +464,10 @@ public class HyperBlockVisualization
 
             System.out.println("\nBlock " + (h+1) + " Size: " + counter[h]);
             System.out.println("Block " + (h+1) + " Accuracy: " + (maj_cnt / counter[h]));
+
+            acc.add(maj_cnt / counter[h]);
+            misclassified.add(counter[h] - (int)maj_cnt);
+            block_size.add(counter[h]);
 
             int cnt = 0;
 
@@ -1833,7 +1841,7 @@ public class HyperBlockVisualization
         curBlockLabel += "<b>Class:</b> " + hyper_blocks.get(visualized_block).className + "<br/>";
         curBlockLabel += "<b>Seed Attribute:</b> " + hyper_blocks.get(visualized_block).attribute + "<br/>";
         curBlockLabel += "<b>Datapoints:</b> " + hb_size + "<br/>";
-        //curBlockLabel += "<b>Accuracy:</b> " + accuracy.get(visualized_block) + "</html>";
+        curBlockLabel += "<b>Accuracy:</b> " + (Math.round(acc.get(visualized_block) * 10000) / 100.0) + "%</html>";
 
         graphLabel.setText(curBlockLabel);
     }
@@ -1867,8 +1875,11 @@ public class HyperBlockVisualization
     private ChartPanel drawPCBlocks(ArrayList<ArrayList<DataObject>> obj)
     {
         // create main renderer and dataset
-        XYLineAndShapeRenderer lineRenderer = new XYLineAndShapeRenderer(true, false);
-        XYSeriesCollection graphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
 
         // artificial renderer and dataset
         artRenderer = new XYLineAndShapeRenderer(true, false);
@@ -1886,28 +1897,75 @@ public class HyperBlockVisualization
         XYAreaRenderer refuseAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
         XYSeriesCollection refuseArea = new XYSeriesCollection();
 
-        // populate main series
-        for (int d = 0, lineCnt = 0; d < obj.size(); d++)
+        BasicStroke[] strokes = new BasicStroke[ hyper_blocks.get(visualized_block).hyper_block.size()];
+
+        for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
         {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                if (k == 0)
+                {
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                }
+                else
+                {
+                    Random r = new Random();
+                    float max = 25f;
+                    float min = 1f;
+
+                    int len = r.nextInt(2) + 1;
+
+                    float[] fa = new float[len];
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        fa[i] = r.nextFloat(max - min) + min;
+                    }
+
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+                }
+            }
+        }
+
+        // populate main series
+        for (int d = 0; d < obj.size(); d++)
+        {
+            int lineCnt = 0;
+
             for (DataObject data : obj.get(d))
             {
                 for (int i = 0; i < data.data.length; i++)
                 {
                     // start line at (0, 0)
                     XYSeries line = new XYSeries(lineCnt, false, true);
-                    boolean within = true;
+                    boolean within = false;
+                    int within_block = 0;
+
+                    for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                    {
+                        boolean within_cur = true;
+
+                        for (int j = 0; j < DV.fieldLength; j++)
+                        {
+                            if (data.data[i][j] < hyper_blocks.get(visualized_block).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(visualized_block).maximums.get(k)[j])
+                            {
+                                within_cur = false;
+                            }
+
+                            if (j == DV.fieldLength - 1)
+                            {
+                                if (within_cur)
+                                {
+                                    within_block = k;
+                                    within = true;
+                                }
+                            }
+                        }
+                    }
 
                     // add points to lines
                     for (int j = 0; j < DV.fieldLength; j++)
                     {
-                        for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
-                        {
-                            if (data.data[i][j] >= hyper_blocks.get(visualized_block).minimums.get(k)[j] && data.data[i][j] <= hyper_blocks.get(visualized_block).maximums.get(k)[j])
-                                break;
-                            else if (k == hyper_blocks.get(visualized_block).hyper_block.size() - 1)
-                                within = false;
-                        }
-
                         line.add(j, data.data[i][j]);
 
                         // add endpoint and timeline
@@ -1918,10 +1976,20 @@ public class HyperBlockVisualization
                                 if (within)
                                 {
                                     // add series
-                                    graphLines.addSeries(line);
+                                    if (d == hyper_blocks.get(visualized_block).classNum)
+                                    {
+                                        goodGraphLines.addSeries(line);
 
-                                    // set series paint
-                                    lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
+                                    else
+                                    {
+                                        badGraphLines.addSeries(line);
+
+                                        badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
 
                                     lineCnt++;
                                 }
@@ -1929,10 +1997,26 @@ public class HyperBlockVisualization
                             else
                             {
                                 // add series
-                                graphLines.addSeries(line);
+                                if (d == hyper_blocks.get(visualized_block).classNum)
+                                {
+                                    goodGraphLines.addSeries(line);
 
-                                // set series paint
-                                lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                    goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                    if (within)
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                }
+                                else
+                                {
+                                    badGraphLines.addSeries(line);
+
+                                    badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                    if (within)
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                }
+
+
 
                                 lineCnt++;
                             }
@@ -1984,6 +2068,7 @@ public class HyperBlockVisualization
 
                 pcBlockRenderer.setSeriesPaint(k-offset, Color.ORANGE);
                 pcBlockAreaRenderer.setSeriesPaint(k-offset, new Color(255, 200, 0, 20));
+                pcBlockRenderer.setSeriesStroke(k, strokes[k]);
 
                 pcBlocks.addSeries(tmp1);
                 pcBlocksArea.addSeries(tmp2);
@@ -2034,7 +2119,7 @@ public class HyperBlockVisualization
                 "",
                 "",
                 "",
-                graphLines,
+                goodGraphLines,
                 PlotOrientation.VERTICAL,
                 false,
                 true,
@@ -2055,7 +2140,7 @@ public class HyperBlockVisualization
                 DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
                 DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
         plot.getRangeAxis().setVisible(true);
-        plot.getDomainAxis().setVisible(false);
+        plot.getDomainAxis().setVisible(true);
         plot.setOutlinePaint(null);
         plot.setOutlineVisible(false);
         plot.setInsets(RectangleInsets.ZERO_INSETS);
@@ -2066,14 +2151,24 @@ public class HyperBlockVisualization
 
         // set domain
         ValueAxis domainView = plot.getDomainAxis();
-        domainView.setRange(-0.1, DV.fieldLength);
+        domainView.setRange(-0.1, DV.fieldLength-1);
 
         NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
-        xAxis.setTickUnit(new NumberTickUnit(1));
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
 
         // set range
         NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
         yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
 
         artRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         artRenderer.setAutoPopulateSeriesStroke(false);
@@ -2099,14 +2194,18 @@ public class HyperBlockVisualization
         plot.setRenderer(4, refuseAreaRenderer);
         plot.setDataset(4, refuseArea);
 
-        lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
-        lineRenderer.setAutoPopulateSeriesStroke(false);
-        plot.setRenderer(5, lineRenderer);
-        plot.setDataset(5, graphLines);
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(5, badLineRenderer);
+        plot.setDataset(5, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(6, goodLineRenderer);
+        plot.setDataset(6, goodGraphLines);
 
         ChartPanel chartPanel = new ChartPanel(pcChart);
         chartPanel.setMouseWheelEnabled(true);
-        chartPanel.restoreAutoBounds();
         return chartPanel;
     }
 
@@ -2135,6 +2234,61 @@ public class HyperBlockVisualization
                     int temp2 = indexes[j];
                     indexes[j] = indexes[j + 1];
                     indexes[j + 1] = temp2;
+                }
+            }
+        }
+
+        // get artificial datapoint
+        int atri = -1;
+
+        if (hyper_blocks.get(visualized_block).hyper_block.size() > 1)
+        {
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                if (hyper_blocks.get(visualized_block).maximums.get(0)[i] < hyper_blocks.get(visualized_block).minimums.get(1)[i] || hyper_blocks.get(visualized_block).minimums.get(0)[i] > hyper_blocks.get(visualized_block).maximums.get(1)[i])
+                {
+                    atri = i;
+                    break;
+                }
+            }
+        }
+
+        // get size
+        double atri_size_max = 0;
+        double atri_size_min = 0;
+
+        if (hyper_blocks.get(visualized_block).hyper_block.size() > 1)
+        {
+            atri_size_max = (hyper_blocks.get(visualized_block).maximums.get(0)[atri] + hyper_blocks.get(visualized_block).maximums.get(1)[atri]) / 2.0;
+            atri_size_min = (hyper_blocks.get(visualized_block).minimums.get(0)[atri] + hyper_blocks.get(visualized_block).minimums.get(1)[atri]) / 2.0;
+        }
+
+        BasicStroke[] strokes = new BasicStroke[ hyper_blocks.get(visualized_block).hyper_block.size()];
+
+        for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                if (k == 0)
+                {
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                }
+                else
+                {
+                    Random r = new Random();
+                    float max = 25f;
+                    float min = 1f;
+
+                    int len = r.nextInt(2) + 1;
+
+                    float[] fa = new float[len];
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        fa[i] = r.nextFloat(max - min) + min;
+                    }
+
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
                 }
             }
         }
@@ -2185,23 +2339,51 @@ public class HyperBlockVisualization
                 if (DV.showFirstSeg)
                     line.add(0, glcBuffer);
 
-                boolean within = true;
+                boolean within = false;
+                int within_block = 0;
+
+                for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                {
+                    boolean within_cur = true;
+
+                    for (int j = 0; j < data.coordinates[i].length; j++)
+                    {
+                        if (data.data[i][j] < hyper_blocks.get(visualized_block).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(visualized_block).maximums.get(k)[j])
+                        {
+                            within_cur = false;
+                        }
+
+                        if (j == data.coordinates[i].length - 1)
+                        {
+                            if (within_cur)
+                            {
+                                within_block = k;
+                                within = true;
+                            }
+                        }
+                    }
+                }
+
+                double[] a_point = DataObject.getXYPointGLC(atri_size_max, 90);
+
+                a_point[0] += (double)line.getX(0);
+                a_point[1] += (double)line.getY(0);
+
+                line.add(a_point[0], a_point[1]);
 
                 // add points to lines
                 for (int j = 0; j < data.coordinates[i].length; j++)
                 {
-                    for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
-                    {
-                        if (data.data[i][indexes[j]] >= hyper_blocks.get(visualized_block).minimums.get(k)[indexes[j]] && data.data[i][indexes[j]] <= hyper_blocks.get(visualized_block).maximums.get(k)[indexes[j]])
-                            break;
-                        else if (k == hyper_blocks.get(visualized_block).hyper_block.size() - 1)
-                            within = false;
-                    }
+                    /*double angle;
+                    if (j == 0)
+                        angle = DV.angles[indexes[j]];
+                    else
+                        angle = 45;*/
 
                     double[] point = DataObject.getXYPointGLC(data.data[i][indexes[j]], DV.angles[indexes[j]]);
 
-                    point[0] += (double)line.getX(j);
-                    point[1] += (double)line.getY(j);
+                    point[0] += (double)line.getX(j+1);
+                    point[1] += (double)line.getY(j+1);
 
 
                     line.add(point[0], point[1]);
@@ -2232,6 +2414,8 @@ public class HyperBlockVisualization
                                 endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                                 timeLineRenderer.setSeriesShape(lineCnt, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
 
+                                lineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+
                                 lineCnt++;
                             }
                         }
@@ -2253,6 +2437,9 @@ public class HyperBlockVisualization
                             endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                             timeLineRenderer.setSeriesShape(lineCnt, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
 
+                            if (within)
+                                lineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+
                             lineCnt++;
                         }
                     }
@@ -2270,8 +2457,10 @@ public class HyperBlockVisualization
             if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
             {
                 glcBlockRenderer[curClass].setSeriesPaint(cnt, Color.ORANGE);
+                glcBlockRenderer[curClass].setSeriesStroke(cnt, strokes[k]);
                 XYSeries max_bound = new XYSeries(cnt++, false, true);
                 glcBlockRenderer[curClass].setSeriesPaint(cnt, Color.ORANGE);
+                glcBlockRenderer[curClass].setSeriesStroke(cnt, strokes[k]);
                 XYSeries min_bound = new XYSeries(cnt++, false, true);
 
                 XYSeries area = new XYSeries(k, false, true);
@@ -2286,6 +2475,16 @@ public class HyperBlockVisualization
                     min_bound.add(0, glcBuffer);
                     //area.add(0, glcBuffer);
                 }
+
+                double[] a_point = DataObject.getXYPointGLC(atri_size_max, 90);
+
+                max_bound.add(a_point[0], a_point[1] + glcBuffer);
+                min_bound.add(a_point[0], a_point[1] + glcBuffer);
+
+                xyCurPointMax[0] += a_point[0];
+                xyCurPointMin[0] += a_point[0];
+                xyCurPointMax[1] += a_point[1];
+                xyCurPointMin[1] += a_point[1];
 
                 min_bound.add(xyCurPointMin[0], xyCurPointMin[1]);
                 max_bound.add(xyCurPointMax[0], xyCurPointMax[1]);
@@ -2315,6 +2514,9 @@ public class HyperBlockVisualization
                 glcBlocks[curClass].addSeries(max_bound);
                 glcBlocks[curClass].addSeries(min_bound);
                 glcBlocksArea[curClass].addSeries(area);
+
+                glcBlockRenderer[curClass].setSeriesStroke(cnt-1, strokes[k]);
+                glcBlockRenderer[curClass].setSeriesStroke(cnt, strokes[k]);
             }
         }
 
@@ -2423,9 +2625,41 @@ public class HyperBlockVisualization
 
         for (int c = 0; c < hyper_blocks.size(); c++)
         {
+            BasicStroke[] strokes = new BasicStroke[hyper_blocks.get(c).hyper_block.size()];
+
+            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+            {
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1)
+                {
+                    if (k == 0)
+                    {
+                        strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                    }
+                    else
+                    {
+                        Random r = new Random();
+                        float max = 25f;
+                        float min = 1f;
+
+                        int len = r.nextInt(2) + 1;
+
+                        float[] fa = new float[len];
+
+                        for (int i = 0; i < len; i++)
+                        {
+                            fa[i] = r.nextFloat(max - min) + min;
+                        }
+
+                        strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+                    }
+                }
+            }
+
             // create main renderer and dataset
-            XYLineAndShapeRenderer lineRenderer = new XYLineAndShapeRenderer(true, false);
-            XYSeriesCollection graphLines = new XYSeriesCollection();
+            XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+            XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+            XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+            XYSeriesCollection badGraphLines = new XYSeriesCollection();
 
             // artificial renderer and dataset
             XYLineAndShapeRenderer artRenderer = new XYLineAndShapeRenderer(true, false);
@@ -2444,27 +2678,44 @@ public class HyperBlockVisualization
             XYSeriesCollection refuseArea = new XYSeriesCollection();
 
             // populate main series
-            for (int d = 0, lineCnt = 0; d < obj.size(); d++)
+            for (int d = 0; d < obj.size(); d++)
             {
+                int lineCnt = 0;
+
                 for (DataObject data : obj.get(d))
                 {
                     for (int i = 0; i < data.data.length; i++)
                     {
                         // start line at (0, 0)
                         XYSeries line = new XYSeries(lineCnt, false, true);
-                        boolean within = true;
+                        boolean within = false;
+                        int within_block = 0;
+
+                        for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+                        {
+                            boolean within_cur = true;
+
+                            for (int j = 0; j < DV.fieldLength; j++)
+                            {
+                                if (data.data[i][j] < hyper_blocks.get(c).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(c).maximums.get(k)[j])
+                                {
+                                    within_cur = false;
+                                }
+
+                                if (j == DV.fieldLength - 1)
+                                {
+                                    if (within_cur)
+                                    {
+                                        within_block = k;
+                                        within = true;
+                                    }
+                                }
+                            }
+                        }
 
                         // add points to lines
                         for (int j = 0; j < DV.fieldLength; j++)
                         {
-                            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
-                            {
-                                if (data.data[i][j] >= hyper_blocks.get(c).minimums.get(k)[j] && data.data[i][j] <= hyper_blocks.get(c).maximums.get(k)[j])
-                                    break;
-                                else if (k == hyper_blocks.get(c).hyper_block.size() - 1)
-                                    within = false;
-                            }
-
                             line.add(j, data.data[i][j]);
 
                             // add endpoint and timeline
@@ -2475,21 +2726,46 @@ public class HyperBlockVisualization
                                     if (within)
                                     {
                                         // add series
-                                        graphLines.addSeries(line);
+                                        if (d == hyper_blocks.get(c).classNum)
+                                        {
+                                            goodGraphLines.addSeries(line);
+
+                                            goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                            goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                        }
+                                        else
+                                        {
+                                            badGraphLines.addSeries(line);
+
+                                            badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                            badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                        }
 
                                         // set series paint
-                                        lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
-
                                         lineCnt++;
                                     }
                                 }
                                 else
                                 {
                                     // add series
-                                    graphLines.addSeries(line);
+                                    if (d == hyper_blocks.get(c).classNum)
+                                    {
+                                        goodGraphLines.addSeries(line);
 
-                                    // set series paint
-                                    lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                        if (within)
+                                            goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
+                                    else
+                                    {
+                                        badGraphLines.addSeries(line);
+
+                                        badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                        if (within)
+                                            badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
 
                                     lineCnt++;
                                 }
@@ -2538,6 +2814,7 @@ public class HyperBlockVisualization
 
                     pcBlockRenderer.setSeriesPaint(k - offset, Color.ORANGE);
                     pcBlockAreaRenderer.setSeriesPaint(k - offset, new Color(255, 200, 0, 20));
+                    pcBlockRenderer.setSeriesStroke(k - offset, strokes[k - offset]);
 
                     pcBlocks.addSeries(tmp1);
                     pcBlocksArea.addSeries(tmp2);
@@ -2588,7 +2865,7 @@ public class HyperBlockVisualization
                     "",
                     "",
                     "",
-                    graphLines,
+                    goodGraphLines,
                     PlotOrientation.VERTICAL,
                     false,
                     true,
@@ -2609,7 +2886,7 @@ public class HyperBlockVisualization
                     DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
                     DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
             plot.getRangeAxis().setVisible(true);
-            plot.getDomainAxis().setVisible(false);
+            plot.getDomainAxis().setVisible(true);
             plot.setOutlinePaint(null);
             plot.setOutlineVisible(false);
             plot.setInsets(RectangleInsets.ZERO_INSETS);
@@ -2620,14 +2897,25 @@ public class HyperBlockVisualization
 
             // set domain
             ValueAxis domainView = plot.getDomainAxis();
-            domainView.setRange(-0.1, DV.fieldLength);
+            domainView.setRange(-0.1, DV.fieldLength-1);
 
             NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
-            xAxis.setTickUnit(new NumberTickUnit(1));
+
+            NumberTickUnit ntu = new NumberTickUnit(1)
+            {
+                @Override
+                public String valueToString(double value) {
+                    return super.valueToString(value + 1);
+                }
+            };
+
+            xAxis.setTickUnit(ntu);
 
             // set range
             NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
             yAxis.setTickUnit(new NumberTickUnit(0.25));
+            yAxis.setAutoRange(false);
+            yAxis.setRange(0, 1);
 
             artRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
             artRenderer.setAutoPopulateSeriesStroke(false);
@@ -2653,14 +2941,18 @@ public class HyperBlockVisualization
             plot.setRenderer(4, refuseAreaRenderer);
             plot.setDataset(4, refuseArea);
 
-            lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
-            lineRenderer.setAutoPopulateSeriesStroke(false);
-            plot.setRenderer(5, lineRenderer);
-            plot.setDataset(5, graphLines);
+            badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+            badLineRenderer.setAutoPopulateSeriesStroke(false);
+            plot.setRenderer(5, badLineRenderer);
+            plot.setDataset(5, badGraphLines);
+
+            goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+            goodLineRenderer.setAutoPopulateSeriesStroke(false);
+            plot.setRenderer(6, goodLineRenderer);
+            plot.setDataset(6, goodGraphLines);
 
             ChartPanel chartPanel = new ChartPanel(pcChart);
             chartPanel.setMouseWheelEnabled(true);
-            chartPanel.restoreAutoBounds();
 
             JPanel tmp = new JPanel();
             tmp.setLayout(new BoxLayout(tmp, BoxLayout.PAGE_AXIS));
@@ -2677,12 +2969,14 @@ public class HyperBlockVisualization
             String desc = "<html><b>Block:</b> " + (c + 1) + "/" + hyper_blocks.size() + "<br/>";
             desc += "<b>Class:</b> " + hyper_blocks.get(c).className + "<br/>";
             desc += "<b>Seed Attribute:</b> " + hyper_blocks.get(c).attribute+ "<br/>";
-            desc += "<b>Datapoints:</b> " + hb_size + "</html>";
+            desc += "<b>Datapoints:</b> " + hb_size + "<br/>";
+            desc += "<b>Accuracy:</b> " + (Math.round(acc.get(c) * 10000) / 100.0) + "%</html>";
 
             tmp.add(new JLabel(desc));
 
             int finalC = c;
-            chartPanel.addChartMouseListener(new ChartMouseListener() {
+            chartPanel.addChartMouseListener(new ChartMouseListener()
+            {
                 @Override
                 public void chartMouseClicked(ChartMouseEvent chartMouseEvent)
                 {
@@ -2697,25 +2991,104 @@ public class HyperBlockVisualization
                 public void chartMouseMoved(ChartMouseEvent chartMouseEvent) {}
             });
 
-            JPopupMenu combine = new JPopupMenu("Combine Blocks");
-            combine.add(new JLabel("<html><b>Combine Blocks</b></html>"));
+            JPopupMenu options = new JPopupMenu("Block Options");
+            options.setLayout(new GridBagLayout());
 
-            ArrayList<JCheckBox> checks = new ArrayList<>();
+            GridBagConstraints constraints = new GridBagConstraints();
+            constraints.gridx = 0;
+            constraints.gridy = 0;
+            constraints.weightx = 1;
+            constraints.weighty = 1;
+            constraints.fill = GridBagConstraints.BOTH;
+
+            options.add(new JLabel("<html><b>Combine Blocks</b></html>"), constraints);
+            constraints.gridx = 2;
+            options.add(new JLabel("<html><b>Analyse Blocks</b></html>"), constraints);
+            constraints.gridx = 0;
+
+            ArrayList<JCheckBox> combine_checks = new ArrayList<>();
+            ArrayList<JCheckBox> analyse_checks = new ArrayList<>();
             ArrayList<Integer> block_index = new ArrayList<>();
+            int cnt = 0;
 
-            for (int i = 0, cnt = 0; i < hyper_blocks.size(); i++)
+            for (int i = 0; i < hyper_blocks.size(); i++)
             {
-                if (hyper_blocks.get(i).classNum == hyper_blocks.get(c).classNum && i != c)
+                if (hyper_blocks.get(i).classNum != hyper_blocks.get(c).classNum && i != c)
                 {
-                    checks.add(new JCheckBox("Block " + (i+1)));
+                    combine_checks.add(new JCheckBox("Block " + (i+1)));
+                    analyse_checks.add(new JCheckBox("Block " + (i+1)));
                     block_index.add(i);
-                    combine.add(checks.get(cnt++));
+
+                    constraints.gridx = 0;
+                    constraints.gridy = cnt + 1;
+                    options.add(combine_checks.get(cnt), constraints);
+
+                    constraints.gridx = 2;
+                    options.add(analyse_checks.get(cnt++), constraints);
                 }
             }
 
-            JButton confirm = new JButton("Confirm Selection");
-            confirm.addActionListener(e ->
+            JButton confirm_combine = new JButton("Confirm Combine");
+            confirm_combine.addActionListener(e ->
             {
+                // check cases in union
+                /*int u_cnt = 0;
+                for (int w = 0; w < checks.size(); w++)
+                {
+                    if (checks.get(w).isSelected())
+                    {
+                        for (int d = 0; d < obj.size(); d++)
+                        {
+                            for (DataObject data : obj.get(d))
+                            {
+                                for (int i = 0; i < data.data.length; i++)
+                                {
+                                    for (int k = 0; k < hyper_blocks.get(finalC).hyper_block.size(); k++)
+                                    {
+                                        boolean within_both = false;
+
+                                        for (int j = 0; j < DV.fieldLength; j++)
+                                        {
+                                            boolean within_cur = false;
+                                            boolean within_com = false;
+
+                                            if (data.data[i][j] >= hyper_blocks.get(finalC).minimums.get(k)[j] && data.data[i][j] <= hyper_blocks.get(finalC).maximums.get(k)[j])
+                                            {
+                                                within_cur = true;
+                                            }
+
+                                            if (data.data[i][j] >= hyper_blocks.get(block_index.get(w)).minimums.get(k)[j] && data.data[i][j] <= hyper_blocks.get(block_index.get(w)).maximums.get(k)[j])
+                                            {
+                                                within_com = true;
+                                            }
+
+                                            if ((!within_cur && within_com) || (within_cur && !within_com))
+                                            {
+                                                within_both = true;
+                                            }
+
+                                            if (!within_cur && !within_com)
+                                            {
+                                                break;
+                                            }
+
+                                            if (j == DV.fieldLength - 1)
+                                            {
+                                                if (within_both)
+                                                {
+                                                    u_cnt++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                int tmp_size = block_size.get(finalC);
                 // add all selected blocks to current block
                 for (int i = 0; i < checks.size(); i++)
                 {
@@ -2723,8 +3096,28 @@ public class HyperBlockVisualization
                     {
                         for (int j = 0; j < hyper_blocks.get(block_index.get(i)).hyper_block.size(); j++)
                         {
+                            tmp_size += block_size.get(block_index.get(i));
+                        }
+                    }
+                }
+
+                System.out.println("Union Count: " + u_cnt);
+                System.out.println("Block Size: " + tmp_size);
+                System.out.println("U Acc: " + tmp_size / u_cnt);*/
+
+                // add all selected blocks to current block
+                for (int i = 0; i < combine_checks.size(); i++)
+                {
+                    if (combine_checks.get(i).isSelected())
+                    {
+                        for (int j = 0; j < hyper_blocks.get(block_index.get(i)).hyper_block.size(); j++)
+                        {
                             hyper_blocks.get(finalC).hyper_block.add(hyper_blocks.get(block_index.get(i)).hyper_block.get(j));
                             artificial.get(finalC).add(artificial.get(block_index.get(i)).get(j));
+
+                            misclassified.set(finalC, misclassified.get(finalC) + misclassified.get(block_index.get(i)));
+                            block_size.set(finalC, block_size.get(finalC) + block_size.get(block_index.get(i)));
+                            acc.set(finalC, ((double)(block_size.get(finalC) - misclassified.get(finalC)) / block_size.get(finalC)));
                         }
                     }
                 }
@@ -2733,12 +3126,15 @@ public class HyperBlockVisualization
                 hyper_blocks.get(finalC).getBounds();
 
                 // remove all selected blocks from hyperblocks
-                for (int i = 0; i < checks.size(); i++)
+                for (int i = 0; i < combine_checks.size(); i++)
                 {
-                    if (checks.get(i).isSelected())
+                    if (combine_checks.get(i).isSelected())
                     {
                         hyper_blocks.remove(hyper_blocks.get(block_index.get(i)));
                         artificial.remove(artificial.get(block_index.get(i)));
+                        misclassified.remove(misclassified.get(block_index.get(i)));
+                        block_size.remove(block_size.get(block_index.get(i)));
+                        acc.remove(acc.get(block_index.get(i)));
                     }
                 }
 
@@ -2749,8 +3145,49 @@ public class HyperBlockVisualization
                 tile.doClick();
             });
 
-            combine.add(confirm);
-            chartPanel.setPopupMenu(combine);
+            JButton confirm_analyse = new JButton("Confirm Analyse");
+            confirm_analyse.addActionListener(e ->
+            {
+                // find where blocks are unique
+                StringBuilder msg = new StringBuilder("<html><b>Block " + (finalC + 1)+ " Analysis:</b><br/>");
+
+                for (int i = 0; i < analyse_checks.size(); i++)
+                {
+                    if (analyse_checks.get(i).isSelected())
+                    {
+                        for (int j = 0; j < hyper_blocks.get(block_index.get(i)).hyper_block.size(); j++)
+                        {
+                            for (int k = 0; k < DV.fieldLength; k++)
+                            {
+                                if (hyper_blocks.get(block_index.get(i)).maximums.get(j)[k] < hyper_blocks.get(finalC).minimums.get(j)[k] ||
+                                        hyper_blocks.get(block_index.get(i)).minimums.get(j)[k] > hyper_blocks.get(finalC).maximums.get(j)[k])
+                                {
+                                    if (hyper_blocks.get(block_index.get(i)).hyper_block.size() == 1)
+                                        msg.append("&emsp separate from ").append(analyse_checks.get(i).getText()).append(" on attribute ").append(k+1).append("<br/>");
+                                    else
+                                        msg.append("&emsp separate from block ").append((j + 1)).append("/").append(hyper_blocks.get(block_index.get(i)).hyper_block.size()).append(analyse_checks.get(i).getText()).append(" on attribute ").append(k+1).append("<br/>");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                JOptionPane.showMessageDialog(pcGraphPanel, msg.toString());
+            });
+
+            constraints.gridx = 0;
+            constraints.gridy = ++cnt;
+            options.add(confirm_combine, constraints);
+
+            constraints.gridx = 2;
+            options.add(confirm_analyse, constraints);
+
+            constraints.gridx = 1;
+            constraints.gridy = 0;
+            constraints.gridheight = ++cnt;
+            options.add(new JSeparator(SwingConstants.VERTICAL), constraints);
+
+            chartPanel.setPopupMenu(options);
 
             tilePanel.add(tmp);
         }
@@ -2794,10 +3231,65 @@ public class HyperBlockVisualization
 
         for (int c = 0; c < hyper_blocks.size(); c++)
         {
+            BasicStroke[] strokes = new BasicStroke[ hyper_blocks.get(c).hyper_block.size()];
+
+            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+            {
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1)
+                {
+                    if (k == 0)
+                    {
+                        strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                    }
+                    else
+                    {
+                        Random r = new Random();
+                        float max = 25f;
+                        float min = 1f;
+
+                        int len = r.nextInt(2) + 1;
+
+                        float[] fa = new float[len];
+
+                        for (int i = 0; i < len; i++)
+                        {
+                            fa[i] = r.nextFloat(max - min) + min;
+                        }
+
+                        strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+                    }
+                }
+            }
+
             ArrayList<ChartPanel> charts = new ArrayList<>();
 
             for (int curClass = 0; curClass < objs.size(); curClass++)
             {
+                // get artificial datapoint
+                int atri = -1;
+
+                if (hyper_blocks.get(c).hyper_block.size() > 1)
+                {
+                    for (int i = 0; i < DV.fieldLength; i++)
+                    {
+                        if (hyper_blocks.get(c).maximums.get(0)[i] < hyper_blocks.get(c).minimums.get(1)[i] || hyper_blocks.get(c).minimums.get(0)[i] > hyper_blocks.get(c).maximums.get(1)[i])
+                        {
+                            atri = i;
+                            break;
+                        }
+                    }
+                }
+
+                // get size
+                double atri_size_max = 0;
+                double atri_size_min = 0;
+
+                if (hyper_blocks.get(c).hyper_block.size() > 1)
+                {
+                    atri_size_max = (hyper_blocks.get(c).maximums.get(0)[atri] + hyper_blocks.get(c).maximums.get(1)[atri]) / 2.0;
+                    atri_size_min = (hyper_blocks.get(c).minimums.get(0)[atri] + hyper_blocks.get(c).minimums.get(1)[atri]) / 2.0;
+                }
+
                 ArrayList<DataObject> obj = objs.get(curClass);
 
                 // create main renderer and dataset
@@ -2846,24 +3338,45 @@ public class HyperBlockVisualization
                         if (DV.showFirstSeg)
                             line.add(0, glcBuffer);
 
-                        boolean within = true;
+                        boolean within = false;
+                        int within_block = 0;
+
+                        for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+                        {
+                            boolean within_cur = true;
+
+                            for (int j = 0; j < data.coordinates[i].length; j++)
+                            {
+                                if (data.data[i][j] < hyper_blocks.get(c).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(c).maximums.get(k)[j])
+                                {
+                                    within_cur = false;
+                                }
+
+                                if (j == data.coordinates[i].length - 1)
+                                {
+                                    if (within_cur)
+                                    {
+                                        within_block = k;
+                                        within = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        double[] a_point = DataObject.getXYPointGLC(atri_size_max, 90);
+
+                        a_point[0] += (double)line.getX(0);
+                        a_point[1] += (double)line.getY(0);
+
+                        line.add(a_point[0], a_point[1]);
 
                         // add points to lines
                         for (int j = 0; j < data.coordinates[i].length; j++)
                         {
-                            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
-                            {
-                                if (data.data[i][indexes[j]] >= hyper_blocks.get(c).minimums.get(k)[indexes[j]] && data.data[i][indexes[j]] <= hyper_blocks.get(c).maximums.get(k)[indexes[j]])
-                                    break;
-                                else if (k == hyper_blocks.get(c).hyper_block.size() - 1)
-                                    within = false;
-                            }
-
                             double[] point = DataObject.getXYPointGLC(data.data[i][indexes[j]], DV.angles[indexes[j]]);
 
-                            point[0] += (double)line.getX(j);
-                            point[1] += (double)line.getY(j);
-
+                            point[0] += (double)line.getX(j+1);
+                            point[1] += (double)line.getY(j+1);
 
                             line.add(point[0], point[1]);
 
@@ -2893,6 +3406,8 @@ public class HyperBlockVisualization
                                         endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                                         timeLineRenderer.setSeriesShape(lineCnt, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
 
+                                        lineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+
                                         lineCnt++;
                                     }
                                 }
@@ -2914,6 +3429,9 @@ public class HyperBlockVisualization
                                     endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                                     timeLineRenderer.setSeriesShape(lineCnt, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
 
+                                    if (within)
+                                        lineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+
                                     lineCnt++;
                                 }
                             }
@@ -2931,14 +3449,17 @@ public class HyperBlockVisualization
                     if (hyper_blocks.get(c).hyper_block.get(k).size() > 1)
                     {
                         glcBlockRenderer[curClass].setSeriesPaint(cnt, Color.ORANGE);
+                        glcBlockRenderer[curClass].setSeriesStroke(cnt, strokes[k]);
                         XYSeries max_bound = new XYSeries(cnt++, false, true);
                         glcBlockRenderer[curClass].setSeriesPaint(cnt, Color.ORANGE);
+                        glcBlockRenderer[curClass].setSeriesStroke(cnt, strokes[k]);
                         XYSeries min_bound = new XYSeries(cnt++, false, true);
 
                         XYSeries area = new XYSeries(k, false, true);
 
                         double[] xyCurPointMin = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[0]], DV.angles[indexes[0]]);
                         double[] xyCurPointMax = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+
                         xyCurPointMin[1] += glcBuffer;
                         xyCurPointMax[1] += glcBuffer;
 
@@ -2947,6 +3468,16 @@ public class HyperBlockVisualization
                             min_bound.add(0, glcBuffer);
                             //area.add(0, glcBuffer);
                         }
+
+                        double[] a_point = DataObject.getXYPointGLC(atri_size_max, 90);
+
+                        max_bound.add(a_point[0], a_point[1] + glcBuffer);
+                        min_bound.add(a_point[0], a_point[1] + glcBuffer);
+
+                        xyCurPointMax[0] += a_point[0];
+                        xyCurPointMin[0] += a_point[0];
+                        xyCurPointMax[1] += a_point[1];
+                        xyCurPointMin[1] += a_point[1];
 
                         min_bound.add(xyCurPointMin[0], xyCurPointMin[1]);
                         max_bound.add(xyCurPointMax[0], xyCurPointMax[1]);
@@ -3117,6 +3648,9 @@ public class HyperBlockVisualization
                 JButton confirm = new JButton("Confirm Selection");
                 confirm.addActionListener(e ->
                 {
+                    // check cases in union of blocks
+
+
                     // add all selected blocks to current block
                     for (int i = 0; i < checks.size(); i++)
                     {
@@ -3126,6 +3660,10 @@ public class HyperBlockVisualization
                             {
                                 hyper_blocks.get(finalC).hyper_block.add(hyper_blocks.get(block_index.get(i)).hyper_block.get(j));
                                 artificial.get(finalC).add(artificial.get(block_index.get(i)).get(j));
+
+                                misclassified.set(finalC, misclassified.get(finalC) + misclassified.get(block_index.get(i)));
+                                block_size.set(finalC, block_size.get(finalC) + block_size.get(block_index.get(i)));
+                                acc.set(finalC, ((double)(block_size.get(finalC) - misclassified.get(finalC)) / block_size.get(finalC)));
                             }
                         }
                     }
@@ -3140,6 +3678,9 @@ public class HyperBlockVisualization
                         {
                             hyper_blocks.remove(hyper_blocks.get(block_index.get(i)));
                             artificial.remove(artificial.get(block_index.get(i)));
+                            misclassified.remove(misclassified.get(block_index.get(i)));
+                            block_size.remove(block_size.get(block_index.get(i)));
+                            acc.remove(acc.get(block_index.get(i)));
                         }
                     }
 
@@ -3164,7 +3705,8 @@ public class HyperBlockVisualization
             String desc = "<html><b>Block:</b> " + (c + 1) + "/" + hyper_blocks.size() + "<br/>";
             desc += "<b>Class:</b> " + hyper_blocks.get(c).className + "<br/>";
             desc += "<b>Seed Attribute:</b> " + hyper_blocks.get(c).attribute+ "<br/>";
-            desc += "<b>Datapoints:</b> " + hb_size + "</html>";
+            desc += "<b>Datapoints:</b> " + hb_size + "<br/>";
+            desc += "<b>Accuracy:</b> " + (Math.round(acc.get(c) * 10000) / 100.0) + "%</html>";
 
             tmp.add(new JLabel(desc));
 
