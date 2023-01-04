@@ -4,6 +4,7 @@ public class HyperBlock
 {
     ArrayList<ArrayList<double[]>> hyper_block;
     int classNum;
+    int size;
     String className;
     String attribute;
 
@@ -24,6 +25,8 @@ public class HyperBlock
 
     public void getBounds()
     {
+        size = 0;
+
         for (int h = 0; h < hyper_block.size(); h++)
         {
             maximums.add(new double[DV.fieldLength]);
@@ -43,6 +46,9 @@ public class HyperBlock
                     minimums.get(h)[j] = Math.min(minimums.get(h)[j], dbs[j]);
                 }
             }
+
+
+            size += hyper_block.get(h).size();
         }
     }
 }
