@@ -58,7 +58,7 @@ public class HyperBlockVisualization
     int overlappingBlockCnt;
 
     // accuracy threshold for hyperblocks
-    double acc_threshold = 0.95;
+    double acc_threshold = DV.accuracy / 100;//0.95;
 
     double glcBuffer = DV.fieldLength / 10.0;
 
@@ -361,6 +361,17 @@ public class HyperBlockVisualization
 
     private void blockCheck()
     {
+        int bcnt = 0;
+        for (int h = 0; h < hyper_blocks.size(); h++)
+        {
+            for (int q = 0; q < hyper_blocks.get(h).hyper_block.size(); q++)
+            {
+                bcnt += hyper_blocks.get(h).hyper_block.get(q).size();
+            }
+        }
+
+        System.out.println("TOTAL NUM IN BLOCKS: " + bcnt + "\n");
+
         int[] counter = new int[hyper_blocks.size()];
         ArrayList<ArrayList<double[]>> hello = new ArrayList<>();
 
@@ -406,12 +417,12 @@ public class HyperBlockVisualization
                             {
                                 for (int w = 0; w < hyper_blocks.get(h).hyper_block.get(k).size(); w++)
                                 {
-                                    if (Arrays.equals(hi, hyper_blocks.get(h).hyper_block.get(k).get(w)))
+                                    if (Arrays.deepEquals(new Object[]{hi}, new Object[]{hyper_blocks.get(h).hyper_block.get(k).get(w)}))
                                     {
                                         good.add(hi);
                                         break;
                                     }
-                                    else if (k == hyper_blocks.get(h).hyper_block.size()-1)
+                                    else if (k == hyper_blocks.get(h).hyper_block.size()-1 && w == hyper_blocks.get(h).hyper_block.get(k).size() - 1)
                                     {
                                         bad.add(hi);
                                     }
@@ -437,7 +448,7 @@ public class HyperBlockVisualization
                 {
                     for (int w = 0; w < inside.size(); w++)
                     {
-                        if (Arrays.equals(inside.get(w), hello.get(j).get(k)))
+                        if (Arrays.deepEquals(new Object[]{inside.get(w)}, new Object[]{hello.get(j).get(k)}))
                             cnt++;//System.out.println("DUPLICATE POINT: hb = " + (j+1) + "   point = " + k);
                     }
                 }
@@ -452,17 +463,18 @@ public class HyperBlockVisualization
 
     // code taken from VisCanvas2.0 autoCluster function
     // CREDIT LATER
-    private void generateHyperblocks(ArrayList<ArrayList<double[]>> data)
+    private void generateHyperblocks(ArrayList<ArrayList<double[]>> data, ArrayList<ArrayList<double[]>> stuff)
     {
-        ArrayList<HyperBlock> blocks = new ArrayList<>();
+        ArrayList<HyperBlock> blocks = new ArrayList<>(hyper_blocks);
+        hyper_blocks.clear();
 
-        for (int i = 0, cnt = 0; i < data.size(); i++)
+        for (int i = 0, cnt = blocks.size(); i < stuff.size(); i++)
         {
             // create hyperblock from each datapoint
-            for (int j = 0; j < data.get(i).size(); j++)
+            for (int j = 0; j < stuff.get(i).size(); j++)
             {
                 blocks.add(new HyperBlock(new ArrayList<>()));
-                blocks.get(cnt).hyper_block.add(new ArrayList<>(List.of(data.get(i).get(j))));
+                blocks.get(cnt).hyper_block.add(new ArrayList<>(List.of(stuff.get(i).get(j))));
                 blocks.get(cnt).getBounds();
                 blocks.get(cnt).className = DV.data.get(i).className;
                 blocks.get(cnt).classNum = i;
@@ -794,7 +806,7 @@ public class HyperBlockVisualization
 
                 for (int k = 0; k < pure_blocks.size(); k++)
                 {
-                    for (int w = 0; w < pure_blocks.get(k).hyper_block.get(0).size(); k++)
+                    for (int w = 0; w < pure_blocks.get(k).hyper_block.get(0).size(); w++)
                     {
                         if (Arrays.equals(pure_blocks.get(k).hyper_block.get(0).get(w), data.get(i).get(j)))
                         {
@@ -924,15 +936,156 @@ public class HyperBlockVisualization
                 }
                 else
                 {
-                    misclassified++;
+                    boolean ldf_mis = false;
 
-                    if ((tmp.size() - misclassified + 1) / (tmp.size() + 1) >= acc_threshold)
+                    int mis_index = attributes.get(a).get(i).index;
+                    double[] mis_pnt = new double[attributes.size()];
+
+                    for (int k = 0; k < attributes.size(); k++)
                     {
-                        tmp.add(attributes.get(a).get(i));
-
-                        if (tmp.size() > ans.get(a).size())
+                        for (int h = 0; h < attributes.get(k).size(); h++)
                         {
-                            ans.set(a, new ArrayList<>(tmp));
+                            if (mis_index == attributes.get(k).get(h).index)
+                            {
+                                // add point
+                                mis_pnt[k] = attributes.get(k).get(h).value;
+                                break;
+                            }
+                        }
+                    }
+
+                    for (int m = 0; m < DV.misclassifiedData.size(); m++)
+                    {
+                        if (Arrays.deepEquals(new Object[]{ DV.misclassifiedData.get(m) }, new Object[]{ mis_pnt }))
+                        {
+                            ldf_mis = true;
+                            break;
+                        }
+                    }
+
+                    if (ldf_mis)
+                    {
+                        misclassified++;
+
+                        if ((tmp.size() - misclassified + 1) / (tmp.size() + 1) >= acc_threshold)
+                        {
+                            tmp.add(attributes.get(a).get(i));
+
+                            if (tmp.size() > ans.get(a).size())
+                            {
+                                ans.set(a, new ArrayList<>(tmp));
+                            }
+                        }
+                        else
+                        {
+                            // classes are different, but the value is still the same
+                            if (attributes.get(a).get(i-1).value == attributes.get(a).get(i).value)
+                            {
+                                double remove_val = attributes.get(a).get(i).value;
+
+                                // increment until value changes
+                                while (remove_val == attributes.get(a).get(i).value)
+                                {
+                                    if (i < attributes.get(a).size()-1)
+                                        i++;
+                                    else
+                                        break;
+                                }
+
+                                // remove value from answer
+                                if (ans.get(a).size() > 0)
+                                {
+                                    int offset = 0;
+                                    int size = ans.get(a).size();
+
+                                    // remove overlapped attributes
+                                    for (int k = 0; k < size; k++)
+                                    {
+                                        if (ans.get(a).get(k - offset).value == remove_val)
+                                        {
+                                            ans.get(a).remove(k - offset);
+                                            offset++;
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    atri.set(a, -1);
+                                    cls.set(a, -1);
+                                }
+                            }
+
+                            if (ans.get(a).size() > 0)
+                            {
+                                ArrayList<ArrayList<Pnt>> block = new ArrayList<>();
+
+                                for (int k = 0; k < DV.fieldLength; k++)
+                                    block.add(new ArrayList<>());
+
+                                for (Pnt pnt : ans.get(a))
+                                {
+                                    for (int k = 0; k < attributes.size(); k++)
+                                    {
+                                        int index = pnt.index;
+
+                                        for (int h = 0; h < attributes.get(k).size(); h++)
+                                        {
+                                            if (index == attributes.get(k).get(h).index)
+                                            {
+                                                // add point
+                                                block.get(k).add(new Pnt(index, attributes.get(k).get(h).value));
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                for (ArrayList<Pnt> blk : block)
+                                    blk.sort(Comparator.comparingDouble(o -> o.value));
+
+                                for (ArrayList<ArrayList<Pnt>> tmp_pnts : hb)
+                                {
+                                    // check if interval overlaps with other hyperblocks
+                                    int non_unique = 0;
+
+                                    for (int k = 0; k < tmp_pnts.size(); k++)
+                                    {
+                                        tmp_pnts.get(k).sort(Comparator.comparingDouble(o -> o.value));
+
+                                        if (block.get(k).get(0).value >= tmp_pnts.get(k).get(0).value && block.get(k).get(0).value <= tmp_pnts.get(k).get(tmp_pnts.get(k).size() - 1).value)
+                                        {
+                                            non_unique++;
+                                        }
+                                        else if (block.get(k).get(block.get(k).size() - 1).value <= tmp_pnts.get(k).get(tmp_pnts.get(k).size() - 1).value && block.get(k).get(block.get(k).size() - 1).value >= tmp_pnts.get(k).get(0).value)
+                                        {
+                                            non_unique++;
+                                        }
+                                        else if (tmp_pnts.get(k).get(0).value >= block.get(k).get(0).value && tmp_pnts.get(k).get(0).value <= block.get(k).get(block.get(k).size() - 1).value)
+                                        {
+                                            non_unique++;
+                                        }
+                                        else if (tmp_pnts.get(k).get(tmp_pnts.get(k).size()-1).value <= block.get(k).get(block.get(k).size()-1).value && tmp_pnts.get(k).get(tmp_pnts.get(k).size()-1).value >= block.get(k).get(0).value)
+                                        {
+                                            non_unique++;
+                                        }
+                                        else
+                                            break;
+                                    }
+
+                                    if (non_unique == tmp_pnts.size())
+                                    {
+                                        ans.get(a).clear();
+                                        atri.set(a, -1);
+                                        cls.set(a, -1);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            start = i;
+                            tmp.clear();
+                            tmp.add(attributes.get(a).get(i));
+                            misclassified = 0;
                         }
                     }
                     else
@@ -1271,7 +1424,6 @@ public class HyperBlockVisualization
             attribute.sort(Comparator.comparingDouble(o -> o.value));
         }
 
-
         while (attributes.get(0).size() > 0)
         {
             // get largest hyperblock for each attribute
@@ -1564,7 +1716,7 @@ public class HyperBlockVisualization
 
         for (int i = 0; i < attributes.get(0).size(); i++)
         {
-            if (attributes.get(0).get(i).index < DV.data.get(0).data.length)
+            if (attributes.get(0).get(i).index < DV.data.get(DV.upperClass).data.length)
             {
                 double[] tmp_pnt = new double[DV.fieldLength];
 
@@ -1608,8 +1760,20 @@ public class HyperBlockVisualization
             }
         }
 
+        ArrayList<ArrayList<double[]>> test_data = new ArrayList<>();
+
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            test_data.add(new ArrayList<>());
+
+            for (int j = 0; j < DV.data.get(i).data.length; j++)
+            {
+                test_data.get(i).add(DV.data.get(i).data[j]);
+            }
+        }
+
         // dustin alg
-        generateHyperblocks(data);
+        generateHyperblocks(test_data, data);
 
         // reorder blocks
         ArrayList<HyperBlock> upper = new ArrayList<>();
@@ -2217,14 +2381,50 @@ public class HyperBlockVisualization
             {
                 for (int k = 0; k < DV.fieldLength; k++)
                 {
-                    if (hyper_blocks.get(visualized_block).maximums.get(j)[k] < hyper_blocks.get(0).minimums.get(0)[k] ||
-                            hyper_blocks.get(visualized_block).minimums.get(j)[k] > hyper_blocks.get(0).maximums.get(0)[k])
+                    if (hyper_blocks.get(visualized_block).maximums.get(j)[k] < hyper_blocks.get(visualized_block).minimums.get(0)[k] ||
+                            hyper_blocks.get(visualized_block).minimums.get(j)[k] > hyper_blocks.get(visualized_block).maximums.get(0)[k])
                     {
                         separation.add(k);
                     }
                 }
             }
         }
+
+        // calculate scaler
+        ArrayList<Double> art_scales = new ArrayList<>();
+
+        double amin1 = 0;
+        double amax1 = 0;
+        double amin2 = 0;
+        double amax2 = 0;
+
+        for (int j = 0; j < hyper_blocks.get(visualized_block).minimums.size() - 1; j++)
+        {
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                double[] min_pnt = DataObject.getXYPointGLC(hyper_blocks.get(visualized_block).minimums.get(j)[i], 15);
+                double[] max_pnt = DataObject.getXYPointGLC(hyper_blocks.get(visualized_block).maximums.get(j)[i], 90);
+
+                amin1 += min_pnt[1];
+                amax1 += max_pnt[1];
+
+                min_pnt = DataObject.getXYPointGLC(hyper_blocks.get(visualized_block).minimums.get(j+1)[i], 15);
+                max_pnt = DataObject.getXYPointGLC(hyper_blocks.get(visualized_block).maximums.get(j+1)[i], 90);
+
+                amin2 += min_pnt[1];
+                amax2 += max_pnt[1];
+            }
+        }
+
+        amin1 += 0.1;
+        amax1 += 0.1;
+        amin2 += 0.1;
+        amax2 += 0.1;
+
+        double tmp1 = amax1 / amin2;
+        double tmp2 = amax2 / amin1;
+
+        double scale = Math.max(tmp1, tmp2) + 1;
 
         BasicStroke[] strokes = new BasicStroke[hyper_blocks.get(visualized_block).hyper_block.size()];
 
@@ -2329,7 +2529,7 @@ public class HyperBlockVisualization
 
                 for (int s = 0; s < separation.size(); s++)
                 {
-                    double[] a_point = DataObject.getXYPointGLC((data.data[i][separation.get(s)] + 1) * 2, 90);
+                    double[] a_point = DataObject.getXYPointGLC((data.data[i][separation.get(s)]) * scale, 90);
 
                     a_point[0] += (double)line.getX(s);
                     a_point[1] += (double)line.getY(s);
@@ -2356,7 +2556,7 @@ public class HyperBlockVisualization
                         {
                             if (indexes[j] == sep)
                             {
-                                point = DataObject.getXYPointGLC((data.data[i][indexes[j]] + 1) * 2, DV.angles[indexes[j]]);
+                                point = DataObject.getXYPointGLC((data.data[i][indexes[j]]), DV.angles[indexes[j]]);
                                 not_set = false;
                                 break;
                             }
@@ -2364,12 +2564,12 @@ public class HyperBlockVisualization
 
                         if (not_set)
                         {
-                            point = DataObject.getXYPointGLC((data.data[i][indexes[j]] + 1) * 0.1, DV.angles[indexes[j]]);
+                            point = DataObject.getXYPointGLC((data.data[i][indexes[j]]), DV.angles[indexes[j]]);
                         }
                     }
                     else
                     {
-                        point = DataObject.getXYPointGLC((data.data[i][indexes[j]] + 1), DV.angles[indexes[j]]);
+                        point = DataObject.getXYPointGLC((data.data[i][indexes[j]]), DV.angles[indexes[j]]);
                     }
 
                     point[0] += (double)line.getX(j + separation.size());
@@ -2464,8 +2664,8 @@ public class HyperBlockVisualization
 
                 for (int s = 0; s < separation.size(); s++)
                 {
-                    double[] a_min_pnt = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).minimums.get(k)[separation.get(s)] + 1) * 2, 90);
-                    double[] a_max_pnt = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).maximums.get(k)[separation.get(s)] + 1) * 2, 90);
+                    double[] a_min_pnt = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).minimums.get(k)[separation.get(s)]) * scale, 90);
+                    double[] a_max_pnt = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).maximums.get(k)[separation.get(s)]) * scale, 90);
 
                     a_min_pnt[0] += (double)min_bound.getX(s);
                     a_min_pnt[1] += (double)min_bound.getY(s);
@@ -2488,7 +2688,7 @@ public class HyperBlockVisualization
                         {
                             if (indexes[j] == sep)
                             {
-                                xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).minimums.get(k)[indexes[j]] + 1) * 2, DV.angles[indexes[j]]);
+                                xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).minimums.get(k)[indexes[j]]), DV.angles[indexes[j]]);
                                 not_set = false;
                                 break;
                             }
@@ -2496,12 +2696,12 @@ public class HyperBlockVisualization
 
                         if (not_set)
                         {
-                            xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).minimums.get(k)[indexes[j]] + 1) * 0.1, DV.angles[indexes[j]]);
+                            xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).minimums.get(k)[indexes[j]]), DV.angles[indexes[j]]);
                         }
                     }
                     else
                     {
-                        xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).minimums.get(k)[indexes[j]] + 1), DV.angles[indexes[j]]);
+                        xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).minimums.get(k)[indexes[j]]), DV.angles[indexes[j]]);
                     }
 
                     xyPoint[0] += (double)min_bound.getX(j + separation.size());
@@ -2520,7 +2720,7 @@ public class HyperBlockVisualization
                         {
                             if (indexes[j] == sep)
                             {
-                                xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).maximums.get(k)[indexes[j]] + 1) * 2, DV.angles[indexes[j]]);
+                                xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).maximums.get(k)[indexes[j]]), DV.angles[indexes[j]]);
                                 not_set = false;
                                 break;
                             }
@@ -2528,12 +2728,12 @@ public class HyperBlockVisualization
 
                         if (not_set)
                         {
-                            xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).maximums.get(k)[indexes[j]] + 1) * 0.1, DV.angles[indexes[j]]);
+                            xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).maximums.get(k)[indexes[j]]), DV.angles[indexes[j]]);
                         }
                     }
                     else
                     {
-                        xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).maximums.get(k)[indexes[j]] + 1), DV.angles[indexes[j]]);
+                        xyPoint = DataObject.getXYPointGLC((hyper_blocks.get(visualized_block).maximums.get(k)[indexes[j]]), DV.angles[indexes[j]]);
                     }
 
                     xyPoint[0] += (double)max_bound.getX(j + separation.size());
@@ -3439,7 +3639,7 @@ public class HyperBlockVisualization
 
                                 if (not_set)
                                 {
-                                    point = DataObject.getXYPointGLC(data.data[i][indexes[j]] * 0.1, DV.angles[indexes[j]]);
+                                    point = DataObject.getXYPointGLC(data.data[i][indexes[j]] , DV.angles[indexes[j]]);
                                 }
                             }
                             else
@@ -3549,8 +3749,8 @@ public class HyperBlockVisualization
 
                             if (not_set)
                             {
-                                xyCurPointMin = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[0]] * 0.1, DV.angles[indexes[0]]);
-                                xyCurPointMax = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[0]] * 0.1, DV.angles[indexes[0]]);
+                                xyCurPointMin = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[0]] , DV.angles[indexes[0]]);
+                                xyCurPointMax = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[0]] , DV.angles[indexes[0]]);
                             }
                         }
                         else
@@ -3602,7 +3802,7 @@ public class HyperBlockVisualization
 
                                 if (not_set)
                                 {
-                                    xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[j]] * 0.1, DV.angles[indexes[j]]);
+                                    xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[j]] , DV.angles[indexes[j]]);
                                 }
                             }
                             else
@@ -3634,7 +3834,7 @@ public class HyperBlockVisualization
 
                                 if (not_set)
                                 {
-                                    xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[j]] * 0.1, DV.angles[indexes[j]]);
+                                    xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[j]] , DV.angles[indexes[j]]);
                                 }
                             }
                             else

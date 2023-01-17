@@ -195,6 +195,7 @@ public class DV extends JFrame
 
     // normalized and original data
     static ArrayList<DataObject> data;
+    static ArrayList<double[]> misclassifiedData;
     static ArrayList<DataObject> normalizedData;
     static ArrayList<DataObject> originalData;
     static DataObject supportVectors;
@@ -851,6 +852,8 @@ public class DV extends JFrame
                     // optimize data setup with Linear Discriminant Analysis
                     DataVisualization.optimizeSetup();
 
+                    DataVisualization.drawGraphs();
+
                     try
                     {
                         new HyperBlockVisualization();
@@ -860,10 +863,8 @@ public class DV extends JFrame
                         e.printStackTrace();
                     }
 
-                    /*DataVisualization.drawGraphs();
-
                     // get support vectors
-                    if (DV.data.size() > 1)
+                    /*if (DV.data.size() > 1)
                         DataVisualization.SVM();*/
                 }
                 else

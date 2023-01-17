@@ -265,10 +265,12 @@ public class Analytics
      */
     private static class GetAllDataConfusionMatrix extends SwingWorker<Boolean, Void>
     {
-
         @Override
         protected Boolean doInBackground()
         {
+            DV.misclassifiedData = new ArrayList<>();
+
+            // allDataClassifications[0] = correct, allDataClassifications[1] = total
             DV.allDataClassifications = new int[]{ 0, 0 };
             int totalPoints = 0;
 
@@ -302,6 +304,8 @@ public class Analytics
                                 {
                                     DV.allDataClassifications[1]++;
                                     pntDist[0][1]++;
+
+                                    DV.misclassifiedData.add(DV.data.get(i).data[j]);
                                 }
                             }
                             else if (i == DV.upperClass)
@@ -317,6 +321,8 @@ public class Analytics
                                 {
                                     DV.allDataClassifications[1]++;
                                     pntDist[0][1]++;
+
+                                    DV.misclassifiedData.add(DV.data.get(i).data[j]);
                                 }
                             }
                             else if(DV.lowerClasses.get(i) && DV.upperIsLower)
@@ -332,6 +338,8 @@ public class Analytics
                                 {
                                     DV.allDataClassifications[1]++;
                                     pntDist[1][0]++;
+
+                                    DV.misclassifiedData.add(DV.data.get(i).data[j]);
                                 }
                             }
                             else
@@ -347,6 +355,8 @@ public class Analytics
                                 {
                                     DV.allDataClassifications[1]++;
                                     pntDist[1][0]++;
+
+                                    DV.misclassifiedData.add(DV.data.get(i).data[j]);
                                 }
                             }
                         }

@@ -26,6 +26,8 @@ public class HyperBlock
     public void getBounds()
     {
         size = 0;
+        maximums.clear();
+        minimums.clear();
 
         for (int h = 0; h < hyper_block.size(); h++)
         {
