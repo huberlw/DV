@@ -619,9 +619,9 @@ public class VisualizationMenu extends JPanel
                 lessToGreat.addActionListener(ee ->
                 {
                     // bubble sort ascending
-                    for (int i = 0; i < DV.fieldLength - 1; i++)
+                    for (int i = 0; i < DV.angles.length - 1; i++)
                     {
-                        for (int j = 0; j < DV.fieldLength - i - 1; j++)
+                        for (int j = 0; j < DV.angles.length - i - 1; j++)
                         {
                             if (DV.angles[j] < DV.angles[j+1])
                             {
@@ -633,9 +633,9 @@ public class VisualizationMenu extends JPanel
                                 DV.fieldNames.set(j, DV.fieldNames.get(j+1));
                                 DV.fieldNames.set(j+1, tmp2);
 
-                                int tmp3 = DV.originalAttributeOrder.get(j);
+                                /*int tmp3 = DV.originalAttributeOrder.get(j);
                                 DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
-                                DV.originalAttributeOrder.set(j+1, tmp3);
+                                DV.originalAttributeOrder.set(j+1, tmp3);*/
 
                                 // reorder in all data
                                 for (int k = 0; k < DV.data.size(); k++)
@@ -645,7 +645,6 @@ public class VisualizationMenu extends JPanel
                                         double tmp = DV.data.get(k).data[w][j];
                                         DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
                                         DV.data.get(k).data[w][j+1] = tmp;
-
                                     }
                                 }
                             }
@@ -663,7 +662,7 @@ public class VisualizationMenu extends JPanel
                             AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
                     }
 
-                    // optimize threshold
+                    /*// optimize threshold
                     if (DV.glc_or_dsc)
                         DataVisualization.optimizeThreshold(0);
                     else
@@ -687,7 +686,7 @@ public class VisualizationMenu extends JPanel
                             DataVisualization.optimizeThreshold(0);
                         else
                             DataVisualization.findBestThreshold(0);
-                    }
+                    }*/
 
                     DataVisualization.drawGraphs();
                 });

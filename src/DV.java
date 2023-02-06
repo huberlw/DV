@@ -854,18 +854,9 @@ public class DV extends JFrame
 
                     DataVisualization.drawGraphs();
 
-                    try
-                    {
-                        new HyperBlockVisualization();
-                    }
-                    catch(Exception e)
-                    {
-                        e.printStackTrace();
-                    }
-
                     // get support vectors
-                    /*if (DV.data.size() > 1)
-                        DataVisualization.SVM();*/
+                    if (DV.data.size() > 1)
+                        DataVisualization.SVM();
                 }
                 else
                 {
