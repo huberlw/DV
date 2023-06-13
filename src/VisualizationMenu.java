@@ -6,7 +6,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class VisualizationMenu extends JPanel
@@ -335,32 +334,6 @@ public class VisualizationMenu extends JPanel
                                         AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
                                 }
 
-                                // optimize threshold
-                                if (DV.glc_or_dsc)
-                                    DataVisualization.optimizeThreshold(0);
-                                else
-                                    DataVisualization.findBestThreshold(0);
-
-                                // try again with upperIsLower false
-                                double upperIsLowerAccuracy = DV.accuracy;
-                                DV.upperIsLower = false;
-
-                                if (DV.glc_or_dsc)
-                                    DataVisualization.optimizeThreshold(0);
-                                else
-                                    DataVisualization.findBestThreshold(0);
-
-                                // see whether upper is actually lower
-                                if (DV.accuracy < upperIsLowerAccuracy)
-                                {
-                                    DV.upperIsLower = true;
-
-                                    if (DV.glc_or_dsc)
-                                        DataVisualization.optimizeThreshold(0);
-                                    else
-                                        DataVisualization.findBestThreshold(0);
-                                }
-
                                 DataVisualization.drawGraphs();
                             }
                             else
@@ -424,32 +397,6 @@ public class VisualizationMenu extends JPanel
                             AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
                         else
                             AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                    }
-
-                    // optimize threshold
-                    if (DV.glc_or_dsc)
-                        DataVisualization.optimizeThreshold(0);
-                    else
-                        DataVisualization.findBestThreshold(0);
-
-                    // try again with upperIsLower false
-                    double upperIsLowerAccuracy = DV.accuracy;
-                    DV.upperIsLower = false;
-
-                    if (DV.glc_or_dsc)
-                        DataVisualization.optimizeThreshold(0);
-                    else
-                        DataVisualization.findBestThreshold(0);
-
-                    // see whether upper is actually lower
-                    if (DV.accuracy < upperIsLowerAccuracy)
-                    {
-                        DV.upperIsLower = true;
-
-                        if (DV.glc_or_dsc)
-                            DataVisualization.optimizeThreshold(0);
-                        else
-                            DataVisualization.findBestThreshold(0);
                     }
 
                     DataVisualization.drawGraphs();
@@ -580,32 +527,6 @@ public class VisualizationMenu extends JPanel
                             AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
                     }
 
-                    // optimize threshold
-                    if (DV.glc_or_dsc)
-                        DataVisualization.optimizeThreshold(0);
-                    else
-                        DataVisualization.findBestThreshold(0);
-
-                    // try again with upperIsLower false
-                    double upperIsLowerAccuracy = DV.accuracy;
-                    DV.upperIsLower = false;
-
-                    if (DV.glc_or_dsc)
-                        DataVisualization.optimizeThreshold(0);
-                    else
-                        DataVisualization.findBestThreshold(0);
-
-                    // see whether upper is actually lower
-                    if (DV.accuracy < upperIsLowerAccuracy)
-                    {
-                        DV.upperIsLower = true;
-
-                        if (DV.glc_or_dsc)
-                            DataVisualization.optimizeThreshold(0);
-                        else
-                            DataVisualization.findBestThreshold(0);
-                    }
-
                     DataVisualization.drawGraphs();
                 });
 
@@ -629,13 +550,13 @@ public class VisualizationMenu extends JPanel
                                 DV.angles[j] = DV.angles[j+1];
                                 DV.angles[j+1] = tmp1;
 
-                                /*String tmp2 = DV.fieldNames.get(j);
+                                String tmp2 = DV.fieldNames.get(j);
                                 DV.fieldNames.set(j, DV.fieldNames.get(j+1));
-                                DV.fieldNames.set(j+1, tmp2);*/
+                                DV.fieldNames.set(j+1, tmp2);
 
-                                /*int tmp3 = DV.originalAttributeOrder.get(j);
+                                int tmp3 = DV.originalAttributeOrder.get(j);
                                 DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
-                                DV.originalAttributeOrder.set(j+1, tmp3);*/
+                                DV.originalAttributeOrder.set(j+1, tmp3);
 
                                 // reorder in all data
                                 for (int k = 0; k < DV.data.size(); k++)
@@ -661,32 +582,6 @@ public class VisualizationMenu extends JPanel
                         else
                             AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
                     }
-
-                    /*// optimize threshold
-                    if (DV.glc_or_dsc)
-                        DataVisualization.optimizeThreshold(0);
-                    else
-                        DataVisualization.findBestThreshold(0);
-
-                    // try again with upperIsLower false
-                    double upperIsLowerAccuracy = DV.accuracy;
-                    DV.upperIsLower = false;
-
-                    if (DV.glc_or_dsc)
-                        DataVisualization.optimizeThreshold(0);
-                    else
-                        DataVisualization.findBestThreshold(0);
-
-                    // see whether upper is actually lower
-                    if (DV.accuracy < upperIsLowerAccuracy)
-                    {
-                        DV.upperIsLower = true;
-
-                        if (DV.glc_or_dsc)
-                            DataVisualization.optimizeThreshold(0);
-                        else
-                            DataVisualization.findBestThreshold(0);
-                    }*/
 
                     DataVisualization.drawGraphs();
                 });
@@ -744,32 +639,6 @@ public class VisualizationMenu extends JPanel
                             AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
                         else
                             AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                    }
-
-                    // optimize threshold
-                    if (DV.glc_or_dsc)
-                        DataVisualization.optimizeThreshold(0);
-                    else
-                        DataVisualization.findBestThreshold(0);
-
-                    // try again with upperIsLower false
-                    double upperIsLowerAccuracy = DV.accuracy;
-                    DV.upperIsLower = false;
-
-                    if (DV.glc_or_dsc)
-                        DataVisualization.optimizeThreshold(0);
-                    else
-                        DataVisualization.findBestThreshold(0);
-
-                    // see whether upper is actually lower
-                    if (DV.accuracy < upperIsLowerAccuracy)
-                    {
-                        DV.upperIsLower = true;
-
-                        if (DV.glc_or_dsc)
-                            DataVisualization.optimizeThreshold(0);
-                        else
-                            DataVisualization.findBestThreshold(0);
                     }
 
                     DataVisualization.drawGraphs();

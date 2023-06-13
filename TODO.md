@@ -4,6 +4,7 @@
 3. Fix MinMax normalization
 4. Regression
 5. Combine upper and lower graphs on y-axis
+6. Fix saving and loading projects
 
 # Wish List
 1. Create more than 1 projection line
