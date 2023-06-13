@@ -28,7 +28,6 @@ public class DV extends JFrame
     static RangeSlider domainSlider;
     static RangeSlider overlapSlider;
     static JSlider thresholdSlider;
-
     // panels
     static JPanel mainPanel;
     static JPanel angleSliderPanel;
@@ -196,6 +195,12 @@ public class DV extends JFrame
 
     // normalized and original data
     static ArrayList<DataObject> data;
+
+    // train test split
+    static double trainSplit = 0.9;
+    static double testSplit = 0.1;
+    static ArrayList<DataObject> trainData;
+    static ArrayList<DataObject> testData;
     static ArrayList<double[]> misclassifiedData;
     static ArrayList<DataObject> normalizedData;
     static ArrayList<DataObject> originalData;
@@ -227,16 +232,6 @@ public class DV extends JFrame
      ***********************************************/
     // name of project (if saved)
     static String projectSaveName;
-
-
-    static int trainSplit = 90;
-    static int testSplit = 10;
-    static int valSplit = 0;
-
-    static ArrayList<DataObject> trainData;
-    static ArrayList<DataObject> testData;
-    static ArrayList<DataObject> valData;
-
 
 
     /**
@@ -823,24 +818,52 @@ public class DV extends JFrame
 
             JPanel splitPanel = new JPanel();
             splitPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            GridLayout split = new GridLayout(1, 2);
-            splitPanel.setLayout(split);
 
             JLabel trainSplit = new JLabel("Train Split");
-            JTextField trainText = new JTextField(4);
-            trainText.setToolTipText("Change angles of visualization");
+            JTextField trainText = new JTextField(6);
+            trainText.setToolTipText("Percent of data used for training");
             trainText.setFont(trainText.getFont().deriveFont(12f));
-            trainText.setText("90%");
+            trainText.setText(Double.toString(DV.trainSplit));
 
             JPanel training = new JPanel();
             training.add(trainSplit);
             training.add(trainText);
 
             JLabel testSplit = new JLabel("Test Split");
-            JTextField testText = new JTextField(4);
-            testText.setToolTipText("Change angles of visualization");
+            JTextField testText = new JTextField(6);
+            testText.setToolTipText("Percent of data used for testing");
             testText.setFont(testText.getFont().deriveFont(12f));
-            testText.setText("10%");
+            testText.setText(Double.toString(DV.testSplit));
+
+            trainText.addActionListener(e ->
+            {
+                double percent = Double.parseDouble(trainText.getText());
+
+                if (0 < percent && percent <= 1)
+                {
+                    DV.trainSplit = percent;
+                    DV.testSplit = 1 - percent;
+
+                    testText.setText(Double.toString(DV.testSplit));
+                }
+                else
+                    trainText.setText("INVALID");
+            });
+
+            testText.addActionListener(e ->
+            {
+                double percent = Double.parseDouble(testText.getText());
+
+                if (0 <= percent && percent < 1)
+                {
+                    DV.testSplit = percent;
+                    DV.trainSplit = 1 - percent;
+
+                    trainText.setText(Double.toString(DV.trainSplit));
+                }
+                else
+                    testText.setText("INVALID");
+            });
 
             JPanel testing = new JPanel();
             testing.add(testSplit);
@@ -893,11 +916,6 @@ public class DV extends JFrame
                     DataVisualization.optimizeSetup();
 
                     DataVisualization.drawGraphs();
-                    // DataVisualization.drawReg();
-
-                    // get support vectors
-                    //if (DV.data.size() > 1)
-                        //DataVisualization.SVM();
                 }
                 else
                 {
