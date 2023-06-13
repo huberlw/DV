@@ -94,30 +94,6 @@ public class DataSetup
                 // normalize data
                 double[][] normalizedNumericalData = normalizeData(numericalData);
 
-                /*int index;
-                double[] temp;
-                Random random = new Random();
-                for (int i = normalizedNumericalData.length - 1; i > 0; i--)
-                {
-                    index = random.nextInt(i + 1);
-                    temp = normalizedNumericalData[index];
-                    normalizedNumericalData[index] = normalizedNumericalData[i];
-                    normalizedNumericalData[i] = temp;
-                }
-
-                int numTrain = normalizedNumericalData.length * (DV.trainSplit / 100);
-                double[][] trainNormalizedNumericalData = new double[numTrain][];
-                double[][] testNormalizedNumericalData = new double[normalizedNumericalData.length - numTrain][];
-
-
-                for (int i = 0; i < normalizedNumericalData.length; i++)
-                {
-                    if (i < numTrain)
-                        trainNormalizedNumericalData[i] = normalizedNumericalData[i];
-
-                    testNormalizedNumericalData[i] = normalizedNumericalData[i];
-                }*/
-
                 if (DV.hasClasses)
                 {
                     // separate by class
@@ -138,6 +114,8 @@ public class DataSetup
                         for (int j = 0; j < DV.data.get(i).data.length; j++)
                             DV.highlights[i][j] = false;
                     }
+
+                    createSplit();
                 }
                 else
                 {
@@ -154,6 +132,8 @@ public class DataSetup
                         for (int j = 0; j < DV.data.get(i).data.length; j++)
                             DV.highlights[i][j] = false;
                     }
+
+                    createSplit();
                 }
 
                 DV.max = Arrays.copyOf(maxValues, maxValues.length);
@@ -1158,5 +1138,40 @@ public class DataSetup
         {
             return null;
         }
+    }
+
+
+    /**
+     * Gets train test split from data
+     */
+    private static void createSplit()
+    {
+        // instantiate testing and training data
+        DV.trainData = new ArrayList<>();
+        DV.testData = new ArrayList<>();
+
+        for (int i = 0; i < DV.classNumber; i++)
+        {
+            // get size of training data
+            int trainSize = (int) Math.floor(DV.data.get(i).data.length * DV.trainSplit);
+            double[][] training = new double[trainSize][DV.fieldLength];
+
+            // get training data
+            for (int j = 0; j < trainSize; j++)
+                System.arraycopy(DV.data.get(i).data[j], 0, training[j], 0, DV.fieldLength);
+
+            // get size of testing data
+            int testSize = DV.data.get(i).data.length - trainSize;
+            double[][] testing = new double[testSize][DV.fieldLength];
+
+            // get testing data
+            for (int j = trainSize; j < DV.data.get(i).data.length; j++)
+                System.arraycopy(DV.data.get(i).data[j], 0, testing[j - trainSize], 0, DV.fieldLength);
+
+            // store training and testing data
+            DV.trainData.add(new DataObject(DV.uniqueClasses.get(i), training));
+            DV.testData.add(new DataObject(DV.uniqueClasses.get(i), testing));
+        }
+        System.out.println("DONE");
     }
 }
