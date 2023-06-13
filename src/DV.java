@@ -16,6 +16,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Hashtable;
 import java.util.List;
 
 public class DV extends JFrame
@@ -226,6 +227,16 @@ public class DV extends JFrame
      ***********************************************/
     // name of project (if saved)
     static String projectSaveName;
+
+
+    static int trainSplit = 90;
+    static int testSplit = 10;
+    static int valSplit = 0;
+
+    static ArrayList<DataObject> trainData;
+    static ArrayList<DataObject> testData;
+    static ArrayList<DataObject> valData;
+
 
 
     /**
@@ -670,7 +681,7 @@ public class DV extends JFrame
         // optimize visualization
         JButton optimizeBtn = new JButton("Optimize Visualization");
         optimizeBtn.setToolTipText("Attempts to optimize angles and threshold");
-        optimizeBtn.addActionListener(e -> DataVisualization.optimizeAngles(true));
+        optimizeBtn.addActionListener(e -> DataVisualization.optimizeSetup());//DataVisualization.optimizeAngles(true));
         toolBar.add(optimizeBtn);
         toolBar.addSeparator();
 
@@ -810,9 +821,38 @@ public class DV extends JFrame
             normPanel.add(minMaxNorm);
             normPanel.add(normHelp);
 
+            JPanel splitPanel = new JPanel();
+            splitPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            GridLayout split = new GridLayout(1, 2);
+            splitPanel.setLayout(split);
+
+            JLabel trainSplit = new JLabel("Train Split");
+            JTextField trainText = new JTextField(4);
+            trainText.setToolTipText("Change angles of visualization");
+            trainText.setFont(trainText.getFont().deriveFont(12f));
+            trainText.setText("90%");
+
+            JPanel training = new JPanel();
+            training.add(trainSplit);
+            training.add(trainText);
+
+            JLabel testSplit = new JLabel("Test Split");
+            JTextField testText = new JTextField(4);
+            testText.setToolTipText("Change angles of visualization");
+            testText.setFont(testText.getFont().deriveFont(12f));
+            testText.setText("10%");
+
+            JPanel testing = new JPanel();
+            testing.add(testSplit);
+            testing.add(testText);
+
+            splitPanel.add(training);
+            splitPanel.add(testing);
+
             checkBoxPanel.add(idCol);
             checkBoxPanel.add(classCol);
             checkBoxPanel.add(normPanel);
+            checkBoxPanel.add(splitPanel);
 
             int choice = JOptionPane.showConfirmDialog(DV.mainFrame, checkBoxPanel, "Dataset Information", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 
@@ -853,10 +893,11 @@ public class DV extends JFrame
                     DataVisualization.optimizeSetup();
 
                     DataVisualization.drawGraphs();
+                    // DataVisualization.drawReg();
 
                     // get support vectors
-                    if (DV.data.size() > 1)
-                        DataVisualization.SVM();
+                    //if (DV.data.size() > 1)
+                        //DataVisualization.SVM();
                 }
                 else
                 {

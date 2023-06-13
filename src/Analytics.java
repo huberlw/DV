@@ -34,13 +34,15 @@ public class Analytics
 
     /**
      * Generates all data, data without overlap,
-     * overlap, and worst case confusion matrices
+     * overlap, worst case, user-validation, and SVM confusion matrices
+     * Generates k-Fold cross validation
      */
     public static class GenerateAnalytics extends SwingWorker<Boolean, Void>
     {
         @Override
         protected Boolean doInBackground()
         {
+            // only do analytics if multiclass
             if (DV.classNumber > 1)
             {
                 StringBuilder classes = new StringBuilder();
@@ -65,6 +67,7 @@ public class Analytics
                 DV.confusionMatrixPanel.removeAll();
                 DV.crossValidationPanel.removeAll();
 
+                // display analytics in separate window
                 if (DV.displayRemoteAnalytics)
                 {
                     REMOTE_CONFUSION_MATRIX.clear();
@@ -115,6 +118,7 @@ public class Analytics
                 if (DV.userValidationImported && DV.userValidationChecked)
                     userCM.execute();
 
+                // create svm confusion matrix
                 GetSVMAnalytics svmA = new GetSVMAnalytics();
 
                 if (DV.svmAnalyticsChecked && DV.supportVectors != null)
@@ -167,6 +171,7 @@ public class Analytics
                     }
                 }
 
+                // add cross validation
                 if (DV.crossValidationChecked)
                 {
                     JTextArea cross_validate = new JTextArea(CROSS_VALIDATION.get(0));
@@ -190,42 +195,14 @@ public class Analytics
 
 
     /**
-     * Gets current classes being visualized
-     */
-    private static void getCurClasses()
-    {
-        curClasses = new ArrayList<>();
-
-        // add upper class
-        curClasses.add(String.format("%d", DV.upperClass));
-
-        StringBuilder lowerClasses = new StringBuilder();
-
-        // add lower classes
-        for (int i = 0; i < DV.classNumber; i++)
-        {
-            if (DV.lowerClasses.get(i))
-            {
-                if (!lowerClasses.isEmpty())
-                    lowerClasses.append(",");
-
-                lowerClasses.append(i);
-            }
-        }
-
-        curClasses.add(lowerClasses.toString());
-    }
-
-
-    /**
-     * Regenerates old confusion matrices from previous data splits
+     * Gets old confusion matrices from previous data splits
      */
     private static class AddOldConfusionMatrices extends SwingWorker<Boolean, Void>
     {
         @Override
         protected Boolean doInBackground()
         {
-            // set all previous confusion matrices
+            // set all previous confusion matrices (for 3+ classes)
             for (int i = 0; i < DV.prevAllDataCM.size(); i++)
             {
                 JTextArea confusionMatrix = new JTextArea(DV.prevAllDataCM.get(i));
@@ -236,9 +213,9 @@ public class Analytics
                 synchronized (CONFUSION_MATRIX)
                 {
                     CONFUSION_MATRIX.put(i, confusionMatrix);
-
                 }
 
+                // add to separate analytics window
                 if (DV.displayRemoteAnalytics)
                 {
                     JTextArea confusionMatrix2 = new JTextArea(DV.prevAllDataCM.get(i));
@@ -261,16 +238,17 @@ public class Analytics
 
     /**
      * Generates confusion matrix with all data
-     * Confusion matrix uses its own function
+     * Confusion matrix uses its own linear discriminant function
      */
     private static class GetAllDataConfusionMatrix extends SwingWorker<Boolean, Void>
     {
         @Override
         protected Boolean doInBackground()
         {
+            // stores misclassified datapoints
             DV.misclassifiedData = new ArrayList<>();
 
-            // allDataClassifications[0] = correct, allDataClassifications[1] = total
+            // stores number of correctly classified datapoints
             DV.allDataClassifications = new int[]{ 0, 0 };
             int totalPoints = 0;
 
@@ -414,6 +392,7 @@ public class Analytics
                 CONFUSION_MATRIX.put(DV.prevAllDataCM.size(), confusionMatrix);
             }
 
+            // add to separate analytics window
             if (DV.displayRemoteAnalytics)
             {
                 // set data without overlap confusion matrix
@@ -434,7 +413,7 @@ public class Analytics
 
     /**
      * Generates confusion matrix without overlap data
-     * Confusion matrix uses its own function
+     * Confusion matrix uses its own linear discriminant function
      */
     private static class GetDataWithoutOverlapConfusionMatrix extends SwingWorker<Boolean, Void>
     {
@@ -536,6 +515,7 @@ public class Analytics
                         CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 1, confusionMatrix);
                     }
 
+                    // add to separate analytics window
                     if (DV.displayRemoteAnalytics)
                     {
                         // set data without overlap confusion matrix
@@ -580,6 +560,7 @@ public class Analytics
                         CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 1, confusionMatrix);
                     }
 
+                    // add to separate analytics window
                     if (DV.displayRemoteAnalytics)
                     {
                         // set data without overlap confusion matrix
@@ -604,11 +585,10 @@ public class Analytics
 
     /**
      * Generates confusion matrix with only overlap data
-     * Confusion matrix uses its own function
+     * Confusion matrix uses its own linear discriminant function
      */
     private static class GetOverlapConfusionMatrix extends SwingWorker<Boolean, Void>
     {
-
         @Override
         protected Boolean doInBackground()
         {
@@ -756,6 +736,7 @@ public class Analytics
                         CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 2, confusionMatrix);
                     }
 
+                    // add to separate analytics window
                     if (DV.displayRemoteAnalytics)
                     {
                         // set data without overlap confusion matrix
@@ -778,13 +759,14 @@ public class Analytics
 
     /**
      * Generates confusion matrix with only overlap data
-     * Confusion matrix uses function from getDataWithoutOverlapConfusionMatrix
+     * Confusion matrix uses linear discriminant function from getDataWithoutOverlapConfusionMatrix
      */
     private static class GetWorstCaseConfusionMatrix extends SwingWorker<Boolean, Void>
     {
         @Override
         protected Boolean doInBackground()
         {
+            // check if data without overlap linear discriminant function was created
             if (LDAFunction != null && LDAFunction.size() > 0)
             {
                 // get double[][] arrays for data
@@ -897,11 +879,13 @@ public class Analytics
                 confusionMatrix.setToolTipText(classNames);
                 confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix.setEditable(false);
+
                 synchronized (CONFUSION_MATRIX)
                 {
                     CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix);
                 }
 
+                // add to separate analytics window
                 if (DV.displayRemoteAnalytics)
                 {
                     // set data without overlap confusion matrix
@@ -909,6 +893,7 @@ public class Analytics
                     confusionMatrix2.setToolTipText(classNames);
                     confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix2.setEditable(false);
+
                     synchronized (REMOTE_CONFUSION_MATRIX)
                     {
                         REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix2);
@@ -943,11 +928,13 @@ public class Analytics
                 JTextArea confusionMatrix = new JTextArea(cm.toString());
                 confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix.setEditable(false);
+
                 synchronized (CONFUSION_MATRIX)
                 {
                     CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix);
                 }
 
+                // add to separate analytics window
                 if (DV.displayRemoteAnalytics)
                 {
                     // set data without overlap confusion matrix
@@ -955,6 +942,7 @@ public class Analytics
                     confusionMatrix2.setToolTipText(classNames);
                     confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                     confusionMatrix2.setEditable(false);
+
                     synchronized (REMOTE_CONFUSION_MATRIX)
                     {
                         REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix2);
@@ -1103,11 +1091,13 @@ public class Analytics
             confusionMatrix.setToolTipText(classNames);
             confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
             confusionMatrix.setEditable(false);
+
             synchronized (CONFUSION_MATRIX)
             {
                 CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 4, confusionMatrix);
             }
 
+            // add to separate analytics window
             if (DV.displayRemoteAnalytics)
             {
                 // set data without overlap confusion matrix
@@ -1115,9 +1105,76 @@ public class Analytics
                 confusionMatrix2.setToolTipText(classNames);
                 confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
                 confusionMatrix2.setEditable(false);
+
                 synchronized (REMOTE_CONFUSION_MATRIX)
+
                 {
                     REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 4, confusionMatrix2);
+                }
+            }
+
+            return true;
+        }
+    }
+
+
+    /**
+     * Generates analytics for SVM support vectors
+     */
+    private static class GetSVMAnalytics extends SwingWorker<Boolean, Void>
+    {
+        @Override
+        protected Boolean doInBackground()
+        {
+            if (DV.glc_or_dsc)
+                DV.supportVectors.updateCoordinatesGLC(DV.angles);
+            else
+                DV.supportVectors.updateCoordinatesDSC(DV.angles);
+
+            // support vectors within overlap
+            int overlapSVM = 0;
+
+            // check all classes
+            for (int i = 0; i < DV.supportVectors.data.length; i++)
+            {
+                double endpoint = DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[0].length-1][0];
+
+                // if endpoint is within overlap then store point
+                if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                    overlapSVM++;
+            }
+
+            // create confusion matrix
+            StringBuilder cm = new StringBuilder("SVM Support Vector Analytics\n");
+
+            // append number of support vectors
+            cm.append("Number of Support Vectors: ").append(DV.supportVectors.data.length);
+
+            // append percentage of support vectors within the overlap
+            cm.append(String.format("\nPercent of SVM in Overlap: %.2f%%", 100.0 * overlapSVM / DV.supportVectors.data.length));
+
+            // set user validation confusion matrix
+            JTextArea svmAnalytics = new JTextArea( cm.toString());
+            svmAnalytics.setToolTipText(classNames);
+            svmAnalytics.setFont(svmAnalytics.getFont().deriveFont(Font.BOLD, 12f));
+            svmAnalytics.setEditable(false);
+
+            synchronized (CONFUSION_MATRIX)
+            {
+                CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 5, svmAnalytics);
+            }
+
+            // add to separate analytics window
+            if (DV.displayRemoteAnalytics)
+            {
+                // set user validation confusion matrix
+                JTextArea svmAnalytics2 = new JTextArea( cm.toString());
+                svmAnalytics2.setToolTipText(classNames);
+                svmAnalytics2.setFont(svmAnalytics2.getFont().deriveFont(Font.BOLD, 12f));
+                svmAnalytics2.setEditable(false);
+                synchronized (CONFUSION_MATRIX)
+                {
+                    CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 5, svmAnalytics2);
                 }
             }
 
@@ -1237,65 +1294,6 @@ public class Analytics
     }
 
 
-    private static class GetSVMAnalytics extends SwingWorker<Boolean, Void>
-    {
-        @Override
-        protected Boolean doInBackground()
-        {
-            if (DV.glc_or_dsc)
-                DV.supportVectors.updateCoordinatesGLC(DV.angles);
-            else
-                DV.supportVectors.updateCoordinatesDSC(DV.angles);
-
-            // support vectors within overlap
-            int overlapSVM = 0;
-
-            // check all classes
-            for (int i = 0; i < DV.supportVectors.data.length; i++)
-            {
-                double endpoint = DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[0].length-1][0];
-
-                // if endpoint is within overlap then store point
-                if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
-                    overlapSVM++;
-            }
-
-            // create confusion matrix
-            StringBuilder cm = new StringBuilder("SVM Support Vector Analytics\n");
-
-            // append number of support vectors
-            cm.append("Number of Support Vectors: ").append(DV.supportVectors.data.length);
-
-            // append percentage of support vectors within the overlap
-            cm.append(String.format("\nPercent of SVM in Overlap: %.2f%%", 100.0 * overlapSVM / DV.supportVectors.data.length));
-
-            // set user validation confusion matrix
-            JTextArea svmAnalytics = new JTextArea( cm.toString());
-            svmAnalytics.setToolTipText(classNames);
-            svmAnalytics.setFont(svmAnalytics.getFont().deriveFont(Font.BOLD, 12f));
-            svmAnalytics.setEditable(false);
-            synchronized (CONFUSION_MATRIX)
-            {
-                CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 5, svmAnalytics);
-            }
-
-            if (DV.displayRemoteAnalytics)
-            {
-                // set user validation confusion matrix
-                JTextArea svmAnalytics2 = new JTextArea( cm.toString());
-                svmAnalytics2.setToolTipText(classNames);
-                svmAnalytics2.setFont(svmAnalytics2.getFont().deriveFont(Font.BOLD, 12f));
-                svmAnalytics2.setEditable(false);
-                synchronized (CONFUSION_MATRIX)
-                {
-                    CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 5, svmAnalytics2);
-                }
-            }
-
-            return true;
-        }
-    }
-
     /**
      * Creates CSV file representing specified data from
      * the upper class as class 1 and lower graph as class 2
@@ -1310,9 +1308,9 @@ public class Analytics
             Writer out = new FileWriter(fileName, false);
 
             // create header for file
-            for (int i = 0; i < data.get(0).get(0).length; i++)
+            for (int i = 0; i < DV.fieldLength; i++)
             {
-                if (i != data.get(0).get(0).length - 1)
+                if (i != DV.fieldLength - 1)
                     out.write("feature,");
                 else
                     out.write("feature,class\n");
@@ -1409,5 +1407,33 @@ public class Analytics
             JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not create confusion matrix", "Error", JOptionPane.ERROR_MESSAGE);
             return null;
         }
+    }
+
+
+    /**
+     * Gets current classes being visualized
+     */
+    private static void getCurClasses()
+    {
+        curClasses = new ArrayList<>();
+
+        // add upper class
+        curClasses.add(String.format("%d", DV.upperClass));
+
+        StringBuilder lowerClasses = new StringBuilder();
+
+        // add lower classes
+        for (int i = 0; i < DV.classNumber; i++)
+        {
+            if (DV.lowerClasses.get(i))
+            {
+                if (!lowerClasses.isEmpty())
+                    lowerClasses.append(",");
+
+                lowerClasses.append(i);
+            }
+        }
+
+        curClasses.add(lowerClasses.toString());
     }
 }

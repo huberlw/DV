@@ -5,7 +5,7 @@ import java.util.Hashtable;
 public class AngleSliders
 {
     /**
-     * Creates panel for a features angle/weight slider
+     * Creates panel for a features angle/weight slider for GLC-Linear
      * @param fieldName name of feature to be weighted
      * @param angle weight of feature
      * @param index index of feature
@@ -120,6 +120,13 @@ public class AngleSliders
         DV.angleSliderPanel.add(anglePanel);
     }
 
+
+    /**
+     * Creates panel for a features angle/weight slider for Dynamic Scafold Coordinates
+     * @param fieldName name of feature to be weighted
+     * @param angle weight of feature
+     * @param index index of feature
+     */
     public static void createSliderPanel_DSC(String fieldName, int angle, int index)
     {
         // text for angle
@@ -233,7 +240,25 @@ public class AngleSliders
         DV.angleSliderPanel.add(anglePanel);
     }
 
-    public static JPanel createWeightSliderPanel_GLC(final JSlider angleSlider, String fieldName, int scale, int weightNum, String ruleBase, String className, String opClassName, int curClass, int index, int upper_or_lower, int bound)
+
+    // NOTE: className, opClassName, upper_or_lower, and bound are redundant. They can be found using curClass.
+    // FIX LATER???
+
+    /**
+     * Creates panel for feature scaling for Hyperblock creation in Parallel Coordinates
+     * @param weightSlider slider for attribute weight
+     * @param fieldName name of feature to be weighted
+     * @param scale value of weightSlider
+     * @param featureNum index number of feature
+     * @param ruleBase datapoint info
+     * @param className class of datapoint
+     * @param opClassName other class is visualization
+     * @param curClass number of current class
+     * @param index index of feature
+     * @param upper_or_lower whether the current class is the upper or lower graph
+     * @param bound feature bounds for given class
+     */
+    public static JPanel createWeightSliderPanel_GLC(final JSlider weightSlider, String fieldName, int scale, int featureNum, String ruleBase, String className, String opClassName, int curClass, int index, int upper_or_lower, int bound)
     {
         // text for angle
         JTextField angleText = new JTextField(4);
@@ -242,10 +267,10 @@ public class AngleSliders
         angleText.setText(Integer.toString(scale));
 
         // slider for angle
-        angleSlider.setToolTipText("Change weight of visualization");
-        angleSlider.setMinorTickSpacing(1);
-        angleSlider.setPaintTicks(true);
-        angleSlider.setPaintLabels(true);
+        weightSlider.setToolTipText("Change weight of visualization");
+        weightSlider.setMinorTickSpacing(1);
+        weightSlider.setPaintTicks(true);
+        weightSlider.setPaintLabels(true);
 
         // label for angle
         JLabel angleLabel = new JLabel();
@@ -263,7 +288,7 @@ public class AngleSliders
         position.put(300, new JLabel("300"));
         position.put(400, new JLabel("400"));
         position.put(500, new JLabel("500"));
-        angleSlider.setLabelTable(position);
+        weightSlider.setLabelTable(position);
 
         // add listeners for text field and slider
         // action listener for text field
@@ -278,19 +303,19 @@ public class AngleSliders
                 // check is sliderValue is within limits
                 if (bound == 0)
                 {
-                    if (DV.data.get(curClass).data[index][weightNum] * sliderValue / 100.0 < DV.limits[weightNum][bound])
+                    if (DV.data.get(curClass).data[index][featureNum] * sliderValue / 100.0 < DV.limits[featureNum][bound])
                         return;
                 }
                 else
                 {
-                    if (DV.data.get(curClass).data[index][weightNum] * sliderValue / 100.0 > DV.limits[weightNum][bound])
+                    if (DV.data.get(curClass).data[index][featureNum] * sliderValue / 100.0 > DV.limits[featureNum][bound])
                         return;
                 }
 
                 try
                 {
                     // set slider to new value
-                    angleSlider.setValue(sliderValue);
+                    weightSlider.setValue(sliderValue);
 
                     // set angle label to new value
                     if (bound == 0)
@@ -299,7 +324,7 @@ public class AngleSliders
                         angleLabel.setText(fieldName + " Upper Scale: " + sliderValue + "%");
 
                     // set angle to new value
-                    DV.scale[bound][weightNum] = sliderValue / 100.0;
+                    DV.scale[bound][featureNum] = sliderValue / 100.0;
                 }
                 catch (NumberFormatException nfe)
                 {
@@ -315,26 +340,26 @@ public class AngleSliders
         });
 
         // change listener for slider
-        angleSlider.addChangeListener(e ->
+        weightSlider.addChangeListener(e ->
         {
             // get new angle
-            int sliderValue = angleSlider.getValue();
+            int sliderValue = weightSlider.getValue();
 
             // check is sliderValue is within limits
             if (bound == 0)
             {
-                if (DV.data.get(curClass).data[index][weightNum] * sliderValue / 100.0 < DV.limits[weightNum][bound])
+                if (DV.data.get(curClass).data[index][featureNum] * sliderValue / 100.0 < DV.limits[featureNum][bound])
                 {
-                    angleSlider.setValue((int)(DV.limits[weightNum][bound] / DV.data.get(curClass).data[index][weightNum] * 100));
-                    sliderValue = angleSlider.getValue();
+                    weightSlider.setValue((int)(DV.limits[featureNum][bound] / DV.data.get(curClass).data[index][featureNum] * 100));
+                    sliderValue = weightSlider.getValue();
                 }
             }
             else
             {
-                if (DV.data.get(curClass).data[index][weightNum] * sliderValue / 100.0 > DV.limits[weightNum][bound])
+                if (DV.data.get(curClass).data[index][featureNum] * sliderValue / 100.0 > DV.limits[featureNum][bound])
                 {
-                    angleSlider.setValue((int)(DV.limits[weightNum][bound] / DV.data.get(curClass).data[index][weightNum] * 100));
-                    sliderValue = angleSlider.getValue();
+                    weightSlider.setValue((int)(DV.limits[featureNum][bound] / DV.data.get(curClass).data[index][featureNum] * 100));
+                    sliderValue = weightSlider.getValue();
                 }
             }
 
@@ -350,7 +375,7 @@ public class AngleSliders
                     angleLabel.setText(fieldName + " Upper Scale: " + sliderValue + "%");
 
                 // set angle to new value
-                DV.scale[bound][weightNum] = sliderValue / 100.0;
+                DV.scale[bound][featureNum] = sliderValue / 100.0;
             }
             catch (NumberFormatException nfe)
             {
@@ -372,7 +397,7 @@ public class AngleSliders
         c.gridx = 0;
         c.gridy = 0;
         c.fill = GridBagConstraints.HORIZONTAL;
-        weightPanel.add(angleSlider, c);
+        weightPanel.add(weightSlider, c);
 
         c.gridx = 1;
         weightPanel.add(angleText, c);

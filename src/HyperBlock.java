@@ -2,16 +2,29 @@ import java.util.ArrayList;
 
 public class HyperBlock
 {
+    // all hyperblocks
     ArrayList<ArrayList<double[]>> hyper_block;
+
+    // class number of hyperblock
     int classNum;
+
+    // number of datapoints in hyperblock
     int size;
+
+    // class name of hyperblock
     String className;
+
+    // seed attribute of hyperblocks created with IHyper algorithm
     String attribute;
 
+    // minimums and maximums for each feature in hyperblock
     ArrayList<double[]> maximums;
     ArrayList<double[]> minimums;
 
-    // create hyperblock
+    /**
+     * Constructor for HyperBlock
+     * @param hyper_block datapoints to go in hyperblock
+     */
     HyperBlock(ArrayList<ArrayList<double[]>> hyper_block)
     {
         this.hyper_block = hyper_block;
@@ -23,6 +36,9 @@ public class HyperBlock
     }
 
 
+    /**
+     * Gest minimums and maximums of a hyperblock
+     */
     public void getBounds()
     {
         size = 0;

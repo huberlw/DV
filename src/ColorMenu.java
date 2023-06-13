@@ -8,6 +8,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ColorMenu extends JPanel
 {
+    /**
+     * Creates menu that allows the color customization of the domain, overlap,
+     * threshold background, graph lines, endpoints, svm lines, and svm endpoints.
+     */
     public ColorMenu()
     {
         // current component being changed
@@ -428,20 +432,7 @@ public class ColorMenu extends JPanel
             if (newColor != null)
             {
                 int component = colorOption.get();
-
-                switch(component)
-                {
-                    case 0 -> DV.domainLines = newColor;
-                    case 1 -> DV.overlapLines = newColor;
-                    case 2 -> DV.thresholdLine = newColor;
-                    case 3 -> DV.background = newColor;
-                    case 4 -> DV.graphColors[0] = newColor;
-                    case 5 -> DV.graphColors[1] = newColor;
-                    case 6 -> DV.endpoints = newColor;
-                    case 7 -> DV.svmLines = newColor;
-                    case 8 -> DV.svmEndpoints = newColor;
-                }
-
+                setColor(component, newColor);
                 colorOptions[component].setIcon(createIcon(newColor));
             }
         });
@@ -462,26 +453,41 @@ public class ColorMenu extends JPanel
             if (newColor != null)
             {
                 int component = colorOption.get();
-
-                switch(component)
-                {
-                    case 0 -> DV.domainLines = newColor;
-                    case 1 -> DV.overlapLines = newColor;
-                    case 2 -> DV.thresholdLine = newColor;
-                    case 3 -> DV.background = newColor;
-                    case 4 -> DV.graphColors[0] = newColor;
-                    case 5 -> DV.graphColors[1] = newColor;
-                    case 6 -> DV.endpoints = newColor;
-                    case 7 -> DV.svmLines = newColor;
-                    case 8 -> DV.svmEndpoints = newColor;
-                }
-
+                setColor(component, newColor);
                 colorOptions[component].setIcon(createIcon(newColor));
             }
         }
     }
 
 
+    /**
+     * Sets component to new color
+     * @param component component number
+     * @param newColor new color of component
+     */
+    private void setColor(int component, Color newColor)
+    {
+        // sets component to newColor
+        switch(component)
+        {
+            case 0 -> DV.domainLines = newColor;
+            case 1 -> DV.overlapLines = newColor;
+            case 2 -> DV.thresholdLine = newColor;
+            case 3 -> DV.background = newColor;
+            case 4 -> DV.graphColors[0] = newColor;
+            case 5 -> DV.graphColors[1] = newColor;
+            case 6 -> DV.endpoints = newColor;
+            case 7 -> DV.svmLines = newColor;
+            case 8 -> DV.svmEndpoints = newColor;
+        }
+    }
+
+
+    /**
+     * Creates square icon for a given color
+     * @param color color of icon
+     * @return 16 x 16 pixel icon of a given color
+     */
     private ImageIcon createIcon(Color color)
     {
         BufferedImage icon = new BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB);

@@ -1,5 +1,6 @@
 public class Resolutions
 {
+    // default resolutions for DV components
     public static int[] dvWindow = new int[]{1225, 900};
     public static int[] angleSliderPanel = new int[]{160, 650};
     public static int[] chartPanel = new int[]{1000, 630};
@@ -41,7 +42,6 @@ public class Resolutions
             analyticsPane = new int[]{1250, 120};
             singleChartPanel = new int[]{990, 215};
             uiControlsPanel = new int[] {1250, 20, 0};
-
         }
     }
 }

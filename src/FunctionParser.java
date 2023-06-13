@@ -5,25 +5,39 @@ import static java.util.Map.entry;
 
 public class FunctionParser
 {
+    // eval for Expression
     @FunctionalInterface
     interface Expression
     {
         double eval();
     }
 
+    // eval for VectorExpression
     @FunctionalInterface
     interface VectorExpression
     {
         double[] eval_vec();
     }
 
+    // available functions
     static final Map<String,DoubleUnaryOperator> scalarFunctions = Map.ofEntries(
-            entry("sqrt", x -> Math.sqrt(x)),
+            entry("sqrt", Math::sqrt),
             entry("sin", x -> Math.sin(Math.toRadians(x))),
             entry("cos", x -> Math.cos(Math.toRadians(x))),
             entry("tan", x -> Math.tan(Math.toRadians(x)))
     );
 
+
+    // CODE IS FROM Boann on Stack Overflow
+    // Link: https://stackoverflow.com/questions/3422673/how-to-evaluate-a-math-expression-given-in-string-form
+
+
+    /**
+     * Evaluates a given expression
+     * @param strExp expression to be evaluated
+     * @param variables variable and value (ex. x = 1)
+     * @return function that can be evaluated
+     */
     public static Expression parseScalerExpression(String strExp, Map<String, Double> variables)
     {
         return new Object()
@@ -119,7 +133,6 @@ public class FunctionParser
                 else if (operator('-'))
                     return () -> -parseNumber().eval();
 
-                //
                 Expression x = () -> 0;
                 int startPos = pos;
 
@@ -169,6 +182,13 @@ public class FunctionParser
         }.parse();
     }
 
+
+    /**
+     * Evaluates a given vector expression
+     * @param strExp expression to be evaluated
+     * @param variables variable and value (ex. x = {1, 2, 3})
+     * @return function that can be evaluated
+     */
     public static Expression parseVectorExpression(String strExp, Map<String, VectorExpression> variables)
     {
         return new Object()

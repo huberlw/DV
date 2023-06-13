@@ -59,10 +59,6 @@ public class DataObject
 
         highest += DV.fieldLength / 10.0;
 
-        // get vertical scaling
-        /**
-         * CONSTRUCTION
-         */
         double vertical_scale = (DV.mainPanel.getHeight() * 0.7) / (DV.graphPanel.getWidth() * 0.8);
 
         if (DV.classNumber == 1)
@@ -91,6 +87,7 @@ public class DataObject
     {
         // output points
         double[][] xyPoints = new double[active][2];
+        xyPoints = new double[dataPoint.length][2];
 
         // get xyPoints
         int i = 0;
@@ -101,15 +98,15 @@ public class DataObject
 
         for (int j = 1; i < dataPoint.length; i++)
         {
-            if (DV.activeAttributes.get(i))
-            {
+            //if (DV.activeAttributes.get(i))
+            //{
                 xyPoints[j] = getXYPointGLC(dataPoint[i], angles[i]);
 
                 // add previous points to current points
                 xyPoints[j][0] += xyPoints[j-1][0];
                 xyPoints[j][1] += xyPoints[j-1][1];
                 j++;
-            }
+            //}
         }
 
         return xyPoints;
@@ -143,6 +140,12 @@ public class DataObject
     }
 
 
+    /**
+     *
+     * @param datapoint datapoint to create angles for
+     * @param cur_angles angles from GLC-L visualization
+     * @return DSC angles combined with GLC-L angles
+     */
     private int[] generateDSCAngles(double[] datapoint, double[] cur_angles)
     {
         int[] angles = new int[(int) Math.ceil(datapoint.length / 2.0)];
@@ -156,7 +159,7 @@ public class DataObject
             if (++i != datapoint.length)
                 value2 = datapoint[i];
             else
-                value2 = datapoint[--i];
+                value2 = value1;
 
             if (value2 == 0)
                 angles[cnt] = 90;
@@ -172,6 +175,11 @@ public class DataObject
     }
 
 
+    /**
+     * Updates the coordinates for each datapoint in a DataObject
+     * @param angles weights for each value in a datapoint from GLC-L visualization
+     * @return highest point in DataObject
+     */
     public double updateCoordinatesDSC(double[] angles)
     {
         // save the highest point
@@ -218,6 +226,13 @@ public class DataObject
         return highest;
     }
 
+
+    /**
+     * Generates coordinates for a datapoint
+     * @param dataPoint datapoint in DataObject
+     * @param angles weights for each value
+     * @return coordinates for datapoint
+     */
     private double[][] generateCoordinatesDSC(double[] dataPoint, int[] angles)
     {
         // output points
@@ -241,6 +256,14 @@ public class DataObject
         return xyPoints;
     }
 
+
+    /**
+     * Gets coordinates for two given values
+     * @param value1 value to find coordinates for
+     * @param value2 value to find coordinates for
+     * @param angle weight of value
+     * @return coordinates for value
+     */
     private double[] getXYPointDSC(double value1, double value2, int angle)
     {
         double[] xyPoint = new double[2];

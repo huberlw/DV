@@ -629,9 +629,9 @@ public class VisualizationMenu extends JPanel
                                 DV.angles[j] = DV.angles[j+1];
                                 DV.angles[j+1] = tmp1;
 
-                                String tmp2 = DV.fieldNames.get(j);
+                                /*String tmp2 = DV.fieldNames.get(j);
                                 DV.fieldNames.set(j, DV.fieldNames.get(j+1));
-                                DV.fieldNames.set(j+1, tmp2);
+                                DV.fieldNames.set(j+1, tmp2);*/
 
                                 /*int tmp3 = DV.originalAttributeOrder.get(j);
                                 DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
@@ -657,7 +657,7 @@ public class VisualizationMenu extends JPanel
                     for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
                     {
                         if (DV.glc_or_dsc)
-                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                            AngleSliders.createSliderPanel_GLC("tmp " + 1, (int) (DV.angles[j] * 100), j);//DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
                         else
                             AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
                     }

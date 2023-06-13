@@ -1,23 +1,24 @@
 import org.jfree.chart.*;
+import org.jfree.chart.annotations.XYDrawableAnnotation;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
-import org.jfree.chart.axis.TickUnits;
 import org.jfree.chart.axis.ValueAxis;
+import org.jfree.chart.labels.XYItemLabelGenerator;
+import org.jfree.chart.labels.XYSeriesLabelGenerator;
+import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.DefaultDrawingSupplier;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYAreaRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.data.statistics.BoxAndWhiskerCalculator;
+import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleInsets;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.util.*;
@@ -25,11 +26,10 @@ import java.util.List;
 
 public class HyperBlockVisualization
 {
-    JPanel pcGraphPanel;
-    JPanel glcGraphPanel;
-    JTabbedPane graphTabs;
+    JPanel graphPanel;
 
     JCheckBox visualizeWithin;
+    JCheckBox visualizeOutline;
     JLabel graphLabel;
     JButton right;
     JButton left;
@@ -40,6 +40,8 @@ public class HyperBlockVisualization
     ArrayList<ArrayList<DataObject>> objects;
     ArrayList<DataObject> lowerObjects;
     ArrayList<DataObject> upperObjects;
+    ArrayList<ArrayList<DataObject>> originalObjects;
+    ArrayList<HyperBlock> originalHyperBlocks;
 
     // hyperblock storage
     ArrayList<HyperBlock> hyper_blocks = new ArrayList<>();
@@ -79,6 +81,33 @@ public class HyperBlockVisualization
     XYLineAndShapeRenderer artRenderer;
     XYSeriesCollection artLines;
 
+    JRadioButton separateView;
+    JRadioButton tileView;
+    JRadioButton combinedClassView;
+    JRadioButton combinedView;
+    boolean indSep = true;
+
+    JRadioButton stuff;
+
+
+    // plot options
+    JRadioButton PC;
+    JRadioButton SPC;
+    JRadioButton GLCL;
+    JRadioButton PC_cross;
+    JRadioButton SPC_less;
+    JRadioButton GLCL_turn;
+    JRadioButton GLCL_turn_dot;
+    JRadioButton GLCL_x_proj_dot;
+
+    // hb level inc
+    JSpinner hb_lvl;
+
+    // plot choice
+    int plot_id = 0;
+
+    boolean lvl_inc = false;
+
 
     class BlockComparator implements Comparator<HyperBlock>
     {
@@ -111,91 +140,547 @@ public class HyperBlockVisualization
 
     private String block_desc(int block)
     {
+        StringBuilder tmp = new StringBuilder("<b>Rule:</b> if ");
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            if (hyper_blocks.get(block).maximums.get(0)[i] > 0)
+            {
+                if (hyper_blocks.get(block).minimums.get(0)[i] > 0)
+                    tmp.append(String.format("%.2f &le; X%d &le; %.2f", hyper_blocks.get(block).minimums.get(0)[i], i, hyper_blocks.get(block).maximums.get(0)[i]));
+                else
+                    tmp.append(String.format("X%d &le; %.2f", i, hyper_blocks.get(block).maximums.get(0)[i]));
+
+                if (i != DV.fieldLength - 1)
+                    tmp.append(", ");
+                else
+                    tmp.append(", then class").append(hyper_blocks.get(block).className);
+            }
+        }
+
         String desc = "<html><b>Block:</b> " + (block + 1) + "/" + hyper_blocks.size() + "<br/>";
         desc += "<b>Class:</b> " + hyper_blocks.get(block).className + "<br/>";
         desc += "<b>Seed Attribute:</b> " + hyper_blocks.get(block).attribute+ "<br/>";
         desc += "<b>Datapoints:</b> " + hyper_blocks.get(block).size + " (" + misclassified.get(block) + " misclassified)" + "<br/>";
-        desc += "<b>Accuracy:</b> " + (Math.round(acc.get(block) * 10000) / 100.0) + "%</html>";
+        desc += "<b>Accuracy:</b> " + (Math.round(acc.get(block) * 10000) / 100.0) + "%<br/>";
+        desc += tmp;
+        desc += "</html>";
 
         return desc;
     }
 
-    public HyperBlockVisualization()
+    private void choose_plot()
     {
-        /*// popup asking for number of folds
-        JPanel thresholdAccPanel = new JPanel(new BorderLayout());
-
-        // text panel
-        JPanel textPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-
-        // maximum text field
-        JTextField thresholdField = new JTextField();
-        thresholdField.setPreferredSize(new Dimension(30, 30));
-        textPanel.add(new JLabel("Hyperblock Accuracy Threshold: "));
-        thresholdField.setText(Double.toString(acc_threshold));
-        textPanel.add(thresholdField);
-
-        // add text panel
-        thresholdAccPanel.add(textPanel, BorderLayout.SOUTH);
-
-        int choice = -2;
-        // loop until folds are valid or user quits
-        while (choice == -2)
+        switch (plot_id)
         {
-            choice = JOptionPane.showConfirmDialog(DV.mainFrame, thresholdAccPanel, "Hyperblock Threshold", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-            if (choice == 0)
-            {
-                try
+            case 0 ->
+            { // PC
+                if (separateView.isSelected())
                 {
-                    // get text field values
-                    double threshold = Double.parseDouble(thresholdField.getText());
-
-                    if (threshold >= 0 && threshold <= 1)
+                    graphPanel.removeAll();
+                    graphPanel.add(drawPCBlocks(objects));
+                }
+                else if (tileView.isSelected())
+                {
+                    if (tiles_active)
                     {
-                        acc_threshold = threshold;
+                        graphPanel.add(drawPCBlockTiles(objects));
+                        graphLabel.setText("");
                     }
                     else
                     {
-                        // invalid fold input
-                        JOptionPane.showMessageDialog(
-                                DV.mainFrame,
-                                "Error: input is invalid.\n" +
-                                        "Please enter a whole decimal value between 0 and 1.",
-                                "Error",
-                                JOptionPane.ERROR_MESSAGE);
-
-                        choice = -2;
+                        graphPanel.add(drawPCBlocks(objects));
+                        graphLabel.setText(block_desc(visualized_block));
                     }
                 }
-                catch (NumberFormatException nfe)
+                else if (combinedClassView.isSelected())
                 {
-                    JOptionPane.showMessageDialog(DV.mainFrame, "Error: please enter a decimal value between 0 and 1.", "Error", JOptionPane.ERROR_MESSAGE);
-                    choice = -2;
+                    graphPanel.add(drawPCBlockTilesCombinedClasses(objects));
+                }
+                else if (combinedView.isSelected())
+                {
+                    graphPanel.add(drawPCBlockTilesCombined(objects));
                 }
             }
-            else if (choice == 2 || choice == -1)
-            {
-                return;
+            case 1 ->
+            { // GLC-L
+                if (separateView.isSelected())
+                {
+                    graphPanel.removeAll();
+                    graphPanel.add(drawGLCBlocks(upperObjects, 0));
+                    graphPanel.add(drawGLCBlocks(lowerObjects, 1));
+                }
+                else if (tileView.isSelected())
+                {
+                    if (tiles_active)
+                    {
+                        graphPanel.add(drawGLCBlockTiles(objects));
+                        graphLabel.setText("");
+                    }
+                    else
+                    {
+                        graphPanel.add(drawGLCBlocks(upperObjects, 0));
+                        graphPanel.add(drawGLCBlocks(lowerObjects, 1));
+                        graphLabel.setText(block_desc(visualized_block));
+                    }
+                }
+                else if (combinedClassView.isSelected())
+                {
+                    graphPanel.add(drawGLCBlockTilesCombinedClasses(objects));
+                }
+                else if (combinedView.isSelected())
+                {
+                    graphPanel.add(drawGLCBlockTilesCombined(objects));
+                }
             }
-        }*/
+            case 2 ->
+            { // SPC
+                if (separateView.isSelected())
+                {
+                    graphPanel.removeAll();
+                    graphPanel.add(SPC(objects));
+                }
+                else if (tileView.isSelected())
+                {
+                }
+                else if (combinedClassView.isSelected())
+                {
+                }
+                else if (combinedView.isSelected())
+                {
+                }
+            }
+            case 3 ->
+            { // PC cross
+                if (separateView.isSelected())
+                {
+                    graphPanel.removeAll();
+                    graphPanel.add(drawStuff(visualized_block));
+                }
+                else if (tileView.isSelected())
+                {
+                }
+                else if (combinedClassView.isSelected())
+                {
+                }
+                else if (combinedView.isSelected())
+                {
+                }
+            }
+            case 4 ->
+            { // SPC reduced
+                if (separateView.isSelected())
+                {
+                    graphPanel.removeAll();
+                    graphPanel.add(SPC_Reduced(objects));
+                }
+                else if (tileView.isSelected())
+                {
+                }
+                else if (combinedClassView.isSelected())
+                {
+                }
+                else if (combinedView.isSelected())
+                {
+                }
+            }
+        }
+    }
+
+    private void increase_level()
+    {
+        originalObjects = new ArrayList<>();
+        originalObjects.addAll(objects);
+
+        originalHyperBlocks = new ArrayList<>();
+        originalHyperBlocks.addAll(hyper_blocks);
+
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            //drawStuff(i);
+        }
+
+        ArrayList<double[]> tmpData = new ArrayList<>();
+        ArrayList<double[]> tmpData2 = new ArrayList<>();
+
+        // starting
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            for (int j = 0; j < hyper_blocks.get(i).hyper_block.size(); j++)
+            {
+                double[] tmp1 = new double[DV.fieldLength * 2];
+                int cnt = 0;
+
+                for (int k = 0; k < DV.fieldLength; k++)
+                {
+                    tmp1[cnt] = hyper_blocks.get(i).minimums.get(j)[k];
+                    cnt++;
+
+                    tmp1[cnt] = hyper_blocks.get(i).maximums.get(j)[k];
+                    cnt++;
+                }
+
+                if (hyper_blocks.get(i).classNum == 0)
+                    tmpData.add(tmp1);
+                else
+                    tmpData2.add(tmp1);
+            }
+        }
+
+        objects = new ArrayList<>();
+        upperObjects = new ArrayList<>();
+        lowerObjects = new ArrayList<>();
+
+        double[][] newData = new double[tmpData.size()][DV.fieldLength * 2];
+        tmpData.toArray(newData);
+        DataObject newObj = new DataObject("upper", newData);
+
+        double[][] newData2 = new double[tmpData2.size()][DV.fieldLength * 2];
+        tmpData2.toArray(newData2);
+        DataObject newObj2 = new DataObject("lower", newData2);
+
+        int mult = (Integer) hb_lvl.getValue();
+        int val = DV.angles.length;
+
+        for (int i = 0; i < mult - 1; i++)
+            val *= 2;
+
+        double[] newAngles = new double[val];
+
+        int cnt = 0;
+
+        for (int i = 0; i < DV.angles.length; i++)
+        {
+            for (int j = 0; j < (val / DV.angles.length); j++)
+            {
+                newAngles[cnt] = DV.angles[i];
+                cnt++;
+            }
+        }
+
+        DV.fieldLength = DV.fieldLength * 2;
+        DV.misclassifiedData.clear();
+
+        misclassified.clear();
+        acc.clear();
+
+        DV.angles = newAngles;
+
+        newObj.updateCoordinatesGLC(newAngles);
+        upperObjects.add(newObj);
+
+        newObj2.updateCoordinatesGLC(newAngles);
+        lowerObjects.add(newObj2);
+
+        objects.add(upperObjects);
+        objects.add(lowerObjects);
+
+        DV.data.clear();
+        DV.data.add(newObj);
+        DV.data.add(newObj2);
 
         generateHyperblocks3();
         blockCheck();
 
-        JFrame tmpFrame = new JFrame();
-        tmpFrame.setLayout(new GridBagLayout());
+        //combineAll();
+
+        //for (int i = 0; i < hyper_blocks.size(); i++)
+            //pc_lvl_2_Test2(objects, i);
+    }
+
+    public HyperBlockVisualization()
+    {
+        //getNonOverlapData();
+        getData();
+        generateHyperblocks3();
+        blockCheck();
+
+        JFrame mainFrame = new JFrame();
+        mainFrame.setLayout(new BorderLayout());
+
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
 
-        graphTabs = new JTabbedPane();
+        JPanel btnsPanel = new JPanel();
+        btnsPanel.setLayout(new GridLayout(1, 2));
 
-        pcGraphPanel = new JPanel();
-        pcGraphPanel.setLayout(new BoxLayout(pcGraphPanel, BoxLayout.PAGE_AXIS));
-        glcGraphPanel = new JPanel();
-        glcGraphPanel.setLayout(new BoxLayout(glcGraphPanel, BoxLayout.PAGE_AXIS));
+        // create toolbar
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        toolBar.setRollover(true);
 
-        graphTabs.add("PC Graph", pcGraphPanel);
-        graphTabs.add("GLC-L Graph", glcGraphPanel);
+        JLabel plots = new JLabel("Plot Options: ");
+        plots.setFont(plots.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(plots);
+        toolBar.addSeparator();
+
+        ButtonGroup plotBtns = new ButtonGroup();
+
+        PC = new JRadioButton("PC", true);
+        PC.addActionListener(pce ->
+        {
+            plot_id = 0;
+            updateGraphs();
+        });
+        toolBar.add(PC);
+        toolBar.addSeparator();
+
+        GLCL = new JRadioButton("GLC-L", false);
+        GLCL.addActionListener(pce ->
+        {
+            plot_id = 1;
+            updateGraphs();
+        });
+        toolBar.add(GLCL);
+        toolBar.addSeparator();
+
+        SPC = new JRadioButton("SPC-1B", false);
+        SPC.addActionListener(pce ->
+        {
+            plot_id = 2;
+            updateGraphs();
+        });
+        toolBar.add(SPC);
+        toolBar.addSeparator();
+
+        PC_cross = new JRadioButton("PC-2n", false);
+        PC_cross.addActionListener(pcce ->
+        {
+            plot_id = 3;
+            updateGraphs();
+        });
+        toolBar.add(PC_cross);
+        toolBar.addSeparator();
+
+        SPC_less = new JRadioButton("SPC-2B", false);
+        SPC_less.addActionListener(spcle ->
+        {
+            plot_id = 4;
+            updateGraphs();
+        });
+        toolBar.add(SPC_less);
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+
+        plotBtns.add(PC);
+        plotBtns.add(SPC);
+        plotBtns.add(GLCL);
+        plotBtns.add(PC_cross);
+        plotBtns.add(SPC_less);
+
+        JLabel views = new JLabel("View Options: ");
+        views.setFont(views.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(views);
+        toolBar.addSeparator();
+
+        ButtonGroup viewBtns = new ButtonGroup();
+
+        separateView = new JRadioButton("Separate Blocks", true);
+        separateView.setToolTipText("View all hyperblocks separately.");
+        separateView.addActionListener(e ->
+        {
+            btnsPanel.removeAll();
+            btnsPanel.add(left);
+            btnsPanel.add(right);
+
+            if (tiles_active)
+            {
+                tiles_active = false;
+            }
+            else
+            {
+                //visualized_block++;
+
+                if (visualized_block > hyper_blocks.size() - 1)
+                    visualized_block = 0;
+            }
+
+            choose_plot();
+
+            graphPanel.revalidate();
+            graphPanel.repaint();
+
+            graphLabel.setText(block_desc(visualized_block));
+        });
+        toolBar.add(separateView);
+        toolBar.addSeparator();
+
+        tileView = new JRadioButton("All Blocks");
+        tileView.setToolTipText("View all hyperblocks.");
+        tileView.addActionListener(e ->
+        {
+            btnsPanel.removeAll();
+
+            graphPanel.removeAll();
+
+            tiles_active = !tiles_active;
+
+            choose_plot();
+
+            graphPanel.revalidate();
+            graphPanel.repaint();
+        });
+        toolBar.add(tileView);
+        toolBar.addSeparator();
+
+        combinedClassView = new JRadioButton("Class Combined Blocks");
+        combinedClassView.setToolTipText("View all hyperblocks with hyperblocks of the same class combined.");
+        combinedClassView.addActionListener(e ->
+        {
+            btnsPanel.removeAll();
+
+            JRadioButton viewIndSep = new JRadioButton("View Individual Hyperblocks Separately", indSep);
+            viewIndSep.setFont(viewIndSep.getFont().deriveFont(Font.BOLD, 20f));
+            viewIndSep.setToolTipText("View hyperblocks containing a single case in separate graphs");
+            viewIndSep.addActionListener(al ->
+            {
+                indSep = !indSep;
+                updateGraphs();
+            });
+
+            btnsPanel.add(viewIndSep);
+
+            graphPanel.removeAll();
+
+            tiles_active = false;
+            visualized_block = 0;
+            graphLabel.setText("");
+
+            choose_plot();
+
+            graphPanel.revalidate();
+            graphPanel.repaint();
+        });
+        toolBar.add(combinedClassView);
+        toolBar.addSeparator();
+
+        combinedView = new JRadioButton("Combined Blocks");
+        combinedView.setToolTipText("View all hyperblocks combined.");
+        combinedView.addActionListener(e ->
+        {
+            btnsPanel.removeAll();
+
+            JRadioButton viewIndSep = new JRadioButton("View Individual Hyperblocks Separately", indSep);
+            viewIndSep.setFont(viewIndSep.getFont().deriveFont(Font.BOLD, 20f));
+            viewIndSep.setToolTipText("View hyperblocks containing a single case in a separate graph");
+            viewIndSep.addActionListener(al ->
+            {
+                indSep = !indSep;
+                updateGraphs();
+            });
+
+            btnsPanel.add(viewIndSep);
+
+            graphPanel.removeAll();
+
+            tiles_active = false;
+            visualized_block = 0;
+            graphLabel.setText("");
+
+            choose_plot();
+
+            graphPanel.revalidate();
+            graphPanel.repaint();
+        });
+        toolBar.add(combinedView);
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+
+        viewBtns.add(separateView);
+        viewBtns.add(tileView);
+        viewBtns.add(combinedClassView);
+        viewBtns.add(combinedView);
+
+        JLabel blockType = new JLabel("Hyperblock Options: ");
+        blockType.setFont(blockType.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(blockType);
+        toolBar.addSeparator();
+
+        ButtonGroup dataBtns = new ButtonGroup();
+
+        // default blocks
+        JRadioButton defaultBlocksBtn = new JRadioButton("Default Blocks", true);
+        defaultBlocksBtn.setToolTipText("Rebuild blocks using all data.");
+        defaultBlocksBtn.addActionListener(e ->
+        {
+            getData();
+            generateHyperblocks3();
+            blockCheck();
+
+            if (separateView.isSelected())
+                separateView.doClick();
+            else if (tileView.isSelected())
+                tileView.doClick();
+            else if (combinedClassView.isSelected())
+                combinedClassView.doClick();
+            else
+                combinedView.doClick();
+        });
+        toolBar.add(defaultBlocksBtn);
+        toolBar.addSeparator();
+
+        /**
+         * CHANGE THIS
+         * stuff = Draw boxes for original SPC visualization
+         */
+        stuff = new JRadioButton("", true);
+        //toolBar.add(stuff);
+
+        // overlap blocks
+        JRadioButton overlapBlocksBtn = new JRadioButton("Overlap Blocks");
+        overlapBlocksBtn.setToolTipText("Rebuild blocks using only data in the overlap area.");
+        overlapBlocksBtn.addActionListener(e ->
+        {
+            getOverlapData();
+            generateHyperblocks3();
+            blockCheck();
+
+            if (separateView.isSelected())
+                separateView.doClick();
+            else if (tileView.isSelected())
+                tileView.doClick();
+            else if (combinedClassView.isSelected())
+                combinedClassView.doClick();
+            else
+                combinedView.doClick();
+        });
+        toolBar.add(overlapBlocksBtn);
+        toolBar.addSeparator();
+
+        // non-overlap blocks
+        JRadioButton nonOverlapBlocksBtn = new JRadioButton("Non-Overlap Blocks");
+        nonOverlapBlocksBtn.setToolTipText("Rebuild blocks using only data not in the overlap area.");
+        nonOverlapBlocksBtn.addActionListener(e ->
+        {
+            getNonOverlapData();
+            generateHyperblocks3();
+            blockCheck();
+
+            if (separateView.isSelected())
+                separateView.doClick();
+            else if (tileView.isSelected())
+                tileView.doClick();
+            else if (combinedClassView.isSelected())
+                combinedClassView.doClick();
+            else
+                combinedView.doClick();
+        });
+        toolBar.add(nonOverlapBlocksBtn);
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+
+        dataBtns.add(defaultBlocksBtn);
+        dataBtns.add(overlapBlocksBtn);
+        dataBtns.add(nonOverlapBlocksBtn);
+
+        mainFrame.add(toolBar, BorderLayout.PAGE_START);
+
+
+        graphPanel = new JPanel();
+        graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.PAGE_AXIS));
 
         c.weightx = 1;
         c.weighty = 1;
@@ -203,8 +688,8 @@ public class HyperBlockVisualization
         c.ipady = 10;
         c.gridx = 0;
         c.gridy = 0;
-        c.gridwidth = 3;
-        tmpFrame.add(graphTabs, c);
+        c.gridwidth = 2;
+        mainPanel.add(graphPanel, c);
 
         graphLabel = new JLabel("");
         graphLabel.setFont(graphLabel.getFont().deriveFont(20f));
@@ -215,57 +700,53 @@ public class HyperBlockVisualization
 
         c.gridy = 1;
         c.weighty = 0;
-        tmpFrame.add(graphLabel, c);
+        mainPanel.add(graphLabel, c);
 
-        visualizeWithin = new JCheckBox("Only Visualize Datapoints Within Block", true);
-        visualizeWithin.setFont(visualizeWithin.getFont().deriveFont(Font.BOLD, 20f));
+        JLabel dataView = new JLabel("Data View Options: ");
+        dataView.setFont(dataView.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(dataView);
+        toolBar.addSeparator();
+
+        visualizeWithin = new JCheckBox("Within Block", true);
+        visualizeWithin.setToolTipText("Only Visualize Datapoints Within Block");
         visualizeWithin.addActionListener(al -> updateGraphs());
+        toolBar.add(visualizeWithin);
+        toolBar.addSeparator();
 
-        c.gridy = 2;
-        tmpFrame.add(visualizeWithin, c);
+        visualizeOutline = new JCheckBox("Outline Block", false);
+        visualizeOutline.setToolTipText("Only Visualize Outline of Block");
+        visualizeOutline.addActionListener(al -> updateGraphs());
+        toolBar.add(visualizeOutline);
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+
+        JLabel lvlView = new JLabel("HB Level: ");
+        lvlView.setFont(lvlView.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(lvlView);
+
+        hb_lvl = new JSpinner(new SpinnerNumberModel(1, 1, 3, 1));
+        hb_lvl.setEditor(new JSpinner.NumberEditor(hb_lvl, "0"));
+        hb_lvl.addChangeListener(hbe ->
+        {
+            if ((Integer) hb_lvl.getValue() == 2 || (Integer) hb_lvl.getValue() == 3)
+            {
+                increase_level();
+                updateGraphs();
+            }
+        });
+        toolBar.add(hb_lvl);
+        toolBar.addSeparator();
+
+        choose_plot();
 
         left = new JButton("Previous Block");
-
-        c.weightx = 0.33;
-        c.gridy = 3;
-        c.gridwidth = 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        tmpFrame.add(left, c);
+        btnsPanel.add(left);
 
         right = new JButton("Next Block");
+        btnsPanel.add(right, c);
 
-        c.gridx = 1;
-        tmpFrame.add(right, c);
-
-        tile = new JButton("All Blocks");
-
-        c.gridx = 2;
-        tmpFrame.add(tile, c);
-
-        // holds classes to be graphed
-        objects = new ArrayList<>();
-        upperObjects = new ArrayList<>(List.of(DV.data.get(DV.upperClass)));
-        lowerObjects = new ArrayList<>();
-
-        // get classes to be graphed
-        if (DV.hasClasses)
-        {
-            for (int j = 0; j < DV.classNumber; j++)
-            {
-                if (DV.lowerClasses.get(j))
-                    lowerObjects.add(DV.data.get(j));
-            }
-        }
-
-        objects.add(upperObjects);
-        objects.add(lowerObjects);
-
-        pcGraphPanel.removeAll();
-        pcGraphPanel.add(drawPCBlocks(objects));
-
-        glcGraphPanel.removeAll();
-        glcGraphPanel.add(drawGLCBlocks(upperObjects, 0));
-        glcGraphPanel.add(drawGLCBlocks(lowerObjects, 1));
+        mainFrame.add(btnsPanel, BorderLayout.PAGE_END);
 
         right.addActionListener(e ->
         {
@@ -281,20 +762,11 @@ public class HyperBlockVisualization
                     visualized_block = 0;
             }
 
-            pcGraphPanel.removeAll();
-            pcGraphPanel.add(drawPCBlocks(objects));
-
-            glcGraphPanel.removeAll();
-            glcGraphPanel.add(drawGLCBlocks(upperObjects, 0));
-            glcGraphPanel.add(drawGLCBlocks(lowerObjects, 1));
-
-            pcGraphPanel.revalidate();
-            pcGraphPanel.repaint();
-
-            glcGraphPanel.revalidate();
-            glcGraphPanel.repaint();
-
             graphLabel.setText(block_desc(visualized_block));
+            choose_plot();
+
+            graphPanel.revalidate();
+            graphPanel.repaint();
         });
 
         left.addActionListener(e ->
@@ -311,58 +783,20 @@ public class HyperBlockVisualization
                     visualized_block = hyper_blocks.size() - 1;
             }
 
-            pcGraphPanel.removeAll();
-            pcGraphPanel.add(drawPCBlocks(objects));
-
-            glcGraphPanel.removeAll();
-            glcGraphPanel.add(drawGLCBlocks(upperObjects, 0));
-            glcGraphPanel.add(drawGLCBlocks(lowerObjects, 1));
-
-            pcGraphPanel.revalidate();
-            pcGraphPanel.repaint();
-
-            glcGraphPanel.revalidate();
-            glcGraphPanel.repaint();
-
-            //updateBlocks();
-
             graphLabel.setText(block_desc(visualized_block));
+            choose_plot();
+
+            graphPanel.revalidate();
+            graphPanel.repaint();
         });
 
-        tile.addActionListener(e ->
-        {
-            pcGraphPanel.removeAll();
-            glcGraphPanel.removeAll();
-
-            tiles_active = !tiles_active;
-
-            if (tiles_active)
-            {
-                pcGraphPanel.add(drawPCBlockTiles(objects));
-                glcGraphPanel.add(drawGLCBlockTiles(objects));
-                graphLabel.setText("");
-            }
-            else
-            {
-                pcGraphPanel.add(drawPCBlocks(objects));
-                glcGraphPanel.add(drawGLCBlocks(upperObjects, 0));
-                glcGraphPanel.add(drawGLCBlocks(lowerObjects, 1));
-
-                graphLabel.setText(block_desc(visualized_block));
-            }
-
-            pcGraphPanel.revalidate();
-            pcGraphPanel.repaint();
-
-            glcGraphPanel.revalidate();
-            glcGraphPanel.repaint();
-        });
+        mainFrame.add(mainPanel, BorderLayout.CENTER);
 
         // show
-        tmpFrame.setVisible(true);
-        tmpFrame.revalidate();
-        tmpFrame.pack();
-        tmpFrame.repaint();
+        mainFrame.setVisible(true);
+        mainFrame.revalidate();
+        mainFrame.pack();
+        mainFrame.repaint();
     }
 
     private void blockCheck()
@@ -1975,27 +2409,29 @@ public class HyperBlockVisualization
             }
         }
 
-        int maxind = 0;
-        for (int j = 0; j < hb.get(1).get(0).size(); j++)
+        if (hb.size() > 1)
         {
-            if (hb.get(1).get(0).get(j).index > maxind)
+            int maxind = 0;
+            for (int j = 0; j < hb.get(1).get(0).size(); j++)
             {
-                maxind = hb.get(1).get(0).get(j).index;
-            }
-        }
-
-        double[] tmpstuff = new double[DV.fieldLength];
-        for (int i = 0; i < DV.fieldLength; i++)
-        {
-            for (int j = 0; j < hb.get(1).get(i).size(); j++)
-            {
-                if (hb.get(1).get(i).get(j).index == maxind)
+                if (hb.get(1).get(0).get(j).index > maxind)
                 {
-                    tmpstuff[i] = hb.get(1).get(i).get(j).value;
+                    maxind = hb.get(1).get(0).get(j).index;
+                }
+            }
+
+            double[] tmpstuff = new double[DV.fieldLength];
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                for (int j = 0; j < hb.get(1).get(i).size(); j++)
+                {
+                    if (hb.get(1).get(i).get(j).index == maxind)
+                    {
+                        tmpstuff[i] = hb.get(1).get(i).get(j).value;
+                    }
                 }
             }
         }
-
 
         int cnt = 0;
         for (int i = 0; i < DV.misclassifiedData.size(); i++)
@@ -2085,6 +2521,69 @@ public class HyperBlockVisualization
 
             artificial.add(avg_tmp);
         }
+        blockCheck();
+//        for (int w = 0; w < hyper_blocks.size(); w++)
+//        {
+//            try{
+//                File csv = new File("D:\\Downloads\\Hyperblocks\\HB" + (w+1) + ".csv");
+//                Files.deleteIfExists(csv.toPath());
+//
+//                // write to csv file
+//                PrintWriter out = new PrintWriter(csv);
+//
+//                out.print("Class:," + hyper_blocks.get(w).className + "\n");
+//                out.print("Size:," + hyper_blocks.get(w).size + "\n");
+//                out.print("Accuracy:," + (Math.round(acc.get(w) * 10000) / 100.0) + "\n");
+//
+//                // create header for file
+//                for (int i = 0; i < DV.fieldLength; i++)
+//                {
+//                    if (i != DV.fieldLength - 1)
+//                        out.print(DV.fieldNames.get(i) + ",");
+//                    else
+//                        out.print(DV.fieldNames.get(i) + "\n");
+//                }
+//
+//                // get all data for class
+//                for (int j = 0; j < hyper_blocks.get(w).hyper_block.get(0).size(); j++)
+//                {
+//                    double[] tmp = new double[DV.fieldLength];
+//                    for (int k = 0; k < DV.fieldLength; k++)
+//                    {
+//                        tmp[k] = hyper_blocks.get(w).hyper_block.get(0).get(j)[k];
+//                        // transform to real value
+//                        // undo min-max normalization
+//                        tmp[k] *= (DV.max[k] - DV.min[k]);
+//                        tmp[k] += DV.min[k];
+//
+//                        // undo z-score
+//                        if (DV.zScoreMinMax)
+//                        {
+//                            tmp[k] *= DV.sd[k];
+//                            tmp[k] += DV.mean[k];
+//                        }
+//
+//                        // round real value to whole number
+//                        //tmp[k] = Math.round(tmp[k]);;
+//                    }
+//
+//                    for (int k = 0; k < DV.fieldLength; k++)
+//                    {
+//                        if (k != DV.fieldLength - 1)
+//                            out.printf("%f,", tmp[k]);
+//                        else
+//                            out.printf("%f" + "\n", tmp[k]);
+//                    }
+//                }
+//
+//                // close file
+//                out.close();
+//            }
+//            catch (IOException ioe)
+//            {
+//                ioe.printStackTrace();
+//            }
+//        }
     }
 
 
@@ -2228,28 +2727,14 @@ public class HyperBlockVisualization
 
     private void updateGraphs()
     {
-        pcGraphPanel.removeAll();
-        glcGraphPanel.removeAll();
-
-        if (tiles_active)
-        {
-            pcGraphPanel.add(drawPCBlockTiles(objects));
-        }
+        if (separateView.isSelected())
+            separateView.doClick();
+        else if (tileView.isSelected())
+            tileView.doClick();
+        else if (combinedClassView.isSelected())
+            combinedClassView.doClick();
         else
-        {
-            pcGraphPanel.add(drawPCBlocks(objects));
-        }
-
-        glcGraphPanel.add(drawGLCBlocks(upperObjects, 0));
-        glcGraphPanel.add(drawGLCBlocks(lowerObjects, 1));
-
-        pcGraphPanel.revalidate();
-        pcGraphPanel.repaint();
-
-        glcGraphPanel.revalidate();
-        glcGraphPanel.repaint();
-
-        graphLabel.setText("<html><b>All Blocks</b></html>");
+            combinedView.doClick();
     }
 
     private ChartPanel drawPCBlocks(ArrayList<ArrayList<DataObject>> obj)
@@ -2352,7 +2837,7 @@ public class HyperBlockVisualization
                         {
                             if (visualizeWithin.isSelected())
                             {
-                                if (within)
+                                if (!visualizeOutline.isSelected() && within)
                                 {
                                     // add series
                                     if (d == hyper_blocks.get(visualized_block).classNum)
@@ -2378,7 +2863,8 @@ public class HyperBlockVisualization
                                 // add series
                                 if (d == hyper_blocks.get(visualized_block).classNum)
                                 {
-                                    goodGraphLines.addSeries(line);
+                                    if (!(visualizeOutline.isSelected() && within))
+                                        goodGraphLines.addSeries(line);
 
                                     goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
 
@@ -2387,7 +2873,8 @@ public class HyperBlockVisualization
                                 }
                                 else
                                 {
-                                    badGraphLines.addSeries(line);
+                                    if (!(visualizeOutline.isSelected() && within))
+                                        badGraphLines.addSeries(line);
 
                                     badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
 
@@ -2549,10 +3036,10 @@ public class HyperBlockVisualization
         yAxis.setAutoRange(false);
         yAxis.setRange(0, 1);
 
-        artRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
-        artRenderer.setAutoPopulateSeriesStroke(false);
-        plot.setRenderer(0, artRenderer);
-        plot.setDataset(0, artLines);
+        //artRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        //artRenderer.setAutoPopulateSeriesStroke(false);
+        //plot.setRenderer(0, artRenderer);
+        //plot.setDataset(0, artLines);
 
         // set block renderer and dataset
         pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
@@ -3272,7 +3759,7 @@ public class HyperBlockVisualization
                             {
                                 if (visualizeWithin.isSelected())
                                 {
-                                    if (within)
+                                    if (!visualizeOutline.isSelected() && within)
                                     {
                                         // add series
                                         if (d == hyper_blocks.get(c).classNum)
@@ -3299,7 +3786,8 @@ public class HyperBlockVisualization
                                     // add series
                                     if (d == hyper_blocks.get(c).classNum)
                                     {
-                                        goodGraphLines.addSeries(line);
+                                        if (!(visualizeOutline.isSelected() && within))
+                                            goodGraphLines.addSeries(line);
 
                                         goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
 
@@ -3308,7 +3796,8 @@ public class HyperBlockVisualization
                                     }
                                     else
                                     {
-                                        badGraphLines.addSeries(line);
+                                        if (!(visualizeOutline.isSelected() && within))
+                                            badGraphLines.addSeries(line);
 
                                         badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
 
@@ -3520,7 +4009,7 @@ public class HyperBlockVisualization
                     if (SwingUtilities.isLeftMouseButton(chartMouseEvent.getTrigger()))
                     {
                         visualized_block = finalC;
-                        tile.doClick();
+                        separateView.doClick();
                     }
                 }
 
@@ -3717,7 +4206,7 @@ public class HyperBlockVisualization
                     }
                 }
 
-                JOptionPane.showMessageDialog(pcGraphPanel, msg.toString());
+                JOptionPane.showMessageDialog(graphPanel, msg.toString());
             });
 
             constraints.gridx = 0;
@@ -4429,4 +4918,3916 @@ public class HyperBlockVisualization
 
         return tilePanel;
     }
+
+    private JPanel drawPCBlockTilesCombinedClasses(ArrayList<ArrayList<DataObject>> obj)
+    {
+        int good = 0;
+        int bad = 0;
+        // hyperblock renderer and dataset
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcBlockRendererUpper = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocksUpper = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[hyper_blocks.size()];
+
+        double[] UB = new double[DV.fieldLength];
+        double[] LB = new double[DV.fieldLength];
+
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            UB[i] = -999999;
+            LB[i] = 999999;
+        }
+
+        // add hyperblocks
+        for (int c = 0; c < hyper_blocks.size(); c++)
+        {
+            if (c == 0)
+            {
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+            }
+            else
+            {
+                Random r = new Random();
+                float max = 25f;
+                float min = 1f;
+
+                int len = r.nextInt(2) + 1;
+
+                float[] fa = new float[len];
+
+                for (int i = 0; i < len; i++)
+                {
+                    fa[i] = r.nextFloat(max - min) + min;
+                }
+
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+            }
+
+            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+            {
+                if (hyper_blocks.get(c).classNum == 1)
+                {
+                    for (int i = 0; i < DV.fieldLength; i++)
+                    {
+                        if (hyper_blocks.get(c).minimums.get(k)[i] < LB[i])
+                        {
+                            LB[i] = hyper_blocks.get(c).minimums.get(k)[i];
+                        }
+
+                        if (hyper_blocks.get(c).maximums.get(k)[i] > UB[i])
+                        {
+                            UB[i] = hyper_blocks.get(c).maximums.get(k)[i];
+                        }
+                    }
+                }
+
+            }
+        }
+
+        XYSeries tmp1 = new XYSeries(0, false, true);
+
+        for (int j = 0; j < DV.fieldLength; j++) {
+            tmp1.add(j, LB[j]);
+        }
+
+        for (int j = DV.fieldLength - 1; j > -1; j--) {
+            tmp1.add(j, UB[j]);
+        }
+
+        tmp1.add(0, LB[0]);
+
+        pcBlockRendererUpper.setSeriesPaint(0, Color.BLACK);
+        pcBlockRendererUpper.setSeriesStroke(0, strokes[0]);
+
+        pcBlocksUpper.addSeries(tmp1);
+
+        for (int d = 0; d < obj.size(); d++)
+        {
+            int lineCnt = 0;
+
+            for (DataObject data : obj.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    // start line at (0, 0)
+                    XYSeries line = new XYSeries(lineCnt, false, true);
+                    boolean within = false;
+
+                    boolean within_cur = true;
+
+                    for (int j = 0; j < DV.fieldLength; j++)
+                    {
+                        if (data.data[i][j] < LB[j] || data.data[i][j] > UB[j])
+                        {
+                            within_cur = false;
+                        }
+
+                        if (j == DV.fieldLength - 1)
+                        {
+                            if (within_cur)
+                            {
+                                within = true;
+                            }
+                        }
+                    }
+
+                    // add points to lines
+                    for (int j = 0; j < DV.fieldLength; j++)
+                    {
+                        line.add(j, data.data[i][j]);
+
+                        // add endpoint and timeline
+                        if (j == DV.fieldLength - 1)
+                        {
+                            if (!visualizeOutline.isSelected() && within)
+                            {
+                                // add series
+                                if (d == 0)
+                                {
+                                    goodGraphLines.addSeries(line);
+
+                                    goodLineRenderer.setSeriesPaint(lineCnt, Color.GREEN);
+                                    goodLineRenderer.setSeriesStroke(lineCnt, strokes[0]);
+
+                                    good++;
+                                }
+                                else
+                                {
+                                    badGraphLines.addSeries(line);
+
+                                    badLineRenderer.setSeriesPaint(lineCnt, Color.RED);
+                                    badLineRenderer.setSeriesStroke(lineCnt, strokes[0]);
+
+                                    bad++;
+                                }
+
+                                lineCnt++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        JFreeChart pcChartUpper = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksUpper,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartUpper.setBorderVisible(false);
+        pcChartUpper.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotUpper = (XYPlot) pcChartUpper.getPlot();
+
+        // format plot
+        plotUpper.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotUpper.getRangeAxis().setVisible(true);
+        plotUpper.getDomainAxis().setVisible(true);
+        plotUpper.setOutlinePaint(null);
+        plotUpper.setOutlineVisible(false);
+        plotUpper.setInsets(RectangleInsets.ZERO_INSETS);
+        plotUpper.setDomainPannable(true);
+        plotUpper.setRangePannable(true);
+        plotUpper.setBackgroundPaint(DV.background);
+        plotUpper.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plotUpper.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plotUpper.getDomainAxis();
+
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plotUpper.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRendererUpper.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotUpper.setRenderer(0, pcBlockRendererUpper);
+        plotUpper.setDataset(0, pcBlocksUpper);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plotUpper.setRenderer(1, badLineRenderer);
+        plotUpper.setDataset(1, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plotUpper.setRenderer(2, goodLineRenderer);
+        plotUpper.setDataset(2, goodGraphLines);
+
+        System.out.println("Total Points: " + (good + bad));
+        System.out.println("Benign Points: " + good);
+        System.out.println("Malignant Points: " + bad);
+
+        ChartPanel chartPanelUpper = new ChartPanel(pcChartUpper);
+        chartPanelUpper.setMouseWheelEnabled(true);
+
+        return chartPanelUpper;
+    }
+
+    /*private JPanel drawPCBlockTilesCombinedClasses(ArrayList<ArrayList<DataObject>> obj)
+    {
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRendererUpper = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocksUpper = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRendererUpper = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksAreaUpper = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcBlockRendererLower = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocksLower = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRendererLower = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksAreaLower = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcIndBlockRendererUpper = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcIndBlocksUpper = new XYSeriesCollection();
+        XYAreaRenderer pcIndBlockAreaRendererUpper = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcIndBlocksAreaUpper = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcIndBlockRendererLower = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcIndBlocksLower = new XYSeriesCollection();
+        XYAreaRenderer pcIndBlockAreaRendererLower = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcIndBlocksAreaLower = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[hyper_blocks.size()];
+
+        double[] largest = new double[]{-1, -1};
+        for (int i = 0; i < hyper_blocks.size(); i++)
+            for (int j = 0; j < hyper_blocks.get(i).hyper_block.size(); j++)
+                if (hyper_blocks.get(i).hyper_block.get(j).size() > largest[hyper_blocks.get(i).classNum]) largest[hyper_blocks.get(i).classNum] = hyper_blocks.get(i).hyper_block.get(j).size();
+
+        // add hyperblocks
+        for (int c = 0, uKey = 0, lKey = 0, uIKey = 0, lIKey = 0; c < hyper_blocks.size(); c++)
+        {
+            if (c == 0)
+            {
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+            }
+            else
+            {
+                Random r = new Random();
+                float max = 25f;
+                float min = 1f;
+
+                int len = r.nextInt(2) + 1;
+
+                float[] fa = new float[len];
+
+                for (int i = 0; i < len; i++)
+                {
+                    fa[i] = r.nextFloat(max - min) + min;
+                }
+
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+            }
+
+            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+            {
+                int key;
+
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1 || !indSep)
+                    key = hyper_blocks.get(c).classNum == DV.upperClass ? uKey : lKey;
+                else
+                    key = hyper_blocks.get(c).classNum == DV.upperClass ? uIKey : lIKey;
+
+                XYSeries tmp1 = new XYSeries(key, false, true);
+                XYSeries tmp2 = new XYSeries(key, false, true);
+
+                for (int j = 0; j < DV.fieldLength; j++) {
+                    tmp1.add(j, hyper_blocks.get(c).minimums.get(k)[j]);
+                    tmp2.add(j, hyper_blocks.get(c).minimums.get(k)[j]);
+                }
+
+                for (int j = DV.fieldLength - 1; j > -1; j--) {
+                    tmp1.add(j, hyper_blocks.get(c).maximums.get(k)[j]);
+                    tmp2.add(j, hyper_blocks.get(c).maximums.get(k)[j]);
+                }
+
+                tmp1.add(0, hyper_blocks.get(c).minimums.get(k)[0]);
+                tmp2.add(0, hyper_blocks.get(c).minimums.get(k)[0]);
+
+                int emph = (int)((hyper_blocks.get(c).hyper_block.get(k).size() / Math.max(largest[0], largest[1])) * 255);
+                Color blockEmph = new Color(255, 200, 0, emph);
+
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1 || !indSep)
+                {
+                    if (hyper_blocks.get(c).classNum == DV.upperClass)
+                    {
+                        pcBlockRendererUpper.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                        pcBlockAreaRendererUpper.setSeriesPaint(key, blockEmph);
+                        pcBlockRendererUpper.setSeriesStroke(key, strokes[c]);
+
+                        pcBlocksUpper.addSeries(tmp1);
+                        pcBlocksAreaUpper.addSeries(tmp2);
+
+                        uKey++;
+                    }
+                    else
+                    {
+                        pcBlockRendererLower.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                        pcBlockAreaRendererLower.setSeriesPaint(key, blockEmph);
+                        pcBlockRendererLower.setSeriesStroke(key, strokes[c]);
+
+                        pcBlocksLower.addSeries(tmp1);
+                        pcBlocksAreaLower.addSeries(tmp2);
+
+                        lKey++;
+                    }
+                }
+                else
+                {
+                    if (hyper_blocks.get(c).classNum == DV.upperClass)
+                    {
+                        pcIndBlockRendererUpper.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                        pcIndBlockAreaRendererUpper.setSeriesPaint(key, blockEmph);
+                        pcIndBlockRendererUpper.setSeriesStroke(key, strokes[c]);
+
+                        pcIndBlocksUpper.addSeries(tmp1);
+                        pcIndBlocksAreaUpper.addSeries(tmp2);
+
+                        uIKey++;
+                    }
+                    else
+                    {
+                        pcIndBlockRendererLower.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                        pcIndBlockAreaRendererLower.setSeriesPaint(key, blockEmph);
+                        pcIndBlockRendererLower.setSeriesStroke(key, strokes[c]);
+
+                        pcIndBlocksLower.addSeries(tmp1);
+                        pcIndBlocksAreaLower.addSeries(tmp2);
+
+                        lIKey++;
+                    }
+                }
+            }
+        }
+
+        JFreeChart pcChartUpper = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksUpper,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartUpper.setBorderVisible(false);
+        pcChartUpper.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotUpper = (XYPlot) pcChartUpper.getPlot();
+
+        // format plot
+        plotUpper.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotUpper.getRangeAxis().setVisible(true);
+        plotUpper.getDomainAxis().setVisible(true);
+        plotUpper.setOutlinePaint(null);
+        plotUpper.setOutlineVisible(false);
+        plotUpper.setInsets(RectangleInsets.ZERO_INSETS);
+        plotUpper.setDomainPannable(true);
+        plotUpper.setRangePannable(true);
+        plotUpper.setBackgroundPaint(DV.background);
+        plotUpper.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plotUpper.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plotUpper.getDomainAxis();
+
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plotUpper.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRendererUpper.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotUpper.setRenderer(0, pcBlockRendererUpper);
+        plotUpper.setDataset(0, pcBlocksUpper);
+
+        pcBlockAreaRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotUpper.setRenderer(1, pcBlockAreaRendererUpper);
+        plotUpper.setDataset(1, pcBlocksAreaUpper);
+
+        ChartPanel chartPanelUpper = new ChartPanel(pcChartUpper);
+        chartPanelUpper.setMouseWheelEnabled(true);
+
+        JFreeChart pcChartLower = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksLower,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartLower.setBorderVisible(false);
+        pcChartLower.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotLower = (XYPlot) pcChartLower.getPlot();
+
+        // format plot
+        plotLower.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotLower.getRangeAxis().setVisible(true);
+        plotLower.getDomainAxis().setVisible(true);
+        plotLower.setOutlinePaint(null);
+        plotLower.setOutlineVisible(false);
+        plotLower.setInsets(RectangleInsets.ZERO_INSETS);
+        plotLower.setDomainPannable(true);
+        plotLower.setRangePannable(true);
+        plotLower.setBackgroundPaint(DV.background);
+        plotLower.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainViewLower = plotLower.getDomainAxis();
+        domainViewLower.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxisLower = (NumberAxis) plotLower.getDomainAxis();
+
+        NumberTickUnit ntuLower = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxisLower.setTickUnit(ntuLower);
+
+        // set range
+        NumberAxis yAxisLower = (NumberAxis) plotLower.getRangeAxis();
+        yAxisLower.setTickUnit(new NumberTickUnit(0.25));
+        yAxisLower.setAutoRange(false);
+        yAxisLower.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRendererLower.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRendererLower.setAutoPopulateSeriesStroke(false);
+        plotLower.setRenderer(0, pcBlockRendererLower);
+        plotLower.setDataset(0, pcBlocksLower);
+
+        pcBlockAreaRendererLower.setAutoPopulateSeriesStroke(false);
+        plotLower.setRenderer(1, pcBlockAreaRendererLower);
+        plotLower.setDataset(1, pcBlocksAreaLower);
+
+        ChartPanel chartPanelLower = new ChartPanel(pcChartLower);
+        chartPanelLower.setMouseWheelEnabled(true);
+
+        JFreeChart pcChartIndUpper = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksUpper,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartIndUpper.setBorderVisible(false);
+        pcChartIndUpper.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotIndUpper = (XYPlot) pcChartIndUpper.getPlot();
+
+        // format plot
+        plotIndUpper.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotIndUpper.getRangeAxis().setVisible(true);
+        plotIndUpper.getDomainAxis().setVisible(true);
+        plotIndUpper.setOutlinePaint(null);
+        plotIndUpper.setOutlineVisible(false);
+        plotIndUpper.setInsets(RectangleInsets.ZERO_INSETS);
+        plotIndUpper.setDomainPannable(true);
+        plotIndUpper.setRangePannable(true);
+        plotIndUpper.setBackgroundPaint(DV.background);
+        plotIndUpper.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainViewInd = plotIndUpper.getDomainAxis();
+        domainViewInd.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxisInd = (NumberAxis) plotIndUpper.getDomainAxis();
+
+        NumberTickUnit ntuInd = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxisInd.setTickUnit(ntuInd);
+
+        // set range
+        NumberAxis yAxisInd = (NumberAxis) plotIndUpper.getRangeAxis();
+        yAxisInd.setTickUnit(new NumberTickUnit(0.25));
+        yAxisInd.setAutoRange(false);
+        yAxisInd.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcIndBlockRendererUpper.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcIndBlockRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotIndUpper.setRenderer(0, pcIndBlockRendererUpper);
+        plotIndUpper.setDataset(0, pcIndBlocksUpper);
+
+        pcIndBlockAreaRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotIndUpper.setRenderer(1, pcIndBlockAreaRendererUpper);
+        plotIndUpper.setDataset(1, pcIndBlocksAreaUpper);
+
+        ChartPanel chartPanelIndUpper = new ChartPanel(pcChartIndUpper);
+        chartPanelUpper.setMouseWheelEnabled(true);
+
+        JFreeChart pcChartIndLower = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksLower,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartIndLower.setBorderVisible(false);
+        pcChartIndLower.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotIndLower = (XYPlot) pcChartIndLower.getPlot();
+
+        // format plot
+        plotIndLower.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotIndLower.getRangeAxis().setVisible(true);
+        plotIndLower.getDomainAxis().setVisible(true);
+        plotIndLower.setOutlinePaint(null);
+        plotIndLower.setOutlineVisible(false);
+        plotIndLower.setInsets(RectangleInsets.ZERO_INSETS);
+        plotIndLower.setDomainPannable(true);
+        plotIndLower.setRangePannable(true);
+        plotIndLower.setBackgroundPaint(DV.background);
+        plotIndLower.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainViewIndLower = plotIndLower.getDomainAxis();
+        domainViewIndLower.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxisIndLower = (NumberAxis) plotIndLower.getDomainAxis();
+
+        NumberTickUnit ntuIndLower = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxisIndLower.setTickUnit(ntuIndLower);
+
+        // set range
+        NumberAxis yAxisIndLower = (NumberAxis) plotIndLower.getRangeAxis();
+        yAxisIndLower.setTickUnit(new NumberTickUnit(0.25));
+        yAxisIndLower.setAutoRange(false);
+        yAxisIndLower.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcIndBlockRendererLower.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcIndBlockRendererLower.setAutoPopulateSeriesStroke(false);
+        plotIndLower.setRenderer(0, pcIndBlockRendererLower);
+        plotIndLower.setDataset(0, pcIndBlocksLower);
+
+        pcIndBlockAreaRendererLower.setAutoPopulateSeriesStroke(false);
+        plotIndLower.setRenderer(1, pcIndBlockAreaRendererLower);
+        plotIndLower.setDataset(1, pcIndBlocksAreaLower);
+
+        ChartPanel chartPanelIndLower = new ChartPanel(pcChartIndLower);
+        chartPanelIndLower.setMouseWheelEnabled(true);
+
+        JPanel charts = new JPanel();
+        charts.setLayout(new GridLayout(2, 2));
+
+        charts.add(chartPanelUpper);
+        charts.add(chartPanelLower);
+        if (indSep)
+        {
+            charts.add(chartPanelIndUpper);
+            charts.add(chartPanelIndLower);
+        }
+
+        return charts;
+    }*/
+
+    private JPanel drawPCBlockTilesCombined(ArrayList<ArrayList<DataObject>> obj)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        // artificial renderer and dataset
+        XYLineAndShapeRenderer artRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection artLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcIndBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcIndBlocks = new XYSeriesCollection();
+        XYAreaRenderer pcIndBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcIndBlocksArea = new XYSeriesCollection();
+
+        // refuse to classify area
+        XYLineAndShapeRenderer refuseRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection refuse = new XYSeriesCollection();
+        XYAreaRenderer refuseAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection refuseArea = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[hyper_blocks.size()];
+
+        // add hyperblocks
+        for (int c = 0, ind = 0, all = 0; c < hyper_blocks.size(); c++)
+        {
+            if (c == 0)
+            {
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+            }
+            else
+            {
+                Random r = new Random();
+                float max = 25f;
+                float min = 1f;
+
+                int len = r.nextInt(2) + 1;
+
+                float[] fa = new float[len];
+
+                for (int i = 0; i < len; i++)
+                {
+                    fa[i] = r.nextFloat(max - min) + min;
+                }
+
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+            }
+
+            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+            {
+                    int key = hyper_blocks.get(c).hyper_block.get(k).size() > 1 || !indSep ? all : ind;
+
+                    XYSeries tmp1 = new XYSeries(key, false, true);
+                    XYSeries tmp2 = new XYSeries(key, false, true);
+
+                    for (int j = 0; j < DV.fieldLength; j++) {
+                        tmp1.add(j, hyper_blocks.get(c).minimums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(c).minimums.get(k)[j]);
+                    }
+
+                    for (int j = DV.fieldLength - 1; j > -1; j--) {
+                        tmp1.add(j, hyper_blocks.get(c).maximums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(c).maximums.get(k)[j]);
+                    }
+
+                    tmp1.add(0, hyper_blocks.get(c).minimums.get(k)[0]);
+                    tmp2.add(0, hyper_blocks.get(c).minimums.get(k)[0]);
+
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1 || !indSep)
+                {
+                    pcBlockRenderer.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                    pcBlockAreaRenderer.setSeriesPaint(key, new Color(255, 200, 0, 20));
+                    pcBlockRenderer.setSeriesStroke(key, strokes[key]);
+
+                    pcBlocks.addSeries(tmp1);
+                    pcBlocksArea.addSeries(tmp2);
+
+                    all++;
+                }
+                else
+                {
+                    pcIndBlockRenderer.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                    pcIndBlockAreaRenderer.setSeriesPaint(key, new Color(255, 200, 0, 20));
+                    pcIndBlockRenderer.setSeriesStroke(key, strokes[key]);
+
+                    pcIndBlocks.addSeries(tmp1);
+                    pcIndBlocksArea.addSeries(tmp2);
+
+                    ind++;
+                }
+            }
+        }
+        // add refuse area
+        for (int i = 0; i < refuse_area.size(); i++)
+        {
+            int atr = (int) refuse_area.get(i)[0];
+            double low = refuse_area.get(i)[1];
+            double high = refuse_area.get(i)[2];
+
+            XYSeries outline = new XYSeries(i, false, true);
+            XYSeries area = new XYSeries(i, false, true);
+
+            // top left
+            outline.add(atr - 0.25, high + 0.01);
+            area.add(atr - 0.25, high + 0.01);
+
+            // top right
+            outline.add(atr + 0.25, high + 0.01);
+            area.add(atr + 0.25, high + 0.01);
+
+            // bottom right
+            outline.add(atr + 0.25, low - 0.01);
+            area.add(atr + 0.25, low - 0.01);
+
+            // bottom left
+            outline.add(atr - 0.25, low - 0.01);
+            area.add(atr - 0.25, low - 0.01);
+
+            // top left
+            outline.add(atr - 0.25, high + 0.01);
+            area.add(atr - 0.25, high + 0.01);
+
+            refuseRenderer.setSeriesPaint(i, Color.RED);
+            refuseAreaRenderer.setSeriesPaint(i, new Color(255, 0, 0, 10));
+            refuse.addSeries(outline);
+            refuseArea.addSeries(area);
+        }
+
+        pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        artRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        artRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, artRenderer);
+        plot.setDataset(0, artLines);
+
+        // set block renderer and dataset
+        pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, pcBlockRenderer);
+        plot.setDataset(1, pcBlocks);
+
+        pcBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(2, pcBlockAreaRenderer);
+        plot.setDataset(2, pcBlocksArea);
+
+        refuseRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        refuseRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(3, refuseRenderer);
+        plot.setDataset(3, refuse);
+
+        refuseAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(4, refuseAreaRenderer);
+        plot.setDataset(4, refuseArea);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(5, badLineRenderer);
+        plot.setDataset(5, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(6, goodLineRenderer);
+        plot.setDataset(6, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+
+        JFreeChart pcChartInd = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocks,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartInd.setBorderVisible(false);
+        pcChartInd.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotInd = (XYPlot) pcChartInd.getPlot();
+
+        // format plot
+        plotInd.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotInd.getRangeAxis().setVisible(true);
+        plotInd.getDomainAxis().setVisible(true);
+        plotInd.setOutlinePaint(null);
+        plotInd.setOutlineVisible(false);
+        plotInd.setInsets(RectangleInsets.ZERO_INSETS);
+        plotInd.setDomainPannable(true);
+        plotInd.setRangePannable(true);
+        plotInd.setBackgroundPaint(DV.background);
+        plotInd.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainViewInd = plotInd.getDomainAxis();
+        domainViewInd.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxisInd = (NumberAxis) plotInd.getDomainAxis();
+
+        NumberTickUnit ntuInd = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxisInd.setTickUnit(ntuInd);
+
+        // set range
+        NumberAxis yAxisInd = (NumberAxis) plotInd.getRangeAxis();
+        yAxisInd.setTickUnit(new NumberTickUnit(0.25));
+        yAxisInd.setAutoRange(false);
+        yAxisInd.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcIndBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcIndBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plotInd.setRenderer(0, pcIndBlockRenderer);
+        plotInd.setDataset(0, pcIndBlocks);
+
+        pcIndBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plotInd.setRenderer(1, pcIndBlockAreaRenderer);
+        plotInd.setDataset(1, pcIndBlocksArea);
+
+        ChartPanel chartPanelInd = new ChartPanel(pcChartInd);
+        chartPanelInd.setMouseWheelEnabled(true);
+
+        if (!indSep)
+            return chartPanel;
+        else
+        {
+            JPanel charts = new JPanel();
+            charts.setLayout(new GridLayout(2, 1));
+            charts.add(chartPanel);
+            charts.add(chartPanelInd);
+
+            return charts;
+        }
+    }
+
+    private JPanel drawGLCBlockTilesCombinedClasses(ArrayList<ArrayList<DataObject>> obj)
+    {
+        double[] dists = Arrays.copyOf(DV.angles, DV.angles.length);//new double[DV.fieldLength];
+        int[] indexes = new int[DV.fieldLength];
+
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            dists[i] = 90 - dists[i];//hyper_blocks.get(visualized_block).maximums.get(0)[i] - hyper_blocks.get(visualized_block).minimums.get(0)[i];
+            indexes[i] = i;
+        }
+
+        int n = DV.fieldLength;
+        for (int i = 0; i < n - 1; i++)
+        {
+            for (int j = 0; j < n - i - 1; j++)
+            {
+                if (dists[j] > dists[j + 1])
+                {
+                    double temp1 = dists[j];
+                    dists[j] = dists[j + 1];
+                    dists[j + 1] = temp1;
+
+                    int temp2 = indexes[j];
+                    indexes[j] = indexes[j + 1];
+                    indexes[j + 1] = temp2;
+                }
+            }
+        }
+
+        for (int i = 0; i < n - 1; i++)
+        {
+            for (int j = 0; j < n - i - 1; j++)
+            {
+                if (dists[j] < 0 && dists[j + 1] < 0)
+                {
+                    if (Math.abs(dists[j]) > Math.abs(dists[j + 1]))
+                    {
+                        double temp1 = dists[j];
+                        dists[j] = dists[j + 1];
+                        dists[j + 1] = temp1;
+
+                        int temp2 = indexes[j];
+                        indexes[j] = indexes[j + 1];
+                        indexes[j + 1] = temp2;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRendererUpper = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocksUpper = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRendererUpper = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksAreaUpper = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcBlockRendererLower = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocksLower = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRendererLower = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksAreaLower = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcIndBlockRendererUpper = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcIndBlocksUpper = new XYSeriesCollection();
+        XYAreaRenderer pcIndBlockAreaRendererUpper = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcIndBlocksAreaUpper = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcIndBlockRendererLower = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcIndBlocksLower = new XYSeriesCollection();
+        XYAreaRenderer pcIndBlockAreaRendererLower = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcIndBlocksAreaLower = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[hyper_blocks.size()];
+
+        double[] largest = new double[]{-1, -1};
+        for (int i = 0; i < hyper_blocks.size(); i++)
+            for (int j = 0; j < hyper_blocks.get(i).hyper_block.size(); j++)
+                if (hyper_blocks.get(i).hyper_block.get(j).size() > largest[hyper_blocks.get(i).classNum]) largest[hyper_blocks.get(i).classNum] = hyper_blocks.get(i).hyper_block.get(j).size();
+
+        // add hyperblocks
+        for (int c = 0, uKey = 0, lKey = 0, uIKey = 0, lIKey = 0; c < hyper_blocks.size(); c++)
+        {
+            if (c == 0)
+            {
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+            }
+            else
+            {
+                Random r = new Random();
+                float max = 25f;
+                float min = 1f;
+
+                int len = r.nextInt(2) + 1;
+
+                float[] fa = new float[len];
+
+                for (int i = 0; i < len; i++)
+                {
+                    fa[i] = r.nextFloat(max - min) + min;
+                }
+
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+            }
+
+            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+            {
+                int key;
+
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1 || !indSep)
+                    key = hyper_blocks.get(c).classNum == DV.upperClass ? uKey : lKey;
+                else
+                    key = hyper_blocks.get(c).classNum == DV.upperClass ? uIKey : lIKey;
+
+                XYSeries tmp1 = new XYSeries(key, false, true);
+                XYSeries tmp2 = new XYSeries(key+1, false, true);
+
+                //XYSeries area = new XYSeries(k, false, true);
+
+                double[] xyCurPointMin = new double[0];// = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+                double[] xyCurPointMax = new double[0];// = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+
+                xyCurPointMin = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+                xyCurPointMax = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+
+                xyCurPointMin[1] += glcBuffer;
+                xyCurPointMax[1] += glcBuffer;
+
+                if (DV.showFirstSeg) {
+                    tmp1.add(0, glcBuffer);
+                    tmp2.add(0, glcBuffer);
+                    //area.add(0, glcBuffer);
+                }
+
+                tmp1.add(xyCurPointMin[0], xyCurPointMin[1]);
+                tmp2.add(xyCurPointMax[0], xyCurPointMax[1]);
+                //area.add(xyOriginPointMin[0], xyOriginPointMin[1]);
+
+                for (int j = 1; j < DV.fieldLength; j++)
+                {
+                    double[] xyPoint = new double[0];//DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[j]], DV.angles[indexes[j]]);
+
+                    xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[j]], DV.angles[indexes[j]]);
+
+                    xyCurPointMin[0] = xyCurPointMin[0] + xyPoint[0];
+                    xyCurPointMin[1] = xyCurPointMin[1] + xyPoint[1];
+
+                    tmp1.add(xyCurPointMin[0], xyCurPointMin[1]);
+                    //area.add(xyCurPointMin[0], xyCurPointMin[1]);
+
+                    // get maximums
+                    //xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[j]], DV.angles[indexes[j]]);
+                    xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[j]], DV.angles[indexes[j]]);
+
+                    xyCurPointMax[0] = xyCurPointMax[0] + xyPoint[0];
+                    xyCurPointMax[1] = xyCurPointMax[1] + xyPoint[1];
+
+                    tmp2.add(xyCurPointMax[0], xyCurPointMax[1]);
+                }
+
+                //max_bound.add(xyCurPointMin[0], xyCurPointMin[1]);
+                //area.add(xyCurPointMax[0], xyCurPointMax[1]);
+
+                int emph = (int)((hyper_blocks.get(c).hyper_block.get(k).size() / Math.max(largest[0], largest[1])) * 255);
+                Color blockEmph = new Color(255, 200, 0, emph);
+
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1 || !indSep)
+                {
+                    if (hyper_blocks.get(c).classNum == DV.upperClass)
+                    {
+                        pcBlockRendererUpper.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                        pcBlockAreaRendererUpper.setSeriesPaint(key, blockEmph);
+                        pcBlockRendererUpper.setSeriesStroke(key, strokes[c]);
+
+                        pcBlocksUpper.addSeries(tmp1);
+                        //pcBlocksAreaUpper.addSeries(tmp2);
+
+                        uKey += 2;
+                    }
+                    else
+                    {
+                        pcBlockRendererLower.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                        pcBlockAreaRendererLower.setSeriesPaint(key, blockEmph);
+                        pcBlockRendererLower.setSeriesStroke(key, strokes[c]);
+
+                        pcBlocksLower.addSeries(tmp1);
+                        //pcBlocksAreaLower.addSeries(tmp2);
+
+                        lKey += 2;
+                    }
+                }
+                else
+                {
+                    if (hyper_blocks.get(c).classNum == DV.upperClass)
+                    {
+                        pcIndBlockRendererUpper.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                        pcIndBlockAreaRendererUpper.setSeriesPaint(key, blockEmph);
+                        pcIndBlockRendererUpper.setSeriesStroke(key, strokes[c]);
+
+                        pcIndBlocksUpper.addSeries(tmp1);
+                        //pcIndBlocksAreaUpper.addSeries(tmp2);
+
+                        uIKey++;
+                    }
+                    else
+                    {
+                        pcIndBlockRendererLower.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                        pcIndBlockAreaRendererLower.setSeriesPaint(key, blockEmph);
+                        pcIndBlockRendererLower.setSeriesStroke(key, strokes[c]);
+
+                        pcIndBlocksLower.addSeries(tmp1);
+                        //pcIndBlocksAreaLower.addSeries(tmp2);
+
+                        lIKey++;
+                    }
+                }
+            }
+        }
+
+        JFreeChart pcChartUpper = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksUpper,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartUpper.setBorderVisible(false);
+        pcChartUpper.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotUpper = (XYPlot) pcChartUpper.getPlot();
+
+        // format plot
+        plotUpper.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotUpper.getRangeAxis().setVisible(true);
+        plotUpper.getDomainAxis().setVisible(true);
+        plotUpper.setOutlinePaint(null);
+        plotUpper.setOutlineVisible(false);
+        plotUpper.setInsets(RectangleInsets.ZERO_INSETS);
+        plotUpper.setDomainPannable(true);
+        plotUpper.setRangePannable(true);
+        plotUpper.setBackgroundPaint(DV.background);
+        plotUpper.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plotUpper.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plotUpper.getDomainAxis();
+
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plotUpper.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRendererUpper.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotUpper.setRenderer(0, pcBlockRendererUpper);
+        plotUpper.setDataset(0, pcBlocksUpper);
+
+        pcBlockAreaRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotUpper.setRenderer(1, pcBlockAreaRendererUpper);
+        plotUpper.setDataset(1, pcBlocksAreaUpper);
+
+        ChartPanel chartPanelUpper = new ChartPanel(pcChartUpper);
+        chartPanelUpper.setMouseWheelEnabled(true);
+
+        JFreeChart pcChartLower = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksLower,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartLower.setBorderVisible(false);
+        pcChartLower.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotLower = (XYPlot) pcChartLower.getPlot();
+
+        // format plot
+        plotLower.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotLower.getRangeAxis().setVisible(true);
+        plotLower.getDomainAxis().setVisible(true);
+        plotLower.setOutlinePaint(null);
+        plotLower.setOutlineVisible(false);
+        plotLower.setInsets(RectangleInsets.ZERO_INSETS);
+        plotLower.setDomainPannable(true);
+        plotLower.setRangePannable(true);
+        plotLower.setBackgroundPaint(DV.background);
+        plotLower.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainViewLower = plotLower.getDomainAxis();
+        domainViewLower.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxisLower = (NumberAxis) plotLower.getDomainAxis();
+
+        NumberTickUnit ntuLower = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxisLower.setTickUnit(ntuLower);
+
+        // set range
+        NumberAxis yAxisLower = (NumberAxis) plotLower.getRangeAxis();
+        yAxisLower.setTickUnit(new NumberTickUnit(0.25));
+        yAxisLower.setAutoRange(false);
+        yAxisLower.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRendererLower.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRendererLower.setAutoPopulateSeriesStroke(false);
+        plotLower.setRenderer(0, pcBlockRendererLower);
+        plotLower.setDataset(0, pcBlocksLower);
+
+        pcBlockAreaRendererLower.setAutoPopulateSeriesStroke(false);
+        plotLower.setRenderer(1, pcBlockAreaRendererLower);
+        plotLower.setDataset(1, pcBlocksAreaLower);
+
+        ChartPanel chartPanelLower = new ChartPanel(pcChartLower);
+        chartPanelLower.setMouseWheelEnabled(true);
+
+        JFreeChart pcChartIndUpper = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksUpper,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartIndUpper.setBorderVisible(false);
+        pcChartIndUpper.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotIndUpper = (XYPlot) pcChartIndUpper.getPlot();
+
+        // format plot
+        plotIndUpper.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotIndUpper.getRangeAxis().setVisible(true);
+        plotIndUpper.getDomainAxis().setVisible(true);
+        plotIndUpper.setOutlinePaint(null);
+        plotIndUpper.setOutlineVisible(false);
+        plotIndUpper.setInsets(RectangleInsets.ZERO_INSETS);
+        plotIndUpper.setDomainPannable(true);
+        plotIndUpper.setRangePannable(true);
+        plotIndUpper.setBackgroundPaint(DV.background);
+        plotIndUpper.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainViewInd = plotIndUpper.getDomainAxis();
+        domainViewInd.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxisInd = (NumberAxis) plotIndUpper.getDomainAxis();
+
+        NumberTickUnit ntuInd = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxisInd.setTickUnit(ntuInd);
+
+        // set range
+        NumberAxis yAxisInd = (NumberAxis) plotIndUpper.getRangeAxis();
+        yAxisInd.setTickUnit(new NumberTickUnit(0.25));
+        yAxisInd.setAutoRange(false);
+        yAxisInd.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcIndBlockRendererUpper.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcIndBlockRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotIndUpper.setRenderer(0, pcIndBlockRendererUpper);
+        plotIndUpper.setDataset(0, pcIndBlocksUpper);
+
+        pcIndBlockAreaRendererUpper.setAutoPopulateSeriesStroke(false);
+        plotIndUpper.setRenderer(1, pcIndBlockAreaRendererUpper);
+        plotIndUpper.setDataset(1, pcIndBlocksAreaUpper);
+
+        ChartPanel chartPanelIndUpper = new ChartPanel(pcChartIndUpper);
+        chartPanelIndUpper.setMouseWheelEnabled(true);
+
+        JFreeChart pcChartIndLower = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                pcBlocksLower,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartIndLower.setBorderVisible(false);
+        pcChartIndLower.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotIndLower = (XYPlot) pcChartIndLower.getPlot();
+
+        // format plot
+        plotIndLower.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotIndLower.getRangeAxis().setVisible(true);
+        plotIndLower.getDomainAxis().setVisible(true);
+        plotIndLower.setOutlinePaint(null);
+        plotIndLower.setOutlineVisible(false);
+        plotIndLower.setInsets(RectangleInsets.ZERO_INSETS);
+        plotIndLower.setDomainPannable(true);
+        plotIndLower.setRangePannable(true);
+        plotIndLower.setBackgroundPaint(DV.background);
+        plotIndLower.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainViewIndLower = plotIndLower.getDomainAxis();
+        domainViewIndLower.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxisIndLower = (NumberAxis) plotIndLower.getDomainAxis();
+
+        NumberTickUnit ntuIndLower = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxisIndLower.setTickUnit(ntuIndLower);
+
+        // set range
+        NumberAxis yAxisIndLower = (NumberAxis) plotIndLower.getRangeAxis();
+        yAxisIndLower.setTickUnit(new NumberTickUnit(0.25));
+        yAxisIndLower.setAutoRange(false);
+        yAxisIndLower.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcIndBlockRendererLower.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcIndBlockRendererLower.setAutoPopulateSeriesStroke(false);
+        plotIndLower.setRenderer(0, pcIndBlockRendererLower);
+        plotIndLower.setDataset(0, pcIndBlocksLower);
+
+        pcIndBlockAreaRendererLower.setAutoPopulateSeriesStroke(false);
+        plotIndLower.setRenderer(1, pcIndBlockAreaRendererLower);
+        plotIndLower.setDataset(1, pcIndBlocksAreaLower);
+
+        ChartPanel chartPanelIndLower = new ChartPanel(pcChartIndLower);
+        chartPanelIndLower.setMouseWheelEnabled(true);
+
+        JPanel charts = new JPanel();
+        charts.setLayout(new GridLayout(2, 2));
+
+        charts.add(chartPanelUpper);
+        charts.add(chartPanelLower);
+        if (indSep)
+        {
+            charts.add(chartPanelIndUpper);
+            charts.add(chartPanelIndLower);
+        }
+
+        return charts;
+    }
+
+    private JPanel drawGLCBlockTilesCombined(ArrayList<ArrayList<DataObject>> obj)
+    {
+        double[] dists = Arrays.copyOf(DV.angles, DV.angles.length);//new double[DV.fieldLength];
+        int[] indexes = new int[DV.fieldLength];
+
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            dists[i] = 90 - dists[i];//hyper_blocks.get(visualized_block).maximums.get(0)[i] - hyper_blocks.get(visualized_block).minimums.get(0)[i];
+            indexes[i] = i;
+        }
+
+        int n = DV.fieldLength;
+        for (int i = 0; i < n - 1; i++)
+        {
+            for (int j = 0; j < n - i - 1; j++)
+            {
+                if (dists[j] > dists[j + 1])
+                {
+                    double temp1 = dists[j];
+                    dists[j] = dists[j + 1];
+                    dists[j + 1] = temp1;
+
+                    int temp2 = indexes[j];
+                    indexes[j] = indexes[j + 1];
+                    indexes[j + 1] = temp2;
+                }
+            }
+        }
+
+        for (int i = 0; i < n - 1; i++)
+        {
+            for (int j = 0; j < n - i - 1; j++)
+            {
+                if (dists[j] < 0 && dists[j + 1] < 0)
+                {
+                    if (Math.abs(dists[j]) > Math.abs(dists[j + 1]))
+                    {
+                        double temp1 = dists[j];
+                        dists[j] = dists[j + 1];
+                        dists[j + 1] = temp1;
+
+                        int temp2 = indexes[j];
+                        indexes[j] = indexes[j + 1];
+                        indexes[j + 1] = temp2;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        // artificial renderer and dataset
+        XYLineAndShapeRenderer artRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection artLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer glcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection glcBlocks = new XYSeriesCollection();
+        XYAreaRenderer glcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection glcBlocksArea = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer glcIndBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection glcIndBlocks = new XYSeriesCollection();
+        XYAreaRenderer glcIndBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection glcIndBlocksArea = new XYSeriesCollection();
+
+        // refuse to classify area
+        XYLineAndShapeRenderer refuseRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection refuse = new XYSeriesCollection();
+        XYAreaRenderer refuseAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection refuseArea = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[hyper_blocks.size()];
+
+        // add hyperblocks
+        for (int c = 0, ind = 0, all = 0, offset = 0; c < hyper_blocks.size(); c++)
+        {
+            if (c == 0)
+            {
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+            }
+            else
+            {
+                Random r = new Random();
+                float max = 25f;
+                float min = 1f;
+
+                int len = r.nextInt(2) + 1;
+
+                float[] fa = new float[len];
+
+                for (int i = 0; i < len; i++)
+                {
+                    fa[i] = r.nextFloat(max - min) + min;
+                }
+
+                strokes[c] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+            }
+
+            for (int k = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
+            {
+                int key = hyper_blocks.get(c).hyper_block.get(k).size() > 1 || !indSep ? all : ind;
+
+                XYSeries tmp1 = new XYSeries(key, false, true);
+                XYSeries tmp2 = new XYSeries(key+1, false, true);
+
+                //XYSeries area = new XYSeries(k, false, true);
+
+                double[] xyCurPointMin = new double[0];// = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+                double[] xyCurPointMax = new double[0];// = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+
+                xyCurPointMin = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+                xyCurPointMax = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[0]], DV.angles[indexes[0]]);
+
+                xyCurPointMin[1] += glcBuffer;
+                xyCurPointMax[1] += glcBuffer;
+
+                if (DV.showFirstSeg) {
+                    tmp1.add(0, glcBuffer);
+                    tmp2.add(0, glcBuffer);
+                    //area.add(0, glcBuffer);
+                }
+
+                tmp1.add(xyCurPointMin[0], xyCurPointMin[1]);
+                tmp2.add(xyCurPointMax[0], xyCurPointMax[1]);
+                //area.add(xyOriginPointMin[0], xyOriginPointMin[1]);
+
+                for (int j = 1; j < DV.fieldLength; j++)
+                {
+                    double[] xyPoint = new double[0];//DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[j]], DV.angles[indexes[j]]);
+
+                    xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).minimums.get(k)[indexes[j]], DV.angles[indexes[j]]);
+
+                    xyCurPointMin[0] = xyCurPointMin[0] + xyPoint[0];
+                    xyCurPointMin[1] = xyCurPointMin[1] + xyPoint[1];
+
+                    tmp1.add(xyCurPointMin[0], xyCurPointMin[1]);
+                    //area.add(xyCurPointMin[0], xyCurPointMin[1]);
+
+                    // get maximums
+                    //xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[j]], DV.angles[indexes[j]]);
+                    xyPoint = DataObject.getXYPointGLC(hyper_blocks.get(c).maximums.get(k)[indexes[j]], DV.angles[indexes[j]]);
+
+                    xyCurPointMax[0] = xyCurPointMax[0] + xyPoint[0];
+                    xyCurPointMax[1] = xyCurPointMax[1] + xyPoint[1];
+
+                    tmp2.add(xyCurPointMax[0], xyCurPointMax[1]);
+                }
+
+                //max_bound.add(xyCurPointMin[0], xyCurPointMin[1]);
+                //area.add(xyCurPointMax[0], xyCurPointMax[1]);
+
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1 || !indSep)
+                {
+                    glcBlockRenderer.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                    //glcBlockAreaRenderer.setSeriesPaint(key, new Color(255, 200, 0, 20));
+                    glcBlockRenderer.setSeriesStroke(key, strokes[key - offset]);
+                    glcBlockRenderer.setSeriesPaint(key+1, DV.graphColors[hyper_blocks.get(c).classNum]);
+                    //glcBlockAreaRenderer.setSeriesPaint(key, new Color(255, 200, 0, 20));
+                    glcBlockRenderer.setSeriesStroke(key+1, strokes[key - offset]);
+
+                    glcBlocks.addSeries(tmp1);
+                    glcBlocks.addSeries(tmp2);
+
+                    //glcBlocksArea.addSeries(tmp2);
+
+                    all += 2;
+                    offset++;
+                }
+                else
+                {
+                    glcIndBlockRenderer.setSeriesPaint(key, DV.graphColors[hyper_blocks.get(c).classNum]);
+                    //glcIndBlockAreaRenderer.setSeriesPaint(key, new Color(255, 200, 0, 20));
+                    glcIndBlockRenderer.setSeriesStroke(key, strokes[key]);
+                    glcIndBlocks.addSeries(tmp2);
+
+                    //glcIndBlocksArea.addSeries(tmp2);
+
+                    ind++;
+                }
+            }
+        }
+        // add refuse area
+        for (int i = 0; i < refuse_area.size(); i++)
+        {
+            int atr = (int) refuse_area.get(i)[0];
+            double low = refuse_area.get(i)[1];
+            double high = refuse_area.get(i)[2];
+
+            XYSeries outline = new XYSeries(i, false, true);
+            XYSeries area = new XYSeries(i, false, true);
+
+            // top left
+            outline.add(atr - 0.25, high + 0.01);
+            area.add(atr - 0.25, high + 0.01);
+
+            // top right
+            outline.add(atr + 0.25, high + 0.01);
+            area.add(atr + 0.25, high + 0.01);
+
+            // bottom right
+            outline.add(atr + 0.25, low - 0.01);
+            area.add(atr + 0.25, low - 0.01);
+
+            // bottom left
+            outline.add(atr - 0.25, low - 0.01);
+            area.add(atr - 0.25, low - 0.01);
+
+            // top left
+            outline.add(atr - 0.25, high + 0.01);
+            area.add(atr - 0.25, high + 0.01);
+
+            refuseRenderer.setSeriesPaint(i, Color.RED);
+            refuseAreaRenderer.setSeriesPaint(i, new Color(255, 0, 0, 10));
+            refuse.addSeries(outline);
+            refuseArea.addSeries(area);
+        }
+
+        pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        artRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        artRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, artRenderer);
+        plot.setDataset(0, artLines);
+
+        // set block renderer and dataset
+        glcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        glcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, glcBlockRenderer);
+        plot.setDataset(1, glcBlocks);
+
+        glcBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(2, glcBlockAreaRenderer);
+        plot.setDataset(2, glcBlocksArea);
+
+        refuseRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        refuseRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(3, refuseRenderer);
+        plot.setDataset(3, refuse);
+
+        refuseAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(4, refuseAreaRenderer);
+        plot.setDataset(4, refuseArea);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(5, badLineRenderer);
+        plot.setDataset(5, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(6, goodLineRenderer);
+        plot.setDataset(6, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+
+        JFreeChart pcChartInd = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                glcBlocks,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChartInd.setBorderVisible(false);
+        pcChartInd.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plotInd = (XYPlot) pcChartInd.getPlot();
+
+        // format plot
+        plotInd.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plotInd.getRangeAxis().setVisible(true);
+        plotInd.getDomainAxis().setVisible(true);
+        plotInd.setOutlinePaint(null);
+        plotInd.setOutlineVisible(false);
+        plotInd.setInsets(RectangleInsets.ZERO_INSETS);
+        plotInd.setDomainPannable(true);
+        plotInd.setRangePannable(true);
+        plotInd.setBackgroundPaint(DV.background);
+        plotInd.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainViewInd = plotInd.getDomainAxis();
+        domainViewInd.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxisInd = (NumberAxis) plotInd.getDomainAxis();
+
+        NumberTickUnit ntuInd = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxisInd.setTickUnit(ntuInd);
+
+        // set range
+        NumberAxis yAxisInd = (NumberAxis) plotInd.getRangeAxis();
+        yAxisInd.setTickUnit(new NumberTickUnit(0.25));
+        yAxisInd.setAutoRange(false);
+        yAxisInd.setRange(0, 1);
+
+        // set block renderer and dataset
+        glcIndBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        glcIndBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plotInd.setRenderer(0, glcIndBlockRenderer);
+        plotInd.setDataset(0, glcIndBlocks);
+
+        glcIndBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plotInd.setRenderer(1, glcIndBlockAreaRenderer);
+        plotInd.setDataset(1, glcIndBlocksArea);
+
+        ChartPanel chartPanelInd = new ChartPanel(pcChartInd);
+        chartPanelInd.setMouseWheelEnabled(true);
+
+        if (!indSep)
+            return chartPanel;
+        else
+        {
+            JPanel charts = new JPanel();
+            charts.setLayout(new GridLayout(2, 1));
+            charts.add(chartPanel);
+            charts.add(chartPanelInd);
+
+            return charts;
+        }
+    }
+
+    private void getOverlapData()
+    {
+        objects = new ArrayList<>();
+        upperObjects = new ArrayList<>();
+        lowerObjects = new ArrayList<>();
+
+        ArrayList<double[]> upper = new ArrayList<>();
+        ArrayList<double[]> lower = new ArrayList<>();
+
+        // check all classes
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            if (i == DV.upperClass)
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
+
+                    // if endpoint is within overlap then store point
+                    if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                    {
+                        double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
+
+                        upper.add(thisPoint);
+                    }
+                }
+            }
+            else if (DV.lowerClasses.get(i))
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
+
+                    // if endpoint is within overlap then store point
+                    if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                    {
+                        double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
+
+                        lower.add(thisPoint);
+                    }
+                }
+            }
+        }
+
+        double[][] upperData = new double[upper.size()][DV.fieldLength];
+        upper.toArray(upperData);
+        DataObject upperObj = new DataObject("upper", upperData);
+        upperObj.updateCoordinatesGLC(DV.angles);
+        upperObjects.add(upperObj);
+
+        double[][] lowerData = new double[lower.size()][DV.fieldLength];
+        lower.toArray(lowerData);
+        DataObject lowerObj = new DataObject("lower", lowerData);
+        lowerObj.updateCoordinatesGLC(DV.angles);
+        lowerObjects.add(lowerObj);
+
+        objects.add(upperObjects);
+        objects.add(lowerObjects);
+
+        DV.data.clear();
+        DV.data.add(upperObj);
+        DV.data.add(lowerObj);
+    }
+
+    private void getNonOverlapData()
+    {
+        objects = new ArrayList<>();
+        upperObjects = new ArrayList<>();
+        lowerObjects = new ArrayList<>();
+
+        // store overlapping datapoints in upper and lower graphs
+        ArrayList<double[]> upper = new ArrayList<>();
+        ArrayList<double[]> lower = new ArrayList<>();
+
+        // check all classes
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            if (i == DV.upperClass)
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
+
+                    // if endpoint is outside of overlap then store point
+                    if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                    {
+                        double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
+
+                        upper.add(thisPoint);
+                    }
+                }
+            }
+            else if (DV.lowerClasses.get(i))
+            {
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
+
+                    // if endpoint is outside of overlap then store point
+                    if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                    {
+                        double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
+                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
+
+                        lower.add(thisPoint);
+                    }
+                }
+            }
+        }
+
+        double[][] upperData = new double[upper.size()][DV.fieldLength];
+        upper.toArray(upperData);
+        DataObject upperObj = new DataObject("upper", upperData);
+        upperObj.updateCoordinatesGLC(DV.angles);
+        upperObjects.add(upperObj);
+
+        double[][] lowerData = new double[lower.size()][DV.fieldLength];
+        lower.toArray(lowerData);
+        DataObject lowerObj = new DataObject("lower", lowerData);
+        lowerObj.updateCoordinatesGLC(DV.angles);
+        lowerObjects.add(lowerObj);
+
+        objects.add(upperObjects);
+        objects.add(lowerObjects);
+
+        DV.data.clear();
+        DV.data.add(upperObj);
+        DV.data.add(lowerObj);
+    }
+
+    private void getData()
+    {
+        objects = new ArrayList<>();
+        upperObjects = new ArrayList<>(List.of(DV.data.get(DV.upperClass)));
+        lowerObjects = new ArrayList<>();
+
+        // get classes to be graphed
+        if (DV.hasClasses)
+        {
+            for (int j = 0; j < DV.classNumber; j++)
+            {
+                if (DV.lowerClasses.get(j))
+                    lowerObjects.add(DV.data.get(j));
+            }
+        }
+
+        objects.add(upperObjects);
+        objects.add(lowerObjects);
+    }
+
+    private ChartPanel drawStuff(int num_block)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer lineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection graphLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+
+        BasicStroke strokes = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+
+        // populate main series
+        int cnt = 0;
+        for (double[] dbs : hyper_blocks.get(num_block).hyper_block.get(0))
+        {
+            XYSeries tmp0 = new XYSeries(cnt, false, true);
+            cnt++;
+
+            int index = 0;
+            for (int j = 0; j < DV.fieldLength; j++)
+            {
+                tmp0.add(index, dbs[j]);
+                index++;
+                tmp0.add(index, dbs[j]);
+                index++;
+            }
+
+            graphLines.addSeries(tmp0);
+        }
+
+        // add hyperblocks
+        XYSeries tmp1 = new XYSeries(0, false, true);
+
+        int cnt1 = 0;
+        for (int j = 0; j < DV.fieldLength; j++)
+        {
+            tmp1.add(cnt1, hyper_blocks.get(num_block).minimums.get(0)[j]);
+            cnt1++;
+            tmp1.add(cnt1, hyper_blocks.get(num_block).maximums.get(0)[j]);
+            cnt1++;
+        }
+
+        pcBlockRenderer.setSeriesPaint(0, Color.ORANGE);
+        pcBlockRenderer.setSeriesStroke(0, strokes);
+
+        pcBlocks.addSeries(tmp1);
+
+        JFreeChart pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                graphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[hyper_blocks.get(num_block).classNum] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, (DV.fieldLength*2) -1 + 0.1);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, pcBlockRenderer);
+        plot.setDataset(0, pcBlocks);
+
+        lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        lineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, lineRenderer);
+        plot.setDataset(1, graphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+
+        return chartPanel;
+    }
+
+    private ChartPanel SPC(ArrayList<ArrayList<DataObject>> obj)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYLineAndShapeRenderer pcBlockOutlineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocksOutline = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[ hyper_blocks.get(visualized_block).hyper_block.size()];
+
+        for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                if (k == 0)
+                {
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                }
+                else
+                {
+                    Random r = new Random();
+                    float max = 25f;
+                    float min = 1f;
+
+                    int len = r.nextInt(2) + 1;
+
+                    float[] fa = new float[len];
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        fa[i] = r.nextFloat(max - min) + min;
+                    }
+
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+                }
+            }
+        }
+
+        double skip = 1.25;
+
+        // populate main series
+        for (int d = 0; d < obj.size(); d++)
+        {
+            int lineCnt = 0;
+
+            for (DataObject data : obj.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    // start line at (0, 0)
+                    XYSeries line = new XYSeries(lineCnt, false, true);
+                    boolean within = false;
+                    int within_block = 0;
+
+                    for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                    {
+                        boolean within_cur = true;
+
+                        for (int j = 0; j < DV.fieldLength; j++)
+                        {
+                            if (data.data[i][j] < hyper_blocks.get(visualized_block).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(visualized_block).maximums.get(k)[j])
+                            {
+                                within_cur = false;
+                            }
+
+                            if (j == DV.fieldLength - 1)
+                            {
+                                if (within_cur)
+                                {
+                                    within_block = k;
+                                    within = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // add points to lines
+                    double x_dist = 0;
+                    for (int j = 0; j < DV.fieldLength; j++)
+                    {
+                        line.add(x_dist + data.data[i][j], data.data[i][j]);
+                        x_dist += skip;
+
+                        // add endpoint and timeline
+                        if (j == DV.fieldLength - 1)
+                        {
+                            if (visualizeWithin.isSelected())
+                            {
+                                if (!visualizeOutline.isSelected() && within)
+                                {
+                                    // add series
+                                    if (d == hyper_blocks.get(visualized_block).classNum)
+                                    {
+                                        goodGraphLines.addSeries(line);
+
+                                        goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
+                                    else
+                                    {
+                                        badGraphLines.addSeries(line);
+
+                                        badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
+
+                                    lineCnt++;
+                                }
+                            }
+                            else
+                            {
+                                // add series
+                                if (d == hyper_blocks.get(visualized_block).classNum)
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                        goodGraphLines.addSeries(line);
+
+                                    goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                    if (within)
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                }
+                                else
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                        badGraphLines.addSeries(line);
+
+                                    badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                    if (within)
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                }
+
+
+
+                                lineCnt++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // add hyperblocks
+        for (int k = 0, offset = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                XYSeries tmp1 = new XYSeries(k-offset, false, true);
+
+                int cnt = 0;
+
+                double x_dist = 0;
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    tmp1.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+
+                    XYSeries tmp2 = new XYSeries(cnt, false, true);
+                    XYSeries tmp3 = new XYSeries(cnt, false, true);
+
+                    tmp2.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                    tmp2.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                    tmp2.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    tmp2.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    tmp2.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+
+                    tmp3.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                    tmp3.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                    tmp3.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    tmp3.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    tmp3.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+
+                    pcBlocksArea.addSeries(tmp2);
+                    pcBlockAreaRenderer.setSeriesPaint(cnt, new Color(255, 200, 0, 20));
+
+                    pcBlocksOutline.addSeries(tmp3);
+                    pcBlockOutlineRenderer.setSeriesPaint(cnt, Color.ORANGE);
+                    pcBlockOutlineRenderer.setSeriesStroke(cnt, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+                    cnt++;
+
+                    x_dist += skip;
+                }
+
+                pcBlockRenderer.setSeriesPaint(k-offset, Color.ORANGE);
+                pcBlockRenderer.setSeriesStroke(k, strokes[k]);
+
+                pcBlocks.addSeries(tmp1);
+            }
+            else
+            {
+                offset++;
+            }
+        }
+
+        pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength * skip);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(skip)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString((value / 1.25) + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, pcBlockRenderer);
+        plot.setDataset(0, pcBlocks);
+
+        if (stuff.isSelected())
+        {
+            pcBlockOutlineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+            pcBlockOutlineRenderer.setAutoPopulateSeriesStroke(false);
+            plot.setRenderer(1, pcBlockOutlineRenderer);
+            plot.setDataset(1, pcBlocksOutline);
+
+            pcBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+            plot.setRenderer(2, pcBlockAreaRenderer);
+            plot.setDataset(2, pcBlocksArea);  
+        }
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(3, badLineRenderer);
+        plot.setDataset(3, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(4, goodLineRenderer);
+        plot.setDataset(4, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+        return chartPanel;
+    }
+
+    private ChartPanel SPC_Reduced(ArrayList<ArrayList<DataObject>> obj)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer goodDotRenderer = new XYLineAndShapeRenderer(false, true);
+        XYSeriesCollection goodGraphDots = new XYSeriesCollection();
+        XYLineAndShapeRenderer badDotRenderer = new XYLineAndShapeRenderer(false, true);
+        XYSeriesCollection badGraphDots = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer();
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+        XYLineAndShapeRenderer pcBlockOutlineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocksOutline = new XYSeriesCollection();
+
+        double skip = 1.25;
+        pcBlockOutlineRenderer.setBaseItemLabelGenerator(new XYItemLabelGenerator()
+        {
+            @Override
+            public String generateLabel(XYDataset xyDataset, int i, int i1)
+            {
+                // get x and y value
+                double x = xyDataset.getX(i, i1).doubleValue();
+                double y = xyDataset.getY(i, i1).doubleValue();
+
+                // get x relative to self
+                x -= i * skip;
+
+                return String.format("(%.2f, %.2f)", x ,y);
+            }
+        });
+
+        XYToolTipGenerator f_labels = new XYToolTipGenerator()
+        {
+            @Override
+            public String generateToolTip(XYDataset xyDataset, int i, int i1)
+            {
+                // get name index
+                int index = i * 2;
+
+                // get x and y feature names
+                if (DV.fieldNames.size() > index)
+                {
+                    String x = DV.fieldNames.get(index);
+                    String y = index + 1 < DV.fieldNames.size() ? DV.fieldNames.get(index + 1) : DV.fieldNames.get(index);
+
+                    return String.format("X = %s, Y = %s", x ,y);
+                }
+                else
+                    return "";
+            }
+        };
+
+        pcBlockAreaRenderer.setBaseToolTipGenerator(f_labels);
+        pcBlockOutlineRenderer.setBaseToolTipGenerator(f_labels);
+        pcBlockOutlineRenderer.setBaseItemLabelsVisible(true);
+
+        BasicStroke[] strokes = new BasicStroke[ hyper_blocks.get(visualized_block).hyper_block.size()];
+
+        for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                if (k == 0)
+                {
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                }
+                else
+                {
+                    Random r = new Random();
+                    float max = 25f;
+                    float min = 1f;
+
+                    int len = r.nextInt(2) + 1;
+
+                    float[] fa = new float[len];
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        fa[i] = r.nextFloat(max - min) + min;
+                    }
+
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+                }
+            }
+        }
+
+        // populate main series
+        for (int d = 0; d < obj.size(); d++)
+        {
+            int lineCnt = 0;
+
+            for (DataObject data : obj.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    // start line at (0, 0)
+                    XYSeries line = new XYSeries(lineCnt, false, true);
+                    XYSeries dot = new XYSeries(lineCnt, false, true);
+                    boolean within = false;
+                    int within_block = 0;
+
+                    for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                    {
+                        boolean within_cur = true;
+
+                        for (int j = 0; j < DV.fieldLength; j++)
+                        {
+                            if (data.data[i][j] < hyper_blocks.get(visualized_block).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(visualized_block).maximums.get(k)[j])
+                            {
+                                within_cur = false;
+                            }
+
+                            if (j == DV.fieldLength - 1)
+                            {
+                                if (within_cur)
+                                {
+                                    within_block = k;
+                                    within = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // add points to lines
+                    double x_dist = 0;
+                    for (int j = 0; j < DV.fieldLength; j++)
+                    {
+                        if (j + 1 < DV.fieldLength)
+                        {
+                            line.add(x_dist + data.data[i][j], data.data[i][j+1]);
+                            dot.add(x_dist + data.data[i][j], data.data[i][j+1]);
+                        }
+                        else
+                        {
+                            line.add(x_dist + data.data[i][j], data.data[i][j]);
+                            dot.add(x_dist + data.data[i][j], data.data[i][j]);
+                        }
+
+                        j++;
+
+                        x_dist += skip;
+
+                        // add endpoint and timeline
+                        if (j >= DV.fieldLength - 1)
+                        {
+                            if (visualizeWithin.isSelected())
+                            {
+                                if (!visualizeOutline.isSelected() && within)
+                                {
+                                    // add series
+                                    if (d == hyper_blocks.get(visualized_block).classNum)
+                                    {
+                                        goodGraphLines.addSeries(line);
+                                        goodGraphDots.addSeries(dot);
+
+                                        goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+
+                                        goodDotRenderer.setSeriesPaint(lineCnt, Color.BLACK);
+                                        goodDotRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                    }
+                                    else
+                                    {
+                                        badGraphLines.addSeries(line);
+                                        badGraphDots.addSeries(dot);
+
+                                        badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+
+                                        badDotRenderer.setSeriesPaint(lineCnt, Color.RED);
+                                        badDotRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                    }
+
+                                    lineCnt++;
+                                }
+                            }
+                            else
+                            {
+                                // add series
+                                if (d == hyper_blocks.get(visualized_block).classNum)
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                    {
+                                        goodGraphLines.addSeries(line);
+                                        goodGraphDots.addSeries(dot);
+                                    }
+
+                                    goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                    goodDotRenderer.setSeriesPaint(lineCnt, Color.BLACK);
+
+                                    if (within)
+                                    {
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                        goodDotRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                    }
+                                }
+                                else
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                    {
+                                        badGraphLines.addSeries(line);
+                                        badGraphDots.addSeries(dot);
+                                    }
+
+                                    badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                    badDotRenderer.setSeriesPaint(lineCnt, Color.RED);
+
+                                    if (within)
+                                    {
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                        badDotRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                    }
+                                }
+
+                                lineCnt++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // add hyperblocks
+        for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                int cnt = 0;
+                double x_dist = 0;
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    XYSeries line = new XYSeries(cnt, false, true);
+
+                    if (j + 1 < DV.fieldLength)
+                    {
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j+1]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j+1]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j+1]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j+1]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j+1]);
+                    }
+                    else
+                    {
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    }
+
+                    j++;
+
+                    x_dist += skip;
+
+                    pcBlockOutlineRenderer.setSeriesPaint(cnt, Color.ORANGE);
+                    pcBlockOutlineRenderer.setSeriesStroke(cnt, strokes[k]);
+                    pcBlocksOutline.addSeries(line);
+
+                    pcBlockAreaRenderer.setSeriesPaint(cnt, new Color(255, 200, 0, 20));
+                    pcBlocksArea.addSeries(line);
+
+                    cnt++;
+                }
+            }
+        }
+
+        pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.2, (Math.ceil(DV.fieldLength / 2.0)) * skip);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(skip)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString((value / 1.25) + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1.05);
+
+        // set block renderer and dataset
+        badDotRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, badDotRenderer);
+        plot.setDataset(0, badGraphDots);
+
+        goodDotRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, goodDotRenderer);
+        plot.setDataset(1, goodGraphDots);
+
+        pcBlockOutlineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockOutlineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(2, pcBlockOutlineRenderer);
+        plot.setDataset(2, pcBlocksOutline);
+
+        pcBlockAreaRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(3, pcBlockAreaRenderer);
+        plot.setDataset(3, pcBlocksArea);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(4, badLineRenderer);
+        plot.setDataset(4, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(5, goodLineRenderer);
+        plot.setDataset(5, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+        return chartPanel;
+    }
+
+    private ChartPanel SPC_Alt(ArrayList<ArrayList<DataObject>> obj)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer goodDotRenderer = new XYLineAndShapeRenderer(false, true);
+        XYSeriesCollection goodGraphDots = new XYSeriesCollection();
+        XYLineAndShapeRenderer badDotRenderer = new XYLineAndShapeRenderer(false, true);
+        XYSeriesCollection badGraphDots = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYLineAndShapeRenderer pcBlockOutlineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocksOutline = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[ hyper_blocks.get(visualized_block).hyper_block.size()];
+
+        for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                if (k == 0)
+                {
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                }
+                else
+                {
+                    Random r = new Random();
+                    float max = 25f;
+                    float min = 1f;
+
+                    int len = r.nextInt(2) + 1;
+
+                    float[] fa = new float[len];
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        fa[i] = r.nextFloat(max - min) + min;
+                    }
+
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+                }
+            }
+        }
+
+        double skip = 1.25;
+
+        // populate main series
+        for (int d = 0; d < obj.size(); d++)
+        {
+            int lineCnt = 0;
+
+            for (DataObject data : obj.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    // start line at (0, 0)
+                    XYSeries line = new XYSeries(lineCnt, false, true);
+                    XYSeries dot = new XYSeries(lineCnt, false, true);
+                    boolean within = false;
+                    int within_block = 0;
+
+                    for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                    {
+                        boolean within_cur = true;
+
+                        for (int j = 0; j < DV.fieldLength; j++)
+                        {
+                            if (data.data[i][j] < hyper_blocks.get(visualized_block).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(visualized_block).maximums.get(k)[j])
+                            {
+                                within_cur = false;
+                            }
+
+                            if (j == DV.fieldLength - 1)
+                            {
+                                if (within_cur)
+                                {
+                                    within_block = k;
+                                    within = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // add points to lines
+                    double x_dist = 0;
+                    for (int j = 0; j < DV.fieldLength; j++)
+                    {
+                        if (j + 1 < DV.fieldLength)
+                        {
+                            line.add(x_dist + data.data[i][j], data.data[i][j+1]);
+                            dot.add(x_dist + data.data[i][j], data.data[i][j+1]);
+                        }
+                        else
+                        {
+                            line.add(x_dist + data.data[i][j], data.data[i][j]);
+                            dot.add(x_dist + data.data[i][j], data.data[i][j]);
+                        }
+
+                        j++;
+
+                        x_dist += skip;
+
+                        // add endpoint and timeline
+                        if (j >= DV.fieldLength - 1)
+                        {
+                            if (visualizeWithin.isSelected())
+                            {
+                                if (!visualizeOutline.isSelected() && within)
+                                {
+                                    // add series
+                                    if (d == hyper_blocks.get(visualized_block).classNum)
+                                    {
+                                        goodGraphLines.addSeries(line);
+                                        goodGraphDots.addSeries(dot);
+
+                                        goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+
+                                        goodDotRenderer.setSeriesPaint(lineCnt, Color.BLACK);
+                                        goodDotRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                    }
+                                    else
+                                    {
+                                        badGraphLines.addSeries(line);
+                                        badGraphDots.addSeries(dot);
+
+                                        badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+
+                                        badDotRenderer.setSeriesPaint(lineCnt, Color.RED);
+                                        badDotRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                    }
+
+                                    lineCnt++;
+                                }
+                            }
+                            else
+                            {
+                                // add series
+                                if (d == hyper_blocks.get(visualized_block).classNum)
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                    {
+                                        goodGraphLines.addSeries(line);
+                                        goodGraphDots.addSeries(dot);
+                                    }
+
+                                    goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                    goodDotRenderer.setSeriesPaint(lineCnt, Color.BLACK);
+
+                                    if (within)
+                                    {
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                        goodDotRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                    }
+                                }
+                                else
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                    {
+                                        badGraphLines.addSeries(line);
+                                        badGraphDots.addSeries(dot);
+                                    }
+
+                                    badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                    badDotRenderer.setSeriesPaint(lineCnt, Color.RED);
+
+                                    if (within)
+                                    {
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                        badDotRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                    }
+                                }
+
+                                lineCnt++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // add hyperblocks
+        for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                int cnt = 0;
+                double x_dist = 0;
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    XYSeries line = new XYSeries(cnt, false, true);
+
+                    if (j + 1 < DV.fieldLength)
+                    {
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j+1]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j+1]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j+1]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j+1]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j+1]);
+                    }
+                    else
+                    {
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).maximums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        line.add(x_dist + hyper_blocks.get(visualized_block).minimums.get(k)[j], hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    }
+
+                    j++;
+
+                    x_dist += skip;
+
+                    pcBlockOutlineRenderer.setSeriesPaint(cnt, Color.ORANGE);
+                    pcBlockOutlineRenderer.setSeriesStroke(cnt, strokes[k]);
+                    pcBlocksOutline.addSeries(line);
+
+                    cnt++;
+                }
+            }
+        }
+
+        pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, (Math.ceil(DV.fieldLength / 2.0)) * skip);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(skip)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString((value / 1.25) + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        badDotRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, badDotRenderer);
+        plot.setDataset(0, badGraphDots);
+
+        goodDotRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, goodDotRenderer);
+        plot.setDataset(1, goodGraphDots);
+
+        pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(2, pcBlockRenderer);
+        plot.setDataset(2, pcBlocks);
+
+        pcBlockOutlineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockOutlineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(3, pcBlockOutlineRenderer);
+        plot.setDataset(3, pcBlocksOutline);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(4, badLineRenderer);
+        plot.setDataset(4, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(5, goodLineRenderer);
+        plot.setDataset(5, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+        return chartPanel;
+    }
+
+    private void pc_lvl_2_Test(ArrayList<ArrayList<DataObject>> obj, int num_block)
+    {
+        // FIND HB TO VISUALIZE
+        double[] tmp_pnt = new double[DV.fieldLength];
+        int tmp_cnt = 0;
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            tmp_pnt[i] = originalHyperBlocks.get(num_block).minimums.get(0)[tmp_cnt];
+            i++;
+            tmp_pnt[i] = originalHyperBlocks.get(num_block).maximums.get(0)[tmp_cnt];
+            tmp_cnt++;
+        }
+
+        int block_to_vis = -1;
+
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            for (int j = 0; j < hyper_blocks.get(i).hyper_block.get(0).size(); j++)
+            {
+                    if (Arrays.equals(hyper_blocks.get(i).hyper_block.get(0).get(j), tmp_pnt))
+                    {
+                        block_to_vis = i;
+                        break;
+                    }
+            }
+            if (block_to_vis > -1)
+                break;
+        }
+
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer originalLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection originalGraphLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[hyper_blocks.get(block_to_vis).hyper_block.size()];
+
+        for (int k = 0; k < hyper_blocks.get(block_to_vis).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(block_to_vis).hyper_block.get(k).size() > 1)
+            {
+                if (k == 0)
+                {
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                }
+                else
+                {
+                    Random r = new Random();
+                    float max = 25f;
+                    float min = 1f;
+
+                    int len = r.nextInt(2) + 1;
+
+                    float[] fa = new float[len];
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        fa[i] = r.nextFloat(max - min) + min;
+                    }
+
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+                }
+            }
+        }
+
+        // populate main series
+        for (int d = 0; d < obj.size(); d++)
+        {
+            int lineCnt = 0;
+
+            for (DataObject data : obj.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    // start line at (0, 0)
+                    XYSeries line = new XYSeries(lineCnt, false, true);
+                    boolean within = false;
+                    int within_block = 0;
+
+                    for (int k = 0; k < hyper_blocks.get(block_to_vis).hyper_block.size(); k++)
+                    {
+                        boolean within_cur = true;
+
+                        for (int j = 0; j < DV.fieldLength; j++)
+                        {
+                            if (data.data[i][j] != tmp_pnt[j])//if (data.data[i][j] < hyper_blocks.get(block_to_vis).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(block_to_vis).maximums.get(k)[j])
+                            {
+                                within_cur = false;
+                            }
+
+                            if (j == DV.fieldLength - 1)
+                            {
+                                if (within_cur)
+                                {
+                                    within_block = k;
+                                    within = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // add points to lines
+                    for (int j = 0; j < DV.fieldLength; j++)
+                    {
+                        line.add(j, data.data[i][j]);
+
+                        // add endpoint and timeline
+                        if (j == DV.fieldLength - 1)
+                        {
+                            if (visualizeWithin.isSelected())
+                            {
+                                if (!visualizeOutline.isSelected() && within)
+                                {
+                                    // add series
+                                    if (d == hyper_blocks.get(block_to_vis).classNum)
+                                    {
+                                        goodGraphLines.addSeries(line);
+
+                                        goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
+                                    else
+                                    {
+                                        badGraphLines.addSeries(line);
+
+                                        badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
+
+                                    lineCnt++;
+                                }
+                            }
+                            else
+                            {
+                                // add series
+                                if (d == hyper_blocks.get(block_to_vis).classNum)
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                        goodGraphLines.addSeries(line);
+
+                                    goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                    if (within)
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                }
+                                else
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                        badGraphLines.addSeries(line);
+
+                                    badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                    if (within)
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                }
+
+                                lineCnt++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // add hyperblocks
+        for (int k = 0, offset = 0; k < hyper_blocks.get(block_to_vis).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(block_to_vis).hyper_block.get(k).size() > 1)
+            {
+                XYSeries tmp1 = new XYSeries(k-offset, false, true);
+                XYSeries tmp2 = new XYSeries(k-offset, false, true);
+
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    tmp1.add(j, hyper_blocks.get(block_to_vis).minimums.get(k)[j]);
+                    tmp2.add(j, hyper_blocks.get(block_to_vis).minimums.get(k)[j]);
+                }
+
+                for (int j = DV.fieldLength - 1; j > -1; j--)
+                {
+                    tmp1.add(j, hyper_blocks.get(block_to_vis).maximums.get(k)[j]);
+                    tmp2.add(j, hyper_blocks.get(block_to_vis).maximums.get(k)[j]);
+                }
+
+                tmp1.add(0, hyper_blocks.get(block_to_vis).minimums.get(k)[0]);
+                tmp2.add(0, hyper_blocks.get(block_to_vis).minimums.get(k)[0]);
+
+                pcBlockRenderer.setSeriesPaint(k-offset, Color.ORANGE);
+                pcBlockAreaRenderer.setSeriesPaint(k-offset, new Color(255, 200, 0, 20));
+                pcBlockRenderer.setSeriesStroke(k, strokes[k]);
+
+                pcBlocks.addSeries(tmp1);
+                pcBlocksArea.addSeries(tmp2);
+            }
+            else
+            {
+                offset++;
+            }
+        }
+
+
+        int old_fieldlength = originalHyperBlocks.get(num_block).minimums.get(0).length;
+
+        /*int cnt = 0;
+        for (double[] dbs : originalHyperBlocks.get(num_block).hyper_block.get(0))
+        {
+            XYSeries tmp0 = new XYSeries(cnt, false, true);
+
+            int index = 0;
+            for (int j = 0; j < old_fieldlength; j++)
+            {
+                tmp0.add(index, dbs[j]);
+                index++;
+                tmp0.add(index, dbs[j]);
+                index++;
+            }
+
+            originalGraphLines.addSeries(tmp0);
+            originalLineRenderer.setSeriesPaint(cnt, Color.GREEN);
+            originalLineRenderer.setSeriesStroke(cnt, strokes[0]);
+            cnt++;
+        }*/
+
+        for (int d = 0, lineCnt = 0; d < originalObjects.size(); d++)
+        {
+            for (DataObject data : obj.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    // start line at (0, 0)
+                    XYSeries line = new XYSeries(lineCnt, false, true);
+                    boolean within = false;
+                    int within_block = 0;
+
+                    for (int k = 0; k < originalHyperBlocks.get(num_block).hyper_block.size(); k++)
+                    {
+                        boolean within_cur = true;
+
+                        for (int j = 0; j < old_fieldlength; j++)
+                        {
+                            if (data.data[i][j] < originalHyperBlocks.get(num_block).minimums.get(k)[j] || data.data[i][j] > originalHyperBlocks.get(num_block).maximums.get(k)[j])
+                            {
+                                within_cur = false;
+                            }
+
+                            if (j == old_fieldlength - 1)
+                            {
+                                if (within_cur)
+                                {
+                                    within_block = k;
+                                    within = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // add points to lines
+                    for (int j = 0; j < old_fieldlength; j++)
+                    {
+                        line.add(j, data.data[i][j]);
+
+                        // add endpoint and timeline
+                        if (j == old_fieldlength - 1)
+                        {
+                            originalGraphLines.addSeries(line);
+                            originalLineRenderer.setSeriesPaint(lineCnt, Color.GREEN);
+                            originalLineRenderer.setSeriesStroke(lineCnt, strokes[0]);
+                            lineCnt++;
+                        }
+                    }
+                }
+            }
+
+            if (d == originalObjects.size() - 1)
+            {
+                int size = 0;
+                for (ArrayList<double[]> stuff : originalHyperBlocks.get(num_block).hyper_block)
+                {
+                    size += stuff.size();
+                }
+
+                System.out.println("Current HB: " + num_block);
+                System.out.println("Num Pnts: " + size);
+                System.out.println("Num Pnts: " + lineCnt);
+                System.out.println("Diff Pnts: " + lineCnt);
+            }
+        }
+
+        JFreeChart pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, pcBlockRenderer);
+        plot.setDataset(0, pcBlocks);
+
+        pcBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, pcBlockAreaRenderer);
+        plot.setDataset(1, pcBlocksArea);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(2, badLineRenderer);
+        plot.setDataset(2, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(3, goodLineRenderer);
+        plot.setDataset(3, goodGraphLines);
+
+        originalLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        originalLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(4, originalLineRenderer);
+        plot.setDataset(4, originalGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+
+        JOptionPane.showMessageDialog(null, chartPanel);
+    }
+
+    private void pc_lvl_2_Test2(ArrayList<ArrayList<DataObject>> obj, int num_block)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer originalLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection originalGraphLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        BasicStroke[] strokes = new BasicStroke[hyper_blocks.get(num_block).hyper_block.size()];
+
+        for (int k = 0; k < hyper_blocks.get(num_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(num_block).hyper_block.get(k).size() > 1)
+            {
+                if (k == 0)
+                {
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+                }
+                else
+                {
+                    Random r = new Random();
+                    float max = 25f;
+                    float min = 1f;
+
+                    int len = r.nextInt(2) + 1;
+
+                    float[] fa = new float[len];
+
+                    for (int i = 0; i < len; i++)
+                    {
+                        fa[i] = r.nextFloat(max - min) + min;
+                    }
+
+                    strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, fa, 0f);
+                }
+            }
+        }
+
+        // populate main series
+        int total = 0;
+        for (int d = 0; d < originalObjects.size(); d++)
+        {
+            int lineCnt = 0;
+
+            for (DataObject data : originalObjects.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    // start line at (0, 0)
+                    XYSeries line = new XYSeries(lineCnt, false, true);
+                    boolean within = false;
+                    int within_block = 0;
+
+                    for (int k = 0; k < hyper_blocks.get(num_block).hyper_block.size(); k++)
+                    {
+                        boolean within_cur = true;
+
+                        for (int j = 0, cnt = 0; j < DV.fieldLength; j++)
+                        {
+                            if (data.data[i][cnt] < hyper_blocks.get(num_block).minimums.get(k)[j] || data.data[i][cnt] > hyper_blocks.get(num_block).maximums.get(k)[j])
+                            {
+                                within_cur = false;
+                            }
+
+                            if ((j+1) % 2 == 0)
+                                cnt++;
+
+                            if (j == DV.fieldLength - 1)
+                            {
+                                if (within_cur)
+                                {
+                                    within_block = k;
+                                    within = true;
+                                }
+                            }
+                        }
+                    }
+
+                    // add points to lines
+                    for (int j = 0, cnt = 0; j < DV.fieldLength; j++)
+                    {
+                        line.add(j, data.data[i][cnt]);
+                        j++;
+                        line.add(j, data.data[i][cnt]);
+                        cnt++;
+
+                        // add endpoint and timeline
+                        if (j == DV.fieldLength - 1)
+                        {
+                            if (visualizeWithin.isSelected())
+                            {
+                                if (!visualizeOutline.isSelected() && within)
+                                {
+                                    // add series
+                                    if (d == hyper_blocks.get(num_block).classNum)
+                                    {
+                                        goodGraphLines.addSeries(line);
+
+                                        goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
+                                    else
+                                    {
+                                        badGraphLines.addSeries(line);
+
+                                        badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                    }
+
+                                    lineCnt++;
+                                }
+                            }
+                            else
+                            {
+                                // add series
+                                if (d == hyper_blocks.get(num_block).classNum)
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                        goodGraphLines.addSeries(line);
+
+                                    goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                    if (within)
+                                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                }
+                                else
+                                {
+                                    if (!(visualizeOutline.isSelected() && within))
+                                        badGraphLines.addSeries(line);
+
+                                    badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+
+                                    if (within)
+                                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                                }
+
+                                lineCnt++;
+                            }
+                        }
+                    }
+                }
+            }
+            total += lineCnt;
+        }
+
+        // add hyperblocks
+        for (int k = 0, offset = 0; k < hyper_blocks.get(num_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(num_block).hyper_block.get(k).size() > 1)
+            {
+                XYSeries tmp1 = new XYSeries(k-offset, false, true);
+                XYSeries tmp2 = new XYSeries(k-offset, false, true);
+
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    tmp1.add(j, hyper_blocks.get(num_block).minimums.get(k)[j]);
+                    tmp2.add(j, hyper_blocks.get(num_block).minimums.get(k)[j]);
+                }
+
+                for (int j = DV.fieldLength - 1; j > -1; j--)
+                {
+                    tmp1.add(j, hyper_blocks.get(num_block).maximums.get(k)[j]);
+                    tmp2.add(j, hyper_blocks.get(num_block).maximums.get(k)[j]);
+                }
+
+                tmp1.add(0, hyper_blocks.get(num_block).minimums.get(k)[0]);
+                tmp2.add(0, hyper_blocks.get(num_block).minimums.get(k)[0]);
+
+                pcBlockRenderer.setSeriesPaint(k-offset, Color.ORANGE);
+                pcBlockAreaRenderer.setSeriesPaint(k-offset, new Color(255, 200, 0, 20));
+                pcBlockRenderer.setSeriesStroke(k, strokes[k]);
+
+                pcBlocks.addSeries(tmp1);
+                pcBlocksArea.addSeries(tmp2);
+            }
+            else
+            {
+                offset++;
+            }
+        }
+
+        JFreeChart pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, pcBlockRenderer);
+        plot.setDataset(0, pcBlocks);
+
+        pcBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, pcBlockAreaRenderer);
+        plot.setDataset(1, pcBlocksArea);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(2, badLineRenderer);
+        plot.setDataset(2, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(3, goodLineRenderer);
+        plot.setDataset(3, goodGraphLines);
+
+        originalLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        originalLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(4, originalLineRenderer);
+        plot.setDataset(4, originalGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+
+        JOptionPane.showMessageDialog(null, chartPanel);
+    }
+
+    /*private void combineAll()
+    {
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        // add hyperblocks
+        XYSeries hb1 = new XYSeries(0, false, true);
+        XYSeries hb1a = new XYSeries(0, false, true);
+
+        XYSeries hb2 = new XYSeries(0, false, true);
+        XYSeries hb2a = new XYSeries(0, false, true);
+
+        double[] hb1_tmp = new double[DV.fieldLength];
+
+        double[] hb2_tmp = new double[DV.fieldLength];
+
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            hb1_tmp[i] = -1;
+            hb2_tmp[i] = -1;
+        }
+
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            for (int j = 0; j < hyper_blocks.get(i).hyper_block.size(); j++)
+            {
+                for (int k = 0; k < DV.fieldLength; k++)
+                {
+                    if (hyper_blocks.get(i).classNum == 0)
+                        hb1_tmp[j] = Math.maxhyper_blocks.get(i).minimums.get(0)[k];
+                    else
+                        hb2_tmp[j] = hyper_blocks.get(i).minimums.get(0)[k];
+                }
+            }
+        }
+
+        JFreeChart pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, pcBlockRenderer);
+        plot.setDataset(0, pcBlocks);
+
+        pcBlockAreaRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, pcBlockAreaRenderer);
+        plot.setDataset(1, pcBlocksArea);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(2, badLineRenderer);
+        plot.setDataset(2, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(3, goodLineRenderer);
+        plot.setDataset(3, goodGraphLines);
+
+        originalLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        originalLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(4, originalLineRenderer);
+        plot.setDataset(4, originalGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+
+        JOptionPane.showMessageDialog(null, chartPanel);
+    }*/
 }

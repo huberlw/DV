@@ -23,25 +23,47 @@ import java.util.List;
 
 public class LDFRule
 {
+    // classification rule for LDF
     JLabel rules;
+
+    // combined graph for LDF
     JPanel singleGraphPanel;
+
+    // separated graphs for LDF
     JPanel doubleGraphPanel;
+
+    // purity of LDF
     JLabel purity;
 
+    // container for graphs
     JTabbedPane graphTabs = new JTabbedPane();
 
+    // whether the user has clicked mouse 2 to begin drawing strip
     boolean clicked = false;
 
+    // number of rules
     int rIndex = 0;
+
+    // whether the drawing has started or not
     boolean start = false;
+
+    // rectangular area of LDF rules
     ArrayList<double[][]> ruleStrips = new ArrayList<>();
 
+    // LDF rules rendering tools
     XYLineAndShapeRenderer stripRenderer = new XYLineAndShapeRenderer(true, false);
     final XYSeriesCollection strips = new XYSeriesCollection();
 
+    // indexes of the lower and upper bound of a strip
     ArrayList<int[]> ruleStripRanges = new ArrayList<>();
+
+    // datapoints counter for upper and lower DV graphs
     ArrayList<double[]> ruleStripClassification = new ArrayList<>();
 
+
+    /**
+     * Constructor for LDFRule. Visualizes LDF.
+     */
     public LDFRule()
     {
         JFrame ldfFrame = new JFrame();
@@ -110,6 +132,10 @@ public class LDFRule
         ldfFrame.repaint();
     }
 
+
+    /**
+     * Gets classifications, ranges, rules, and purity of each strip.
+     */
     private void stripAnalysis()
     {
         ruleStripClassification.clear();
@@ -220,6 +246,10 @@ public class LDFRule
         getPurity();
     }
 
+
+    /**
+     * Gets rules of each strip.
+     */
     private void getStripRules()
     {
         String upperClass = DV.data.get(DV.upperClass).className;
@@ -293,6 +323,10 @@ public class LDFRule
         rules.setText(sb.toString());
     }
 
+
+    /**
+     * Gets purity of each strip.
+     */
     private void getPurity()
     {
         StringBuilder sb = new StringBuilder("<html><b>Strip Accuracy:</b><br/> ");
@@ -353,6 +387,10 @@ public class LDFRule
         purity.setText(sb.toString());
     }
 
+
+    /**
+     * Draws Combined and Separate graphs.
+     */
     private void drawGraphs()
     {
         // holds classes to be graphed
@@ -384,6 +422,12 @@ public class LDFRule
         getPurity();
     }
 
+
+    /**
+     * Creates Combined graph.
+     * @param obj data to be visualized
+     * @return visualization panel
+     */
     private ChartPanel addCombinedGraph(ArrayList<ArrayList<DataObject>> obj)
     {
         // create main renderer and dataset
@@ -678,6 +722,13 @@ public class LDFRule
         return chartPanel;
     }
 
+
+    /**
+     * Creates Separate graph.
+     * @param obj data to be visualized
+     * @param curClass current class being visualized
+     * @return visualization panel
+     */
     private ChartPanel addSingleGraph(ArrayList<DataObject> obj, int curClass)
     {
         // create main renderer and dataset

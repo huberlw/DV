@@ -28,28 +28,7 @@ public class AnalyticsMenu extends JPanel
             DV.prevAllDataChecked = !DV.prevAllDataChecked;
 
             // regenerate confusion matrices
-            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-            analytics.execute();
-
-            // wait before repainting and revalidating
-            try
-            {
-                analytics.get();
-
-                // revalidate confusion matrices
-                DV.confusionMatrixPanel.repaint();
-                DV.confusionMatrixPanel.revalidate();
-
-                if (DV.displayRemoteAnalytics)
-                {
-                    DV.remoteConfusionMatrixPanel.repaint();
-                    DV.remoteConfusionMatrixPanel.revalidate();
-                }
-            }
-            catch (InterruptedException | ExecutionException ex)
-            {
-                ex.printStackTrace();
-            }
+            generateAnalytics();
         });
 
         constraints.gridx = 0;
@@ -68,28 +47,7 @@ public class AnalyticsMenu extends JPanel
             DV.allDataChecked = !DV.allDataChecked;
 
             // regenerate confusion matrices
-            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-            analytics.execute();
-
-            // wait before repainting and revalidating
-            try
-            {
-                analytics.get();
-
-                // revalidate confusion matrices
-                DV.confusionMatrixPanel.repaint();
-                DV.confusionMatrixPanel.revalidate();
-
-                if (DV.displayRemoteAnalytics)
-                {
-                    DV.remoteConfusionMatrixPanel.repaint();
-                    DV.remoteConfusionMatrixPanel.revalidate();
-                }
-            }
-            catch (InterruptedException | ExecutionException ex)
-            {
-                ex.printStackTrace();
-            }
+            generateAnalytics();
         });
 
         constraints.gridx = 1;
@@ -106,28 +64,7 @@ public class AnalyticsMenu extends JPanel
             DV.withoutOverlapChecked = !DV.withoutOverlapChecked;
 
             // regenerate confusion matrices
-            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-            analytics.execute();
-
-            // wait before repainting and revalidating
-            try
-            {
-                analytics.get();
-
-                // revalidate confusion matrices
-                DV.confusionMatrixPanel.repaint();
-                DV.confusionMatrixPanel.revalidate();
-
-                if (DV.displayRemoteAnalytics)
-                {
-                    DV.remoteConfusionMatrixPanel.repaint();
-                    DV.remoteConfusionMatrixPanel.revalidate();
-                }
-            }
-            catch (InterruptedException | ExecutionException ex)
-            {
-                ex.printStackTrace();
-            }
+            generateAnalytics();
         });
 
         constraints.gridx = 0;
@@ -144,28 +81,7 @@ public class AnalyticsMenu extends JPanel
             DV.overlapChecked = !DV.overlapChecked;
 
             // regenerate confusion matrices
-            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-            analytics.execute();
-
-            // wait before repainting and revalidating
-            try
-            {
-                analytics.get();
-
-                // revalidate confusion matrices
-                DV.confusionMatrixPanel.repaint();
-                DV.confusionMatrixPanel.revalidate();
-
-                if (DV.displayRemoteAnalytics)
-                {
-                    DV.remoteConfusionMatrixPanel.repaint();
-                    DV.remoteConfusionMatrixPanel.revalidate();
-                }
-            }
-            catch (InterruptedException | ExecutionException ex)
-            {
-                ex.printStackTrace();
-            }
+            generateAnalytics();
         });
 
         constraints.gridx = 1;
@@ -182,28 +98,7 @@ public class AnalyticsMenu extends JPanel
             DV.worstCaseChecked = !DV.worstCaseChecked;
 
             // regenerate confusion matrices
-            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-            analytics.execute();
-
-            // wait before repainting and revalidating
-            try
-            {
-                analytics.get();
-
-                // revalidate confusion matrices
-                DV.confusionMatrixPanel.repaint();
-                DV.confusionMatrixPanel.revalidate();
-
-                if (DV.displayRemoteAnalytics)
-                {
-                    DV.remoteConfusionMatrixPanel.repaint();
-                    DV.remoteConfusionMatrixPanel.revalidate();
-                }
-            }
-            catch (InterruptedException | ExecutionException ex)
-            {
-                ex.printStackTrace();
-            }
+            generateAnalytics();
         });
 
         constraints.gridx = 0;
@@ -220,28 +115,7 @@ public class AnalyticsMenu extends JPanel
             DV.userValidationChecked = !DV.userValidationChecked;
 
             // regenerate confusion matrices
-            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-            analytics.execute();
-
-            // wait before repainting and revalidating
-            try
-            {
-                analytics.get();
-
-                // revalidate confusion matrices
-                DV.confusionMatrixPanel.repaint();
-                DV.confusionMatrixPanel.revalidate();
-
-                if (DV.displayRemoteAnalytics)
-                {
-                    DV.remoteConfusionMatrixPanel.repaint();
-                    DV.remoteConfusionMatrixPanel.revalidate();
-                }
-            }
-            catch (InterruptedException | ExecutionException ex)
-            {
-                ex.printStackTrace();
-            }
+            generateAnalytics();
         });
 
         constraints.gridx = 1;
@@ -257,31 +131,10 @@ public class AnalyticsMenu extends JPanel
             // reverse check
             DV.crossValidationChecked = !DV.crossValidationChecked;
             DV.crossValidationNotGenerated = true;
+            DV.crossValidationPanel.removeAll();
 
             // regenerate confusion matrices
-            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-            analytics.execute();
-
-            // wait before repainting and revalidating
-            try
-            {
-                DV.crossValidationPanel.removeAll();
-                analytics.get();
-
-                // revalidate cross validation panel
-                DV.crossValidationPanel.repaint();
-                DV.crossValidationPanel.revalidate();
-
-                if (DV.displayRemoteAnalytics)
-                {
-                    DV.remoteCrossValidationPanel.repaint();
-                    DV.remoteCrossValidationPanel.revalidate();
-                }
-            }
-            catch (InterruptedException | ExecutionException ex)
-            {
-                ex.printStackTrace();
-            }
+            generateAnalytics();
         });
 
         constraints.gridx = 0;
@@ -331,28 +184,7 @@ public class AnalyticsMenu extends JPanel
                             DV.crossValidationNotGenerated = true;
 
                             // regenerate confusion matrices
-                            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-                            analytics.execute();
-
-                            // wait before repainting and revalidating
-                            try
-                            {
-                                analytics.get();
-
-                                // revalidate cross validation panel
-                                DV.crossValidationPanel.repaint();
-                                DV.crossValidationPanel.revalidate();
-
-                                if (DV.displayRemoteAnalytics)
-                                {
-                                    DV.remoteCrossValidationPanel.repaint();
-                                    DV.remoteCrossValidationPanel.revalidate();
-                                }
-                            }
-                            catch (InterruptedException | ExecutionException ex)
-                            {
-                                ex.printStackTrace();
-                            }
+                            generateAnalytics();
                         }
                         else
                         {
@@ -390,28 +222,7 @@ public class AnalyticsMenu extends JPanel
             DV.svmAnalyticsChecked = !DV.svmAnalyticsChecked;
 
             // regenerate confusion matrices
-            Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-            analytics.execute();
-
-            // wait before repainting and revalidating
-            try
-            {
-                analytics.get();
-
-                // revalidate confusion matrices
-                DV.confusionMatrixPanel.repaint();
-                DV.confusionMatrixPanel.revalidate();
-
-                if (DV.displayRemoteAnalytics)
-                {
-                    DV.remoteConfusionMatrixPanel.repaint();
-                    DV.remoteConfusionMatrixPanel.revalidate();
-                }
-            }
-            catch (InterruptedException | ExecutionException ex)
-            {
-                ex.printStackTrace();
-            }
+            generateAnalytics();
         });
 
         constraints.gridx = 0;
@@ -431,19 +242,7 @@ public class AnalyticsMenu extends JPanel
                 if (DV.data != null)
                 {
                     // generate analytics
-                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-                    analytics.execute();
-
-                    // wait for analytics thread to finish
-                    try
-                    {
-                        analytics.get();
-                    }
-                    catch (ExecutionException | InterruptedException ae)
-                    {
-                        ae.printStackTrace();
-                        return;
-                    }
+                    generateAnalytics();
                 }
 
                 JOptionPane optionPane = new JOptionPane(DV.remoteAnalyticsPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
@@ -469,5 +268,36 @@ public class AnalyticsMenu extends JPanel
         analyticsPanel.add(separateAnalyticsBtn, constraints);
 
         JOptionPane.showOptionDialog(DV.mainFrame, analyticsPanel, "Analytics Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
+    }
+
+
+    /**
+     * Generates updated analytics
+     */
+    private void generateAnalytics()
+    {
+        // regenerate confusion matrices
+        Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+        analytics.execute();
+
+        // wait before repainting and revalidating
+        try
+        {
+            analytics.get();
+
+            // revalidate confusion matrices
+            DV.confusionMatrixPanel.repaint();
+            DV.confusionMatrixPanel.revalidate();
+
+            if (DV.displayRemoteAnalytics)
+            {
+                DV.remoteConfusionMatrixPanel.repaint();
+                DV.remoteConfusionMatrixPanel.revalidate();
+            }
+        }
+        catch (InterruptedException | ExecutionException ex)
+        {
+            ex.printStackTrace();
+        }
     }
 }

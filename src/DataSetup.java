@@ -94,6 +94,30 @@ public class DataSetup
                 // normalize data
                 double[][] normalizedNumericalData = normalizeData(numericalData);
 
+                /*int index;
+                double[] temp;
+                Random random = new Random();
+                for (int i = normalizedNumericalData.length - 1; i > 0; i--)
+                {
+                    index = random.nextInt(i + 1);
+                    temp = normalizedNumericalData[index];
+                    normalizedNumericalData[index] = normalizedNumericalData[i];
+                    normalizedNumericalData[i] = temp;
+                }
+
+                int numTrain = normalizedNumericalData.length * (DV.trainSplit / 100);
+                double[][] trainNormalizedNumericalData = new double[numTrain][];
+                double[][] testNormalizedNumericalData = new double[normalizedNumericalData.length - numTrain][];
+
+
+                for (int i = 0; i < normalizedNumericalData.length; i++)
+                {
+                    if (i < numTrain)
+                        trainNormalizedNumericalData[i] = normalizedNumericalData[i];
+
+                    testNormalizedNumericalData[i] = normalizedNumericalData[i];
+                }*/
+
                 if (DV.hasClasses)
                 {
                     // separate by class
@@ -276,6 +300,11 @@ public class DataSetup
     }
 
 
+    /**
+     * Set up SVM Support Vectors
+     * @param svFile file containing support vectors
+     * @return whether setupSupportVectors was successful
+     */
     public static boolean setupSupportVectors(File svFile)
     {
         // data string[][] representation of dataFile (csv)
