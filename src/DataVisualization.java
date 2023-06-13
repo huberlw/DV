@@ -211,14 +211,14 @@ public class DataVisualization
                     continue;
 
                 // get all data for class
-                for (int j = 0; j < DV.data.get(i).data.length; j++)
+                for (int j = 0; j < DV.trainData.get(i).data.length; j++)
                 {
                     for (int k = 0; k < DV.fieldLength; k++)
                     {
                         if (k != DV.fieldLength - 1)
-                            out.printf("%f,", DV.data.get(i).data[j][k]);
+                            out.printf("%f,", DV.trainData.get(i).data[j][k]);
                         else
-                            out.printf("%f," + curClass + "\n", DV.data.get(i).data[j][k]);
+                            out.printf("%f," + curClass + "\n", DV.trainData.get(i).data[j][k]);
                     }
                 }
             }

@@ -116,6 +116,7 @@ public class DataSetup
                     }
 
                     createSplit();
+                    DV.data = DV.trainData;
                 }
                 else
                 {
@@ -1152,6 +1153,9 @@ public class DataSetup
 
         for (int i = 0; i < DV.classNumber; i++)
         {
+            // randomize order
+            DV.data.get(i).data = fisher_yates_shuffle(DV.data.get(i).data);
+
             // get size of training data
             int trainSize = (int) Math.floor(DV.data.get(i).data.length * DV.trainSplit);
             double[][] training = new double[trainSize][DV.fieldLength];
@@ -1172,6 +1176,30 @@ public class DataSetup
             DV.trainData.add(new DataObject(DV.uniqueClasses.get(i), training));
             DV.testData.add(new DataObject(DV.uniqueClasses.get(i), testing));
         }
-        System.out.println("DONE");
+    }
+
+
+    /**
+     * Fisher-Yates Shuffle
+     * @param data array to be shuffled
+     * @return shuffled data
+     */
+    private static double[][] fisher_yates_shuffle(double[][] data)
+    {
+        Random rand = new Random();
+
+        for (int i = data.length - 1; i > 0; i--)
+        {
+            // generate random index
+            int j = rand.nextInt(i+1);
+
+            // swap
+            double[] tmp = data[i].clone();
+            data[i] = data[j];
+            data[j] = tmp;
+        }
+
+        // return shuffled array
+        return data;
     }
 }
