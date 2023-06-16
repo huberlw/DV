@@ -1,10 +1,8 @@
 import org.jfree.chart.*;
-import org.jfree.chart.annotations.XYDrawableAnnotation;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.labels.XYItemLabelGenerator;
-import org.jfree.chart.labels.XYSeriesLabelGenerator;
 import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.DefaultDrawingSupplier;
@@ -26,6 +24,8 @@ import java.util.List;
 
 public class HyperBlockVisualization
 {
+    int original_num = 0;
+
     JPanel graphPanel;
 
     JCheckBox visualizeWithin;
@@ -107,6 +107,8 @@ public class HyperBlockVisualization
     int plot_id = 0;
 
     boolean lvl_inc = false;
+
+    int new_case = 0;
 
 
     class BlockComparator implements Comparator<HyperBlock>
@@ -737,6 +739,18 @@ public class HyperBlockVisualization
         });
         toolBar.add(hb_lvl);
         toolBar.addSeparator();
+
+        /**
+         * REMOVE THIS LATER
+         * JUST FOR TESTING NEW CASES
+         */
+        JButton ADD_NEW_CASE = new JButton("TEST CASE");
+        ADD_NEW_CASE.addActionListener(e -> classify_new_case());
+        toolBar.add(ADD_NEW_CASE);
+        /**
+         * REMOVE THIS LATER
+         * JUST FOR TESTING NEW CASES
+         */
 
         choose_plot();
 
@@ -1410,6 +1424,185 @@ public class HyperBlockVisualization
             }
         }
     }
+
+
+    // create new HB around test data
+    private void classify_new_case()
+    {
+        original_num = hyper_blocks.size();
+
+        int cnt = 0;
+
+        for (int i = 0; i < DV.testData.size(); i++)
+        {
+            for (int j = 0; j < DV.testData.get(i).data.length; j++)
+            {
+                /*if (cnt == new_case)
+                {*/
+                    // add to existing hyperblock or generate new hyperblock
+                    if (!in_HB(DV.testData.get(i).data[j]))
+                    {
+                        System.out.println("\nCREATING NEW HB!");
+                        System.out.println("Test Case Class: " + i);
+                        create_kNN_HB(DV.testData.get(i).data[j], 5);
+                    }
+
+                    else
+                        System.out.println("NEW CASE " + new_case + " IS ALREADY WITHIN AN HB");
+
+                    new_case++;
+                    /*return;
+                }
+                else
+                    cnt++;*/
+            }
+        }
+
+        add_test_data();
+    }
+
+
+    private boolean in_HB(double[] c)
+    {
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            for (int j = 0; j < hyper_blocks.get(i).hyper_block.size(); j++)
+            {
+                boolean inside = true;
+
+                for (int k = 0; k < DV.fieldLength; k++)
+                {
+                    // check if outside bounds
+                    if (hyper_blocks.get(i).maximums.get(j)[k] < c[k] ||
+                            hyper_blocks.get(i).minimums.get(j)[k] > c[k])
+                    {
+                        inside = false;
+                        break;
+                    }
+                }
+
+                // new case is within bounds
+                if (inside)
+                {
+                    // add case to hyperblock
+                    hyper_blocks.get(i).hyper_block.get(j).add(c);
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // create pure hb around a new case
+    private void create_kNN_HB(double[] c, int k)
+    {
+        // create HB
+        HyperBlock hb_c = kNN(c, k);
+        hyper_blocks.add(hb_c);
+        System.out.println("HB Class: " + hb_c.classNum + "\n");
+
+        double[] avg = new double[DV.fieldLength];
+        Arrays.fill(avg, 0);
+
+        for (int i = 0; i < hb_c.hyper_block.get(0).size(); i++)
+        {
+            for (int j = 0; j < hb_c.hyper_block.get(0).get(i).length; j++)
+            {
+                avg[j] += hb_c.hyper_block.get(0).get(i)[j];
+            }
+        }
+
+        for (int j = 0; j < hb_c.hyper_block.get(0).get(0).length; j++)
+            avg[j] /= hb_c.hyper_block.get(0).size();
+
+        ArrayList<double[]> avg_tmp = new ArrayList<>();
+        avg_tmp.add(avg);
+
+        artificial.add(avg_tmp);
+    }
+
+
+    private HyperBlock kNN(double[] x, int k)
+    {
+        ArrayList<double[]> cluster = new ArrayList<>();
+        double[] dists = new double[k];
+        int[] classes = new int[k];
+
+        for (int i = 0; i < objects.size(); i++)
+        {
+            for (int j = 0; j < objects.get(i).size(); j++)
+            {
+                for (int q = 0; q < objects.get(i).get(j).data.length; q++)
+                {
+                    double dist = euclidean_distance(x, objects.get(i).get(j).data[q]);
+
+                    if (cluster.size() < k)
+                    {
+                        dists[cluster.size()] = dist;
+                        classes[cluster.size()] = i;
+                        cluster.add(objects.get(i).get(j).data[k]);
+                    }
+                    else
+                    {
+                        double num = 0;
+                        int index = 0;
+
+                        for (int w = 0; w < k; w++)
+                        {
+                            if (dist < dists[w] && (dist - dists[w]) < num)
+                            {
+                                num = dist - dists[w];
+                                index = w;
+                            }
+                        }
+
+                        if (num < 0)
+                        {
+                            cluster.set(index, objects.get(i).get(j).data[k]);
+                            classes[index] = i;
+                            dists[index] = dist;
+                        }
+                    }
+                }
+            }
+        }
+
+        cluster.add(x);
+        ArrayList<ArrayList<double[]>> data_c = new ArrayList<>(List.of(cluster));
+
+        // create HB
+        HyperBlock hb_c = new HyperBlock(data_c);
+        hb_c.classNum = classify_hb(classes);
+
+        return hb_c;
+    }
+
+    private int classify_hb(int[] classes)
+    {
+        int x = 0, y = 0;
+
+        for (int i = 0; i < classes.length; i++)
+        {
+            if (classes[i] == 0) x++;
+            else y++;
+        }
+
+        System.out.println("HB Purity: " + (x > y ? (x / (double)(x+y)) : (y / (double)(x+y))));
+        return x > y ? 0 : 1;
+    }
+
+    private double euclidean_distance(double[] x, double[] y)
+    {
+        double dist = 0;
+
+        for (int i = 0; i < x.length; i++)
+            dist += Math.pow((x[i] - y[i]), 2);
+
+        return Math.sqrt(dist);
+    }
+
 
     private class Pnt
     {
@@ -3832,7 +4025,7 @@ public class HyperBlockVisualization
             // add hyperblocks
             for (int k = 0, offset = 0; k < hyper_blocks.get(c).hyper_block.size(); k++)
             {
-                if (hyper_blocks.get(c).hyper_block.get(k).size() > 1)
+                if (hyper_blocks.get(c).hyper_block.get(k).size() > -1)
                 {
                     XYSeries tmp1 = new XYSeries(k - offset, false, true);
                     XYSeries tmp2 = new XYSeries(k - offset, false, true);
@@ -3853,6 +4046,12 @@ public class HyperBlockVisualization
                     pcBlockRenderer.setSeriesPaint(k - offset, Color.ORANGE);
                     pcBlockAreaRenderer.setSeriesPaint(k - offset, new Color(255, 200, 0, 20));
                     pcBlockRenderer.setSeriesStroke(k - offset, strokes[k - offset]);
+
+                    if (original_num > 0)
+                    {
+                        if (c > original_num - 1)
+                            pcBlockRenderer.setSeriesPaint(k - offset, Color.RED);
+                    }
 
                     pcBlocks.addSeries(tmp1);
                     pcBlocksArea.addSeries(tmp2);
@@ -6951,6 +7150,25 @@ public class HyperBlockVisualization
             {
                 if (DV.lowerClasses.get(j))
                     lowerObjects.add(DV.data.get(j));
+            }
+        }
+
+        objects.add(upperObjects);
+        objects.add(lowerObjects);
+    }
+
+    private void add_test_data()
+    {
+        objects = new ArrayList<>();
+
+        upperObjects.add(DV.testData.get(DV.upperClass));
+
+        if (DV.hasClasses)
+        {
+            for (int j = 0; j < DV.classNumber; j++)
+            {
+                if (DV.lowerClasses.get(j))
+                    lowerObjects.add(DV.testData.get(j));
             }
         }
 

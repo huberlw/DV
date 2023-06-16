@@ -87,6 +87,7 @@ public class DataObject
     {
         // output points
         double[][] xyPoints = new double[active][2];
+        xyPoints = new double[dataPoint.length][2];
 
         // get xyPoints
         int i = 0;
@@ -97,15 +98,15 @@ public class DataObject
 
         for (int j = 1; i < dataPoint.length; i++)
         {
-            if (DV.activeAttributes.get(i))
-            {
+            //if (DV.activeAttributes.get(i))
+            //{
                 xyPoints[j] = getXYPointGLC(dataPoint[i], angles[i]);
 
                 // add previous points to current points
                 xyPoints[j][0] += xyPoints[j-1][0];
                 xyPoints[j][1] += xyPoints[j-1][1];
                 j++;
-            }
+            //}
         }
 
         return xyPoints;
