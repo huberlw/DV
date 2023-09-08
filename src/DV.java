@@ -196,8 +196,8 @@ public class DV extends JFrame
     static ArrayList<DataObject> data;
 
     // train test split
-    static double trainSplit = 0.9;
-    static double testSplit = 0.1;
+    static double trainSplit = 1;
+    static double testSplit = 0;
     static ArrayList<DataObject> trainData;
     static ArrayList<DataObject> testData;
     static ArrayList<double[]> misclassifiedData;
@@ -912,9 +912,10 @@ public class DV extends JFrame
                 if (success)
                 {
                     // optimize data setup with Linear Discriminant Analysis
-                    DataVisualization.optimizeSetup();
-
-                    DataVisualization.drawGraphs();
+                    //DataVisualization.optimizeSetup();
+                    //DataVisualization.SVM();
+                    //DataVisualization.drawGraphs();
+                    DataVisualization.drawReg();
                 }
                 else
                 {

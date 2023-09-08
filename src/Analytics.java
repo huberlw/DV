@@ -272,6 +272,78 @@ public class Analytics
                             if (i == DV.upperClass && DV.upperIsLower)
                             {
                                 // check if endpoint is correctly classified
+                                if (endpoint > DV.threshold)
+                                {
+                                    DV.allDataClassifications[1]++;
+                                    pntDist[0][1]++;
+
+                                    DV.misclassifiedData.add(DV.data.get(i).data[j]);
+
+                                }
+                                else
+                                {
+                                    pntDist[0][0]++;
+                                    DV.allDataClassifications[1]++;
+                                    DV.allDataClassifications[0]++;
+                                }
+                            }
+                            else if (i == DV.upperClass)
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint < DV.threshold)
+                                {
+                                    DV.allDataClassifications[1]++;
+                                    pntDist[0][1]++;
+
+                                    DV.misclassifiedData.add(DV.data.get(i).data[j]);
+
+                                }
+                                else
+                                {
+                                    pntDist[0][0]++;
+                                    DV.allDataClassifications[1]++;
+                                    DV.allDataClassifications[0]++;
+                                }
+                            }
+                            else if(DV.lowerClasses.get(i) && DV.upperIsLower)
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint < DV.threshold)
+                                {
+
+                                    DV.allDataClassifications[1]++;
+                                    pntDist[1][0]++;
+
+                                    DV.misclassifiedData.add(DV.data.get(i).data[j]);
+                                }
+                                else
+                                {
+                                    pntDist[1][1]++;
+                                    DV.allDataClassifications[1]++;
+                                    DV.allDataClassifications[0]++;
+                                }
+                            }
+                            else
+                            {
+                                // check if endpoint is correctly classified
+                                if (endpoint > DV.threshold)
+                                {
+
+                                    DV.allDataClassifications[1]++;
+                                    pntDist[1][0]++;
+
+                                    DV.misclassifiedData.add(DV.data.get(i).data[j]);
+                                }
+                                else
+                                {
+                                    pntDist[1][1]++;
+                                    DV.allDataClassifications[1]++;
+                                    DV.allDataClassifications[0]++;
+                                }
+                            }
+                            /*if (i == DV.upperClass && DV.upperIsLower)
+                            {
+                                // check if endpoint is correctly classified
                                 if (endpoint < DV.threshold)
                                 {
                                     pntDist[0][0]++;
@@ -336,7 +408,7 @@ public class Analytics
 
                                     DV.misclassifiedData.add(DV.data.get(i).data[j]);
                                 }
-                            }
+                            }*/
                         }
                     }
                 }

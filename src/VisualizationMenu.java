@@ -1,5 +1,8 @@
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -253,101 +256,137 @@ public class VisualizationMenu extends JPanel
                 c.gridx = 0;
                 c.gridy = 0;
                 c.gridwidth = 2;
-                c.fill = GridBagConstraints.HORIZONTAL;
+                c.fill = GridBagConstraints.BOTH;
 
                 reorder.add(new JLabel("Attributes will be displayed in the specified order."), c);
 
-                int yCnt = 0;
-                c.gridwidth = 1;
+                DefaultTableModel tm = new DefaultTableModel();
+                tm.setColumnIdentifiers( new Object[] { "Index", "Feature" });
+                final JTable table = new JTable(tm)
+                {
+                    public boolean isCellEditable(int row, int column)
+                    {
+                        return false;
+                    }
 
-                final ArrayList<JSpinner> attributes = new ArrayList<>();
-                final ArrayList<Integer> values = new ArrayList<>();
+                };
+
+                table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
                 for (int i = 0; i < DV.fieldNames.size(); i++)
+                    tm.insertRow(i, new Object[] { i+1, DV.fieldNames.get(i) });
+
+                JScrollPane manPane = new JScrollPane(table);
+
+                int yCnt = 1;
+                c.gridy = yCnt;
+                reorder.add(manPane, c);
+
+                // move row up
+                JButton up = new JButton("Up");
+                up.setToolTipText("Moves selected row up.");
+                up.addActionListener(ee ->
                 {
-                    c.gridx = 0;
-                    c.gridy = ++yCnt;
-                    c.weightx = 0.7;
+                    int index = table.getSelectedRow();
 
-                    reorder.add(new JLabel(DV.fieldNames.get(i)), c);
+                    if (index == 0 || index == -1) return;
 
-                    final int index = i;
+                    table.setValueAt(index+1, index-1, 0);
+                    table.setValueAt(index, index, 0);
+                    tm.moveRow(index, index, index-1);
+                    table.setRowSelectionInterval(index-1, index-1);
 
-                    attributes.add(new JSpinner());
-                    values.add(i);
-                    attributes.get(i).setValue(i);
-                    attributes.get(i).addChangeListener(ee ->
+                    // reorder
+                    double tmp2 = DV.angles[index];
+                    DV.angles[index] = DV.angles[index-1];
+                    DV.angles[index-1] = tmp2;
+
+                    String tmp3 = DV.fieldNames.get(index);
+                    DV.fieldNames.set(index, DV.fieldNames.get(index-1));
+                    DV.fieldNames.set(index-1, tmp3);
+
+                    // reorder in all data
+                    for (int k = 0; k < DV.data.size(); k++)
                     {
-                        int newVal = (Integer) attributes.get(index).getValue();
-                        int oldVal = values.get(index);
-
-                        if (newVal != oldVal)
+                        for (int w = 0; w < DV.data.get(k).data.length; w++)
                         {
-                            if (newVal < DV.fieldLength && newVal > -1)
-                            {
-                                int oldIndex;
-                                for (oldIndex = 0; oldIndex < DV.fieldLength; oldIndex++)
-                                {
-                                    if (oldIndex != index && values.get(oldIndex) == newVal)
-                                    {
-                                        values.set(index, newVal);
-                                        values.set(oldIndex, oldVal);
-                                        attributes.get(oldIndex).setValue(oldVal);
-                                        break;
-                                    }
-                                }
+                            double tmp = DV.data.get(k).data[w][index];
+                            DV.data.get(k).data[w][index] = DV.data.get(k).data[w][index-1];
+                            DV.data.get(k).data[w][index-1] = tmp;
 
-                                // reorder fieldnames
-                                String tmpName = DV.fieldNames.get(index);
-                                DV.fieldNames.set(index, DV.fieldNames.get(oldIndex));
-                                DV.fieldNames.set(oldIndex, tmpName);
-
-                                // reorder angles
-                                double tmpAngle = DV.angles[index];
-                                DV.angles[index] = DV.angles[oldIndex];
-                                DV.angles[oldIndex] = tmpAngle;
-
-                                // reorder original
-                                int tmp3 = DV.originalAttributeOrder.get(index);
-                                DV.originalAttributeOrder.set(index, DV.originalAttributeOrder.get(oldIndex));
-                                DV.originalAttributeOrder.set(oldIndex, tmp3);
-
-                                // reorder in all data
-                                for (int k = 0; k < DV.data.size(); k++)
-                                {
-                                    for (int j = 0; j < DV.data.get(k).data.length; j++)
-                                    {
-                                        double tmp = DV.data.get(k).data[j][index];
-                                        DV.data.get(k).data[j][index] = DV.data.get(k).data[j][oldIndex];
-                                        DV.data.get(k).data[j][oldIndex] = tmp;
-                                    }
-                                }
-
-                                DV.angleSliderPanel.removeAll();
-
-                                // update angles
-                                for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
-                                {
-                                    if (DV.glc_or_dsc)
-                                        AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                                    else
-                                        AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                                }
-
-                                DataVisualization.drawGraphs();
-                            }
-                            else
-                            {
-                                attributes.get(index).setValue(oldVal);
-                            }
                         }
-                    });
+                    }
 
-                    c.gridx = 1;
-                    c.weightx = 0.3;
+                    DV.angleSliderPanel.removeAll();
 
-                    reorder.add(attributes.get(index), c);
-                }
+                    // update angles
+                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
+                    {
+                        if (DV.glc_or_dsc)
+                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                        else
+                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+                    }
+
+                    DataVisualization.drawGraphs();
+                });
+
+                c.gridy = ++yCnt;
+                c.weightx = 0.5;
+                c.gridwidth = 1;
+                reorder.add(up, c);
+
+                // move row down
+                JButton down = new JButton("Down");
+                down.setToolTipText("Moves selected row down.");
+                down.addActionListener(ee ->
+                {
+                    int index = table.getSelectedRow();
+
+                    if (index == DV.fieldLength-1 || index == -1) return;
+
+                    table.setValueAt(index+1, index+1, 0);
+                    table.setValueAt(index+2, index, 0);
+                    tm.moveRow(index, index, index+1);
+                    table.setRowSelectionInterval(index+1, index+1);
+
+                    // reorder
+                    double tmp2 = DV.angles[index];
+                    DV.angles[index] = DV.angles[index+1];
+                    DV.angles[index+1] = tmp2;
+
+                    String tmp3 = DV.fieldNames.get(index);
+                    DV.fieldNames.set(index, DV.fieldNames.get(index+1));
+                    DV.fieldNames.set(index+1, tmp3);
+
+                    // reorder in all data
+                    for (int k = 0; k < DV.data.size(); k++)
+                    {
+                        for (int w = 0; w < DV.data.get(k).data.length; w++)
+                        {
+                            double tmp = DV.data.get(k).data[w][index];
+                            DV.data.get(k).data[w][index] = DV.data.get(k).data[w][index+1];
+                            DV.data.get(k).data[w][index+1] = tmp;
+
+                        }
+                    }
+
+                    DV.angleSliderPanel.removeAll();
+
+                    // update angles
+                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
+                    {
+                        if (DV.glc_or_dsc)
+                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                        else
+                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+                    }
+
+                    DataVisualization.drawGraphs();
+                });
+
+                c.gridx = 1;
+                reorder.add(down, c);
 
                 // original attribute order
                 JButton original = new JButton("Original Order");
@@ -388,6 +427,10 @@ public class VisualizationMenu extends JPanel
                         }
                     }
 
+                    tm.setRowCount(0);
+                    for (int i = 0; i < DV.fieldNames.size(); i++)
+                        tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
+
                     DV.angleSliderPanel.removeAll();
 
                     // update angles
@@ -404,7 +447,6 @@ public class VisualizationMenu extends JPanel
 
                 c.gridx = 0;
                 c.gridy = ++yCnt;
-                c.weightx = 0.5;
                 reorder.add(original, c);
 
                 // decision tree attribute order
@@ -516,6 +558,10 @@ public class VisualizationMenu extends JPanel
                         }
                     }
 
+                    tm.setRowCount(0);
+                    for (int i = 0; i < DV.fieldNames.size(); i++)
+                        tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
+
                     DV.angleSliderPanel.removeAll();
 
                     // update angles
@@ -571,6 +617,10 @@ public class VisualizationMenu extends JPanel
                             }
                         }
                     }
+
+                    tm.setRowCount(0);
+                    for (int i = 0; i < DV.fieldNames.size(); i++)
+                        tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
 
                     DV.angleSliderPanel.removeAll();
 
@@ -630,6 +680,10 @@ public class VisualizationMenu extends JPanel
                         }
                     }
 
+                    tm.setRowCount(0);
+                    for (int i = 0; i < DV.fieldNames.size(); i++)
+                        tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
+
                     DV.angleSliderPanel.removeAll();
 
                     // update angles
@@ -643,6 +697,7 @@ public class VisualizationMenu extends JPanel
 
                     DataVisualization.drawGraphs();
                 });
+
                 c.gridx = 1;
                 c.weightx = 0.5;
                 reorder.add(greatToLess, c);
@@ -1118,6 +1173,7 @@ public class VisualizationMenu extends JPanel
                                 }
 
                                 DV.data = DataSetup.createDataObjects(splitByClass);
+                                DV.trainData = DV.data;
 
                                 DV.fieldLength = splitByClass.get(0)[0].length;
 

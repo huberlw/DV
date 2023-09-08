@@ -2,6 +2,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 
@@ -79,6 +81,8 @@ public class DataSetup
                 DV.activeAttributes.add(true);
             }
 
+            stringData = numFromString(stringData);
+
             // get numerical data from string data
             double[][] numericalData = stringToNumerical(stringData);
 
@@ -149,6 +153,23 @@ public class DataSetup
         }
         else
             return false;
+    }
+
+    private static String[][] numFromString (String[][] data)
+    {
+        int[] check = new int[]{0, 1, 3, 4, 6, 7, 9, 10, 11};
+        int cnt = 0;
+
+        for (int i = 0; i < data.length; i++)
+        {
+            if (i == cnt)
+            {
+                // replace with num
+                //for (int j = 0; j < )
+            }
+        }
+
+        return data;
     }
 
 
@@ -1154,7 +1175,7 @@ public class DataSetup
         for (int i = 0; i < DV.classNumber; i++)
         {
             // randomize order
-            DV.data.get(i).data = fisher_yates_shuffle(DV.data.get(i).data);
+            //DV.data.get(i).data = fisher_yates_shuffle(DV.data.get(i).data);
 
             // get size of training data
             int trainSize = (int) Math.floor(DV.data.get(i).data.length * DV.trainSplit);

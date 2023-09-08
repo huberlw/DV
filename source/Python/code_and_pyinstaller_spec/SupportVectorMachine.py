@@ -3,10 +3,11 @@ import pandas as pd
 import csv
 import sys
 import os
+from sklearn.metrics import confusion_matrix
 
 
 # get data file
-path = sys.argv[1]
+path = "C:\\Users\\Administrator\\GitHub\\DV\\datasets\\train_integerized_copy.csv"#sys.argv[1]
 
 if os.path.exists(path):
     # create dataframe from file
@@ -22,8 +23,15 @@ if os.path.exists(path):
     # train
     svm.fit(data, labels)
     
-    # get support vectors
+    y_pred = svm.predict(data)
+    cfm = confusion_matrix(labels, y_pred)
+    print(cfm)
+    
     sv = svm.support_vectors_
+    print(len(sv[0]))
+    
+    # get support vectors
+"""    sv = svm.support_vectors_
 
     # create header
     header = []
@@ -34,4 +42,4 @@ if os.path.exists(path):
     output = open(os.path.dirname(os.path.realpath(__file__)) + "..\\..\\svm_data.csv", "w")
     writer = csv.writer(output, lineterminator='\n')
     writer.writerow(header)
-    writer.writerows(sv)
+    writer.writerows(sv)"""

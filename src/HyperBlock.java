@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class HyperBlock
 {
@@ -32,14 +33,65 @@ public class HyperBlock
         maximums = new ArrayList<>();
         minimums = new ArrayList<>();
 
-        getBounds();
+        findBounds();
+    }
+
+    HyperBlock(double[] max, double[] min)
+    {
+        setBounds(max, min);
+        findData();
+    }
+
+    private void setBounds(double[] max, double[] min)
+    {
+        maximums = new ArrayList<>();
+        minimums = new ArrayList<>();
+
+        maximums.add(max);
+        minimums.add(min);
+    }
+
+    private void findData()
+    {
+        ArrayList<ArrayList<double[]>> dps = new ArrayList<>();
+
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            dps.add(new ArrayList<>());
+
+            for (int j = 0; j < DV.data.get(i).data.length; j++)
+            {
+                for (int q = 0; q < maximums.size(); q++)
+                {
+                    boolean inside = true;
+
+                    for (int k = 0; k < DV.fieldLength; k++)
+                    {
+                        if (DV.data.get(i).data[j][k] > maximums.get(q)[k] || DV.data.get(i).data[j][k] < minimums.get(q)[k])
+                        {
+                            inside = false;
+                            break;
+                        }
+                    }
+
+                    if (inside)
+                    {
+                        double[] dp = new double[DV.fieldLength];
+                        System.arraycopy(DV.data.get(i).data[j], 0, dp, 0, DV.fieldLength);
+                        dps.get(i).add(dp);
+                    }
+                }
+            }
+        }
+
+        hyper_block = dps;
     }
 
 
     /**
      * Gest minimums and maximums of a hyperblock
      */
-    public void getBounds()
+    public void findBounds()
     {
         size = 0;
         maximums.clear();

@@ -15,5 +15,4 @@
 1. AngleSliders.java: className, opClassName, upper_or_lower, and bound are redundant. They can be found using curClass.
 2. DataSetup.java: fix save feature + make saves the same as DV 1.0 (file extension)
 3. Look at comments on VisualizationMenu
-4. 
-3. Review: DataVisualization, DV, HBVisualization
+4. Review: DataVisualization, DV, HBVisualization

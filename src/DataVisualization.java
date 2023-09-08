@@ -54,7 +54,9 @@ public class DataVisualization
         {
             // get optimal angles and threshold
             if (DV.glc_or_dsc)
+            {
                 LDA();
+            }
             else
             {
                 // set angles to 0
@@ -104,45 +106,9 @@ public class DataVisualization
             // optimize angles
             optimizeAngles(false);
 
-
             DV.angleSliderPanel.removeAll();
 
             // bubble sort ascending
-            /*for (int i = 0; i < DV.fieldLength - 1; i++)
-            {
-                for (int j = 0; j < DV.fieldLength - i - 1; j++)
-                {
-                    if (DV.angles[j] < DV.angles[j+1])
-                    {
-                        double tmp1 = DV.angles[j];
-                        DV.angles[j] = DV.angles[j+1];
-                        DV.angles[j+1] = tmp1;
-
-                        *//***
-                         * FIX FOR SVM SUPPORT VECTORS
-                         *//*
-                        *//*String tmp2 = DV.fieldNames.get(j);
-                        DV.fieldNames.set(j, DV.fieldNames.get(j+1));
-                        DV.fieldNames.set(j+1, tmp2);
-
-                        int tmp3 = DV.originalAttributeOrder.get(j);
-                        DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
-                        DV.originalAttributeOrder.set(j+1, tmp3);*//*
-
-                        // reorder in all data
-                        for (int k = 0; k < DV.data.size(); k++)
-                        {
-                            for (int w = 0; w < DV.data.get(k).data.length; w++)
-                            {
-                                double tmp = DV.data.get(k).data[w][j];
-                                DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
-                                DV.data.get(k).data[w][j+1] = tmp;
-
-                            }
-                        }
-                    }
-                }
-            }*/
 
             for (int j = 0; j < DV.fieldLength; j++)
                 AngleSliders.createSliderPanel_GLC("tmp " + j, (int) (DV.angles[j] * 100), j);//DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
@@ -1453,7 +1419,7 @@ public class DataVisualization
         }
 
         // warn user if graphs are scaled
-        if (DV.showPopup && (upperScaler > 1 || lowerScaler > 1))
+        if (!DV.showPopup && (upperScaler > 1 || lowerScaler > 1))
         {
             JOptionPane.showMessageDialog(DV.mainFrame,
                     """
@@ -1468,53 +1434,53 @@ public class DataVisualization
 
 
     public static void drawReg() throws FileNotFoundException {
-//        try
-//        {
-//            // create csv file
-//            File csv = new File("D:\\GitHub\\DV\\datasets\\DV_data.csv");
-//            Files.deleteIfExists(csv.toPath());
-//
-//            // write to csv file
-//            PrintWriter out = new PrintWriter(csv);
-//
-//            // create header for file
-//            for (int i = 0; i < DV.fieldLength; i++)
-//            {
-//                if (i != DV.fieldLength - 1)
-//                    out.print("feature,");
-//                else
-//                    out.print("feature\n");
-//            }
-//
-//            // check all classes
-//            for (int i = 0; i < DV.data.size(); i++)
-//            {
-//                // get all data for class
-//                for (int j = 0; j < DV.data.get(i).data.length; j++)
-//                {
-//                    for (int k = 0; k < DV.fieldLength; k++)
-//                    {
-//                        if (k != DV.fieldLength - 1)
-//                            out.printf("%f,", DV.data.get(i).data[j][k]);
-//                        else
-//                            out.printf("%f" + "\n", DV.data.get(i).data[j][k]);
-//                    }
-//                }
-//            }
-//
-//            // close file
-//            out.close();
-//        }
-//        catch (IOException ioe)
-//        {
-//            ioe.printStackTrace();
-//        }
-//
-//        System.exit(0);
+        try
+        {
+            // create csv file
+            File csv = new File("D:\\GitHub\\DV\\datasets\\DV_data.csv");
+            Files.deleteIfExists(csv.toPath());
+
+            // write to csv file
+            PrintWriter out = new PrintWriter(csv);
+
+            // create header for file
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                if (i != DV.fieldLength - 1)
+                    out.print("feature,");
+                else
+                    out.print("feature\n");
+            }
+
+            // check all classes
+            for (int i = 0; i < DV.data.size(); i++)
+            {
+                // get all data for class
+                for (int j = 0; j < DV.data.get(i).data.length; j++)
+                {
+                    for (int k = 0; k < DV.fieldLength; k++)
+                    {
+                        if (k != DV.fieldLength - 1)
+                            out.printf("%f,", DV.data.get(i).data[j][k]);
+                        else
+                            out.printf("%f" + "\n", DV.data.get(i).data[j][k]);
+                    }
+                }
+            }
+
+            // close file
+            out.close();
+        }
+        catch (IOException ioe)
+        {
+            ioe.printStackTrace();
+        }
+
+        System.exit(0);
 
         String[][] outputData;
 
-        File datafile = new File("D:\\GitHub\\DV\\datasets\\regression_info.csv");
+        File datafile = new File("C:\\Users\\Administrator\\GitHub\\DV\\datasets\\regression_info.csv");
         try (Scanner fileReader = new Scanner(datafile))
         {
             ArrayList<String> rowData = new ArrayList<>();

@@ -289,7 +289,537 @@ public class HyperBlockVisualization
         }
     }
 
+    // find HBs that can be combined while maintaining the purity threshold
+    private void increase_level_combine_check()
+    {
+        ArrayList<ChartPanel> panels = new ArrayList<>();
+        ArrayList<String> names = new ArrayList<>();
+        ArrayList<ChartPanel> bad_panels = new ArrayList<>();
+        ArrayList<String> bad_names = new ArrayList<>();
+        int good = 0;
+        int bad = 0;
+
+        // go through every HB combination
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            for (int j = 0; j < hyper_blocks.size(); j++)
+            {
+                if (j > i && hyper_blocks.get(i).classNum == hyper_blocks.get(j).classNum)
+                {
+                    double[] max = new double[DV.fieldLength];
+                    double[] min = new double[DV.fieldLength];
+
+                    for (int k = 0; k < DV.fieldLength; k++)
+                    {
+                        max[k] = Math.max(hyper_blocks.get(i).maximums.get(0)[k], hyper_blocks.get(j).maximums.get(0)[k]);
+                        min[k] = Math.min(hyper_blocks.get(i).minimums.get(0)[k], hyper_blocks.get(j).minimums.get(0)[k]);
+                    }
+
+                    HyperBlock test = new HyperBlock(max, min);
+                    System.out.println("Combined HB" + (i+1) + " + HB" + (j+1));
+                    test.classNum = hyper_blocks.get(i).classNum;
+
+                    if (test.hyper_block.size() == 2)
+                    {
+                        double purity = (double) Math.max(test.hyper_block.get(0).size(), test.hyper_block.get(1).size()) / (test.hyper_block.get(0).size() + test.hyper_block.get(1).size());
+                        System.out.println("Purity = " + purity);
+
+                        if (purity >= acc_threshold)
+                        {
+                            System.out.println("GOOD\n");
+                            good++;
+
+                            panels.add(individual_HB_vis(test, "Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = " + purity));
+                            names.add("<html><b>GOOD</b> -> Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = " + purity);
+                        }
+                        else
+                        {
+                            System.out.println("BAD\n");
+                            bad++;
+
+                            bad_panels.add(individual_HB_vis(test, "Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = " + purity));
+                            bad_names.add("<html><b>BAD</b> -> Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = " + purity);
+                        }
+                    }
+                    else if (test.hyper_block.size() == 1)
+                    {
+                        System.out.println("Purity = 1");
+                        System.out.println("GOOD\n");
+                        good++;
+
+                        panels.add(individual_HB_vis(test, "Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = 1"));
+                        names.add("<html><b>GOOD</b> -> Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = 1");
+                    }
+                    else
+                        System.out.println("ERROR\n");
+                }
+            }
+        }
+
+        System.out.println("Combination Results:\nGood = " + good + "\nBad = " + bad);
+
+        test_hb_vis(panels, names, "Combination Results: Good = " + good);
+        test_hb_vis(bad_panels, bad_names, "Combination Results: Bad = " + bad);
+    }
+
+    private void test_hb_vis(ArrayList<ChartPanel> panels, ArrayList<String> names, String title)
+    {
+        long seed = System.nanoTime();
+        Collections.shuffle(panels, new Random(seed));
+        Collections.shuffle(names, new Random(seed));
+
+        JFrame mainFrame = new JFrame();
+        mainFrame.setTitle(title);
+
+        JPanel charts = new JPanel();
+        charts.setLayout(new GridLayout(0, 3));
+
+        for (int i = 0; i < 30; i++)
+        {
+            JPanel tmp = new JPanel();
+            tmp.setLayout(new BoxLayout(tmp, BoxLayout.PAGE_AXIS));
+            tmp.add(panels.get(i));
+            tmp.add(new JLabel(names.get(i)));
+
+            charts.add(tmp);
+        }
+
+        JScrollPane scroll = new JScrollPane(charts, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        mainFrame.add(scroll);
+
+        mainFrame.setVisible(true);
+        mainFrame.revalidate();
+        mainFrame.pack();
+        mainFrame.repaint();
+    }
+
+    private ChartPanel individual_HB_vis(HyperBlock hb, String title)
+    {
+        JFrame mainFrame = new JFrame();
+        mainFrame.setTitle(title);
+
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+
+        BasicStroke stroke = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+
+        for (int d = 0; d < hb.hyper_block.size(); d++)
+        {
+            int lineCnt = 0;
+
+            for (int i = 0; i < hb.hyper_block.get(d).size(); i++)
+            {
+                double[] data = hb.hyper_block.get(d).get(i);
+
+                // start line at (0, 0)
+                XYSeries line = new XYSeries(lineCnt, false, true);
+                boolean within = false;
+                int within_block = 0;
+
+                // add points to lines
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    line.add(j, data[j]);
+
+                    // add endpoint and timeline
+                    if (j == DV.fieldLength - 1)
+                    {
+                        // add series
+                        if (d == hyper_blocks.get(visualized_block).classNum)
+                        {
+                            goodGraphLines.addSeries(line);
+
+                            goodLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                            goodLineRenderer.setSeriesStroke(lineCnt, stroke);
+                        }
+                        else
+                        {
+                            badGraphLines.addSeries(line);
+
+                            badLineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
+                            badLineRenderer.setSeriesStroke(lineCnt, stroke);
+                        }
+
+                        lineCnt++;
+                    }
+                }
+            }
+        }
+
+        // add hyperblocks
+        XYSeries tmp1 = new XYSeries(0, false, true);
+
+        for (int j = 0; j < DV.fieldLength; j++)
+        {
+            tmp1.add(j, hb.minimums.get(0)[j]);
+        }
+
+        for (int j = DV.fieldLength - 1; j > -1; j--)
+        {
+            tmp1.add(j, hb.maximums.get(0)[j]);
+        }
+
+        tmp1.add(0, hb.minimums.get(0)[0]);
+
+        pcBlockRenderer.setSeriesPaint(0, Color.ORANGE);
+        pcBlockRenderer.setSeriesStroke(0, stroke);
+        pcBlocks.addSeries(tmp1);
+
+        JFreeChart pcChart = ChartFactory.createXYLineChart(
+                "",
+                "",
+                "",
+                goodGraphLines,
+                PlotOrientation.VERTICAL,
+                false,
+                true,
+                false);
+
+        // format chart
+        pcChart.setBorderVisible(false);
+        pcChart.setPadding(RectangleInsets.ZERO_INSETS);
+
+        // get plot
+        XYPlot plot = (XYPlot) pcChart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { DV.graphColors[0] },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(1)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+
+        // set block renderer and dataset
+        pcBlockRenderer.setBaseStroke(new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcBlockRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(0, pcBlockRenderer);
+        plot.setDataset(0, pcBlocks);
+
+        badLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        badLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(1, badLineRenderer);
+        plot.setDataset(1, badGraphLines);
+
+        goodLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        goodLineRenderer.setAutoPopulateSeriesStroke(false);
+        plot.setRenderer(2, goodLineRenderer);
+        plot.setDataset(2, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+        return chartPanel;
+    }
+
     private void increase_level()
+    {
+        // get all artificial datapoints
+        System.out.println("Avgs: " + artificial.size());
+        System.out.println("HBs: " + hyper_blocks.size());
+
+        originalObjects = new ArrayList<>();
+        originalObjects.addAll(objects);
+
+        originalHyperBlocks = new ArrayList<>();
+        originalHyperBlocks.addAll(hyper_blocks);
+
+        ArrayList<double[]> tmpData = new ArrayList<>();
+        ArrayList<double[]> tmpData2 = new ArrayList<>();
+
+        // starting
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            ArrayList<double[]> stuff = create_averages(i);
+
+            for (int j = 0; j < stuff.size(); j++)
+            {
+                if (hyper_blocks.get(i).classNum == 0)
+                    tmpData.add(stuff.get(j));
+                else
+                    tmpData2.add(stuff.get(j));
+            }
+
+        }
+
+        DV.misclassifiedData.clear();
+
+        misclassified.clear();
+        acc.clear();
+
+        objects = new ArrayList<>();
+        upperObjects = new ArrayList<>();
+        lowerObjects = new ArrayList<>();
+
+        double[][] newData = new double[tmpData.size()][DV.fieldLength];
+        tmpData.toArray(newData);
+        DataObject newObj = new DataObject("upper", newData);
+
+        double[][] newData2 = new double[tmpData2.size()][DV.fieldLength];
+        tmpData2.toArray(newData2);
+        DataObject newObj2 = new DataObject("lower", newData2);
+
+        newObj.updateCoordinatesGLC(DV.angles);
+        upperObjects.add(newObj);
+
+        newObj2.updateCoordinatesGLC(DV.angles);
+        lowerObjects.add(newObj2);
+
+        objects.add(upperObjects);
+        objects.add(lowerObjects);
+
+        DV.data.clear();
+        DV.data.add(newObj);
+        DV.data.add(newObj2);
+
+        generateHyperblocks3();
+        blockCheck();
+
+        average_hb_test();
+    }
+
+    private ArrayList<double[]> create_averages(int num)
+    {
+        ArrayList<double[]> stuff = new ArrayList<>();
+
+        double avgs = hyper_blocks.get(num).hyper_block.get(0).size() / 30.0;
+        boolean more = false;
+
+        if (avgs >= 1)
+            more = true;
+
+        if (more)
+        {
+            double[] avg1 = new double[DV.fieldLength];
+            double[] avg2 = new double[DV.fieldLength];
+            double[] avg3 = new double[DV.fieldLength];
+
+            Arrays.fill(avg1, 0);
+            Arrays.fill(avg2, 0);
+            Arrays.fill(avg3, 0);
+
+            int upper = 0;
+            int lower = 0;
+            int middle = 0;
+
+            double[] low = new double[DV.fieldLength];
+            double[] up = new double[DV.fieldLength];
+            boolean[] same = new boolean[DV.fieldLength];
+
+            Arrays.fill(low, 0);
+            Arrays.fill(up, 0);
+            Arrays.fill(same, false);
+
+            for (int k = 0; k < hyper_blocks.get(num).maximums.size(); k++)
+            {
+                double range = hyper_blocks.get(num).maximums.get(0)[k] - hyper_blocks.get(num).minimums.get(0)[k];
+                double split = range * (1.0/3.0);
+
+                up[k] = split * 2;
+                low[k] = split;
+
+                if (range < 0.1)
+                    same[k] = true;
+            }
+
+            for (int j = 0; j < hyper_blocks.get(num).hyper_block.get(0).size(); j++)
+            {
+                for (int k = 0; k < hyper_blocks.get(num).hyper_block.get(0).get(j).length; k++)
+                {
+                    if (same[k])
+                    {
+                        avg1[k] += hyper_blocks.get(num).hyper_block.get(0).get(j)[k];
+                        lower++;
+                        avg2[k] += hyper_blocks.get(num).hyper_block.get(0).get(j)[k];
+                        middle++;
+                        avg3[k] += hyper_blocks.get(num).hyper_block.get(0).get(j)[k];
+                        upper++;
+                    }
+                    else if (hyper_blocks.get(num).hyper_block.get(0).get(j)[k] > up[k]) // upper
+                    {
+                        avg3[k] += hyper_blocks.get(num).hyper_block.get(0).get(j)[k];
+                        upper++;
+                    }
+                    else if (hyper_blocks.get(num).hyper_block.get(0).get(j)[k] < low[k]) // lower
+                    {
+                        avg1[k] += hyper_blocks.get(num).hyper_block.get(0).get(j)[k];
+                        lower++;
+                    }
+                    else // middle
+                    {
+                        avg2[k] += hyper_blocks.get(num).hyper_block.get(0).get(j)[k];
+                        middle++;
+                    }
+                }
+            }
+
+            for (int j = 0; j < hyper_blocks.get(num).hyper_block.get(0).get(0).length; j++)
+            {
+                avg1[j] /= lower;
+                avg2[j] /= middle;
+                avg3[j] /= upper;
+            }
+
+
+            stuff.add(avg1);
+            stuff.add(avg2);
+            stuff.add(avg3);
+        }
+        else
+        {
+            double[] avg = new double[DV.fieldLength];
+
+            Arrays.fill(avg, 0);
+
+            for (int j = 0; j < hyper_blocks.get(num).hyper_block.get(0).size(); j++)
+            {
+                for (int k = 0; k < hyper_blocks.get(num).hyper_block.get(0).get(j).length; k++)
+                {
+                    avg[k] += hyper_blocks.get(num).hyper_block.get(0).get(j)[k];
+                }
+            }
+
+            for (int j = 0; j < hyper_blocks.get(num).hyper_block.get(0).get(0).length; j++)
+                avg[j] /= hyper_blocks.get(num).hyper_block.get(0).size();
+
+            stuff.add(avg);
+        }
+
+        return stuff;
+    }
+
+    private void average_hb_test()
+    {
+        // we need to keep track of if each point is in each HB
+        // if this point is good
+        // if this point is bad
+        // or if this point is not in any hb
+        int[] good = new int[hyper_blocks.size()];
+        int[] bad = new int[hyper_blocks.size()];
+
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            good[i] = 0;
+            bad[i] = 0;
+        }
+        int not_in = 0;
+
+        // populate main series
+        for (int d = 0; d < originalObjects.size(); d++)
+        {
+            for (DataObject data : originalObjects.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    boolean in_one = false;
+
+                    for (int hb = 0; hb < hyper_blocks.size(); hb++)
+                    {
+                        // start line at (0, 0)
+                        boolean within = false;
+
+                        for (int k = 0; k < hyper_blocks.get(hb).hyper_block.size(); k++)
+                        {
+                            boolean within_cur = true;
+
+                            for (int j = 0; j < DV.fieldLength; j++)
+                            {
+                                if (data.data[i][j] < hyper_blocks.get(hb).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(hb).maximums.get(k)[j])
+                                {
+                                    within_cur = false;
+                                }
+
+                                if (j == DV.fieldLength - 1)
+                                {
+                                    if (within_cur)
+                                    {
+                                        within = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        // add points to lines
+                        for (int j = 0; j < DV.fieldLength; j++)
+                        {
+                            // add endpoint and timeline
+                            if (j == DV.fieldLength - 1)
+                            {
+                                // add series
+                                if (within)
+                                {
+                                    in_one = true;
+
+                                    if (d == hyper_blocks.get(hb).classNum)
+                                    {
+                                        good[hb]++;
+                                    }
+                                    else
+                                    {
+                                        bad[hb]++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if(!in_one) not_in++;
+                }
+            }
+        }
+
+
+        // we now know the correctly and incorrectly classified points in each HB
+        // we also know the number of points not in any HB
+
+        System.out.println("\n\n\n");
+
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            if (good[i] + bad[i] > 0)
+                System.out.println("HB-" + (i+1) + ":\n" + "\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: " + (good[i] / (double)(good[i] + bad[i])));
+            else
+                System.out.println("HB-" + (i+1) + ":\n" + "\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: NAN");
+        }
+        System.out.println("\nData not in any HB: " + not_in);
+        System.out.println("\n\n\n");
+    }
+
+    private void increase_level_REAL()
     {
         ArrayList<HyperBlock> storage = new ArrayList<>(hyper_blocks);
         hyper_blocks.addAll(test_hyper_blocks);
@@ -301,7 +831,6 @@ public class HyperBlockVisualization
         testTabs.add("Original", tmpteststuff);
 
         hyper_blocks = new ArrayList<>(storage);
-
 
         originalObjects = new ArrayList<>();
         originalObjects.addAll(objects);
@@ -985,7 +1514,7 @@ public class HyperBlockVisualization
             {
                 blocks.add(new HyperBlock(new ArrayList<>()));
                 blocks.get(cnt).hyper_block.add(new ArrayList<>(List.of(stuff.get(i).get(j))));
-                blocks.get(cnt).getBounds();
+                blocks.get(cnt).findBounds();
                 blocks.get(cnt).className = DV.data.get(i).className;
                 blocks.get(cnt).classNum = i;
                 cnt++;
@@ -1098,7 +1627,7 @@ public class HyperBlockVisualization
                         actionTaken = true;
                         tmp.hyper_block.get(0).clear();
                         tmp.hyper_block.get(0).addAll(pointsInSpace);
-                        tmp.getBounds();
+                        tmp.findBounds();
                         toBeDeleted.add(i);
                     }
                 }
@@ -1371,7 +1900,7 @@ public class HyperBlockVisualization
                     }
                     tmp.hyper_block.get(0).clear();
                     tmp.hyper_block.get(0).addAll(pointsInSpace);
-                    tmp.getBounds();
+                    tmp.findBounds();
 
                     // store this index to delete the cube that was combined
                     toBeDeleted.add(highestAccIndex);
@@ -1486,6 +2015,7 @@ public class HyperBlockVisualization
     private void classify_new_case()
     {
         original_num = hyper_blocks.size();
+        double[] test_mah = new double[]{1.975812333099429, 1.284909284046077, 0.6306117275483252, 2.9777008547494446, 3.0285801070325156, 0.6306117275483252, 3.208965647593643, 3.088327068745582, 1.7661883479067624, 0.8742481279541545, 1.1603281359622302, 0.6306117275483252, 1.6013262293532615, 16.433274822372734, 1.975812333099429, 1.5936640297164983, 1.371620583840687, 4.5054896968870235, 4.5054896968870235, 1.6006900723548672, 1.975812333099429, 2.548922139765465, 1.1603281359622302, 1.6323024061944285, 1.4324773890770508, 3.4220349318247343, 1.5936640297164983, 6.840199795474814, 2.320521986616137, 2.1128503428456833, 1.975812333099429, 1.284909284046077, 2.099028244516945, 1.975812333099429, 1.975812333099429, 1.975812333099429, 1.975812333099429, 1.5503053661096706, 1.3534282889192037, 25.329843078565062, 3.0285801070325156, 1.0774479359860019, 1.117869755403515, 1.826687955756608, 1.284909284046077, 13.054773756312496, 13.701330449842725, 19.205033769263736, 27.67490587248777, 21.266069360353328, 21.517660028312264, 36.72848151971808, 25.40681063598222, 30.428878426956903, 32.383219823574336, 6.523765004338447, 17.95536613435098, 31.713285879651643, 49.05903825896904, 14.245378584683916, 23.935501211330717, 19.282746073973502, 18.963044564996725, 19.92497087604741, 20.01301730021541, 20.703514020332495, 22.81345242007682, 22.068232758567163, 20.256938759467623};
 
         int cnt = 0;
 
@@ -1500,7 +2030,7 @@ public class HyperBlockVisualization
                     {
                         System.out.println("\nCREATING NEW HB!");
                         System.out.println("Test Case Class: " + i);
-                        create_kNN_HB(DV.testData.get(i).data[j], 5);
+                        create_kNN_HB(DV.testData.get(i).data[j], test_mah[cnt], 5);
                     }
 
                     else
@@ -1511,6 +2041,8 @@ public class HyperBlockVisualization
                 }
                 else
                     cnt++;*/
+
+                cnt++;
             }
         }
 
@@ -1552,11 +2084,11 @@ public class HyperBlockVisualization
     }
 
     // create pure hb around a new case
-    private void create_kNN_HB(double[] c, int k)
+    private void create_kNN_HB(double[] c, double val, int k)
     {
         // create HB
-        HyperBlock hb_c = kNN(c, k);
-        test_hyper_blocks.add(hb_c);
+        HyperBlock hb_c = kNN_mahalanobis(c, val, k);
+        hyper_blocks.add(hb_c);
         System.out.println("HB Class: " + hb_c.classNum + "\n");
 
         double[] avg = new double[DV.fieldLength];
@@ -1593,6 +2125,66 @@ public class HyperBlockVisualization
                 for (int q = 0; q < objects.get(i).get(j).data.length; q++)
                 {
                     double dist = euclidean_distance(x, objects.get(i).get(j).data[q]);
+
+                    if (cluster.size() < k)
+                    {
+                        dists[cluster.size()] = dist;
+                        classes[cluster.size()] = i;
+                        cluster.add(objects.get(i).get(j).data[k]);
+                    }
+                    else
+                    {
+                        double num = 0;
+                        int index = 0;
+
+                        for (int w = 0; w < k; w++)
+                        {
+                            if (dist < dists[w] && (dist - dists[w]) < num)
+                            {
+                                num = dist - dists[w];
+                                index = w;
+                            }
+                        }
+
+                        if (num < 0)
+                        {
+                            cluster.set(index, objects.get(i).get(j).data[k]);
+                            classes[index] = i;
+                            dists[index] = dist;
+                        }
+                    }
+                }
+            }
+        }
+
+        cluster.add(x);
+        ArrayList<ArrayList<double[]>> data_c = new ArrayList<>(List.of(cluster));
+
+        // create HB
+        HyperBlock hb_c = new HyperBlock(data_c);
+        hb_c.classNum = classify_hb(classes, hb_c);
+
+        return hb_c;
+    }
+
+    private HyperBlock kNN_mahalanobis(double[] x, double val, int k)
+    {
+        ArrayList<double[]> cluster = new ArrayList<>();
+        double[] dists = new double[k];
+        int[] classes = new int[k];
+
+        double[] train_mah = new double[]{2.066354732712421, 13.98735041009519, 1.046333559705122, 17.24407121832487, 2.186915224235358, 17.071965771796844, 1.972975465178567, 8.747465762548657, 1.5033382401784798, 2.674087134154137, 0.8704170281357733, 2.6687547802767435, 0.8742481279541546, 1.371620583840687, 3.244543361680094, 0.6306117275483252, 2.1880683431851486, 2.1093191344052484, 1.6013262293532615, 0.8704170281357733, 4.989155884090962, 1.06977227882828, 1.4324773890770508, 1.4753270477221958, 1.0862678066727285, 0.870417028135773, 15.078190428616542, 2.1685517914466885, 1.5936640297164983, 2.186915224235358, 1.7779307547736631, 1.5936640297164983, 1.371620583840687, 2.2860155184648834, 3.428344385422842, 12.803379133987075, 3.9635531263719344, 8.148567160529156, 4.1859928508293045, 1.33617318098772, 1.4335505882041621, 13.713965204066742, 1.1026310517332243, 2.390108209626137, 12.347405946097439, 1.371620583840687, 1.5546795050134716, 2.1880683431851486, 1.3832227119710072, 1.371620583840687, 1.5936640297164983, 1.4324773890770506, 2.1880683431851486, 1.554636922388419, 2.066354732712421, 1.6409167821669677, 2.578631331753054, 7.84638959731352, 2.2844943760173817, 5.719246839691202, 4.7491857090891365, 5.104777374767509, 1.5854803247758606, 2.852523481625524, 1.6215975631453132, 1.5936640297164983, 1.1603281359622302, 34.934486620895896, 3.428344385422842, 1.4324773890770508, 0.8281106778394318, 1.1973531578597063, 2.3397454889491027, 0.8742481279541545, 1.0774479359860019, 1.1943032681909391, 1.0774479359860019, 1.284909284046077, 5.719246839691202, 0.8704170281357733, 2.302625900549903, 28.845047589797502, 2.674087134154137, 1.9602150590365206, 1.975812333099429, 2.3384218356378788, 1.4324773890770508, 1.4206125115140142, 1.1603281359622302, 21.692297815590738, 1.20528922070971, 1.1603281359622302, 2.65138635804643, 1.0774479359860019, 2.1880683431851486, 1.5936640297164983, 1.4324773890770508, 1.371620583840687, 2.674087134154137, 1.975812333099429, 3.244543361680094, 1.914888309803047, 3.9018193540582615, 1.601326229353261, 2.1880683431851486, 1.1603281359622302, 1.371620583840687, 8.319977443489272, 4.275548265033009, 1.975812333099429, 0.6306117275483252, 2.1880683431851486, 2.066354732712421, 2.1880683431851486, 2.674087134154137, 2.674087134154137, 2.5379420427094415, 2.1880683431851486, 1.5936640297164983, 2.1880683431851486, 4.698839315334091, 2.19487086418763, 1.5936640297164983, 2.674087134154137, 8.982755966339218, 6.0522440466039065, 3.937324830663116, 2.4526510149234477, 1.4324773890770508, 7.7165196427694465, 2.1880683431851486, 1.8224131567970592, 6.863559293146329, 2.9777008547494446, 10.080769602170571, 1.0774479359860019, 0.6306117275483252, 1.1603281359622302, 12.178930186112348, 6.518566099539499, 2.1880683431851486, 2.066354732712421, 1.22563847950436, 0.6306117275483252, 1.5936640297164983, 2.1880683431851486, 1.1603281359622302, 1.4753270477221958, 1.1973531578597063, 1.975812333099429, 2.1880683431851486, 4.74809906739866, 11.687890562020673, 2.1880683431851486, 2.1880683431851486, 2.1880683431851486, 2.1880683431851486, 5.949720841304825, 1.4335505882041621, 1.975812333099429, 1.975812333099429, 2.0400403214824365, 6.765423859826195, 7.742587369627828, 1.1603281359622302, 2.1880683431851486, 1.4457666315216737, 1.5936640297164983, 2.558244351790042, 1.4467915814662338, 1.975812333099429, 2.1880683431851486, 2.0400403214824365, 2.1880683431851486, 1.284909284046077, 1.975812333099429, 1.975812333099429, 3.081170413448166, 3.7665531212134065, 3.4539952179200757, 1.4324773890770508, 9.733612990726316, 1.5936640297164983, 1.5584467229225405, 2.333613153530106, 3.6124475478547455, 1.4324773890770508, 0.8704170281357733, 4.989155884090962, 5.133198638252578, 2.0102105198129716, 4.989155884090962, 1.1943032681909391, 1.8657562907749943, 1.0862678066727285, 1.975812333099429, 1.5936640297164983, 2.0400403214824365, 3.395708832450196, 3.8425309979291247, 1.975812333099429, 0.9327093329614633, 1.284909284046077, 1.284909284046077, 3.6935149484385223, 1.8759454297195663, 1.0842343942956825, 2.0922907011070695, 1.7139055405675787, 0.6306117275483252, 2.382546125662317, 3.61530469822875, 0.6306117275483252, 1.1603281359622302, 1.3534282889192037, 1.4847089094840342, 4.305342659250819, 1.0774479359860019, 2.3734530066656547, 2.8220104315211145, 4.088219094583042, 1.5936640297164983, 0.9153085327352488, 1.5936640297164983, 2.4157045302860736, 1.0862678066727285, 1.5936640297164983, 2.200049992151084, 6.2668398575831725, 1.5936640297164983, 1.1472009450031182, 7.825972844027412, 1.0537980002603713, 1.9609672442834158, 3.428344385422842, 1.0774479359860019, 11.779401500595418, 1.5936640297164983, 0.8704170281357733, 5.050053231503503, 4.679273400456304, 1.7661883479067624, 2.513056934368519, 13.513988175889526, 1.3534282889192037, 4.74843121616913, 2.1128503428456833, 4.401944863324574, 3.5785594644556507, 2.3059196634378143, 9.175728546631143, 1.284909284046077, 1.975812333099429, 2.1128503428456833, 2.382546125662317, 2.422292892451853, 2.1128503428456833, 2.274404260489741, 4.848682308151187, 2.3480634861053535, 4.041386382736273, 3.4539952179200757, 4.2111996584455635, 4.768967258268675, 1.6667974300904842, 1.3534282889192037, 1.3534282889192037, 2.320521986616137, 1.06977227882828, 4.768967258268675, 3.744421867936893, 1.3534282889192037, 2.1128503428456833, 1.0774479359860019, 1.7242423710664923, 1.3534282889192037, 2.8493473673956613, 2.5051526544366034, 5.584939273377225, 2.3480634861053535, 4.12527380848572, 1.06977227882828, 1.975812333099429, 1.3098008089911166, 22.907715280104735, 1.0697722788282797, 2.382546125662317,
+                2.1888901749616596, 0.8742481279541545, 0.8742481279541545, 3.244543361680094, 0.8742481279541545, 1.1026310517332243, 1.371620583840687, 1.975812333099429, 4.463498941555049, 4.177636916733701, 2.1128503428456833, 1.284909284046077, 1.975812333099429, 1.6013262293532615, 2.1128503428456833, 1.06977227882828, 2.382546125662317, 2.0400403214824365, 1.8711913354546725, 2.5749805221278774, 1.9634200886766269, 0.6306117275483252, 1.3832227119710072, 1.3534282889192037, 1.3716205838406865, 5.390082898590918, 1.3098008089911166, 0.9153085327352488, 2.674087134154137, 0.6306117275483252, 0.8704170281357733, 4.968285852434665, 2.066354732712421, 2.200049992151084, 0.8742481279541545, 2.811859101944171, 1.4807515623443204, 1.0774479359860019, 5.1030419024448195, 0.8742481279541545, 3.6304366709223235, 1.6013262293532615, 1.6880352063659727, 1.476965988062906, 0.6306117275483252, 2.1880683431851486, 1.9362200459007395, 7.161227486822898, 1.0774479359860019, 14.231304311034648, 2.3944615208088478, 3.4539952179200757, 0.8704170281357733, 1.6013262293532615, 2.066354732712421, 2.066354732712421, 2.1880683431851486, 0.6306117275483252, 1.4206125115140142, 1.5652252731761296, 1.1893536875090311, 0.6306117275483252, 1.5936640297164983, 2.200049992151084, 1.6013262293532615, 1.5936640297164983, 1.5936640297164983, 2.1880683431851486, 1.7857804307024283, 1.0774479359860019, 10.29409112952154, 1.975812333099429, 1.7661883479067624, 2.1128503428456833, 2.3480634861053535, 1.6013262293532615, 1.194303268190939, 3.7918550049609947, 0.6306117275483252, 6.180854682098881, 0.6306117275483252, 2.0400403214824365, 0.8742481279541545, 1.695250202546872, 1.975812333099429, 2.1128503428456833, 4.0416542090535135, 1.3131854496587192, 2.9724681617989726, 0.6306117275483253, 0.8742481279541545, 1.6013262293532615, 0.6306117275483252, 6.574973289316958, 5.640639359168244, 1.975812333099429, 2.332860833253399, 4.801036621302534, 4.723502398571744, 1.284909284046077, 1.3534282889192037, 3.8344207573686675, 1.6013262293532615, 1.975812333099429, 1.0774479359860019, 6.971022259204466, 4.097689029907875, 1.3534282889192037, 3.4539952179200757, 2.6224788887082693, 0.6306117275483252, 0.6306117275483252, 9.696921415393732, 1.5825164533292089, 12.677950480840533, 11.119996982053454, 13.504661611319824, 20.546162790256993, 15.7489864660282, 6.953137271892834, 12.104061126479598, 28.06431311468222, 13.820575742854729, 12.6724486225516, 12.362110028376687, 22.096107070824047, 28.67625111559413, 28.47699023916822, 13.597759504856908, 14.700556363123333, 25.113804792711193, 2.025875487803124, 20.629402164731314, 28.435065638458, 19.763546179666953, 8.701600479014214, 30.730117674898082, 14.117360351452616, 17.408673152115476, 10.639713776408566, 15.714601608255782, 33.21798248431422, 14.274641068931906, 44.63472764234434, 27.59098127985281, 42.84292335207326, 68.0635633365362, 21.15481734173104, 12.628808316609717, 24.72079414802643, 51.8022357361955, 9.913959922563363, 8.945165628227384, 48.277891914094674, 12.730803571659074, 39.732742781491986, 6.824609263281786, 19.2518647982011, 37.610129487997796, 16.252892069013825, 33.17678286897131, 26.013991769305875, 10.49919484271381, 12.855412713285416, 25.577207277627792, 31.113729067467645, 28.14741209597795, 25.379060304976974, 21.42301765207297, 25.270413453801957, 14.645562380298289, 17.542961251551713, 22.090206470541442, 3.970790540832069, 10.956231447005173, 19.62958185300255, 16.666665207579754, 18.934986210047438, 11.433912404572029, 16.997758582318276, 7.046367330586009, 19.361472412445398, 60.69908082064885, 17.459309342248545, 11.146002933106915, 18.232909557289545, 26.030323605253813, 13.747581910831114, 8.661382891194714, 11.178490376908643, 22.312560361538946, 36.07331218620473, 25.230131044603727, 12.048926496909713, 38.388114696947056, 5.294723501123709, 27.267998041867678, 13.54782313972014, 19.238794774079015, 14.717924003692982, 12.408093503885837, 8.847988659886415, 21.720977451582222, 11.051955294751425, 17.252818207574535, 35.62042764675301, 3.7790239763303757, 6.292482457739575, 12.974232030110677, 13.870443858482474, 13.671072948293709, 21.289426751809508, 9.62855483400433, 7.2921141625737285, 13.177745890748902, 36.702129614626905, 15.826915152557028, 36.49811774417682, 13.849616283868569, 10.486758338016282, 10.531611220440865, 21.256936286174895, 22.096107070824047, 33.21798248431422, 12.440644495629224, 25.474431832830184, 21.03253593486808, 8.615328062094688, 20.22663663626464, 36.677063315297275, 28.147003371634714, 17.118834495288592, 34.46528584049656, 21.936433948821858, 17.118834495288592, 4.296489003306805, 27.698025364370903, 20.46535486122924, 15.153450103078185, 22.367290151773553, 11.05170576136085, 32.04598906105828, 20.780568073763273, 13.579507378806026, 17.360655207059406, 10.988381669153231, 22.561963791627036, 34.02327485427141, 25.15085403825553, 17.29246616946618, 30.872331519170405, 13.31946473074035, 40.93311378103352, 8.97841276465745, 8.706817304895534, 24.311342518115453, 21.692202016673445, 22.369672153484583, 47.49995060474981, 15.657310080719803, 17.248407876451157, 8.55864610167089, 10.997067174041954, 10.943936954810807, 9.173871281476305, 20.290570513748012, 24.579451955388233, 20.691311758164893, 10.20702911166505, 27.49574207227197, 2.016879969558297, 26.441298972188704, 28.75134207497063, 10.039794086253165, 28.673572934028304, 47.358727675150234, 15.14833109354556, 11.890883508235756, 18.698314875123458, 14.673796778429384, 14.039344467512562, 35.83524216032261, 18.829179206812018, 9.310049627795825, 21.965757215267647, 23.9252209612987, 17.341880497696508, 18.295793624886624, 26.953263865006086, 33.58709244869957, 34.48917477838923, 13.237198103070613, 17.02495284236582, 13.882253720568379, 11.27275187676009, 22.56300127721484, 12.736021724619768, 15.713924687604797, 4.985412931293462, 14.24427322862943, 36.53256939196098, 11.481080599807369, 24.714338061147608, 19.78595726168441, 3.463759090404905, 20.9867668131546, 15.82668303971548, 22.1014492898862, 16.3030583564118, 40.15406221533512, 23.481197622533475, 10.393619221359039, 13.496795844187492, 13.063005316322439, 18.64163574841981, 21.303844600943645, 22.594657094006767, 16.51604117602026, 28.231691249419796, 36.12891279728376, 23.0215843474471, 18.598034906645555, 14.028938042068631, 29.168021968442705, 13.751197383158448, 24.091783757321025, 40.43227286177044};
+
+        int cnt=0;
+        for (int i = 0; i < objects.size(); i++)
+        {
+            for (int j = 0; j < objects.get(i).size(); j++)
+            {
+                for (int q = 0; q < objects.get(i).get(j).data.length; q++)
+                {
+                    double dist = Math.abs(val - train_mah[cnt]);
+                    cnt++;
 
                     if (cluster.size() < k)
                     {
@@ -1718,6 +2310,80 @@ public class HyperBlockVisualization
         }
 
         return Math.sqrt(dist);
+    }
+
+    private void mahalanobis_distance(double[] x, double[] y)
+    {
+        // create covariance matrix
+
+        // create matrix then transpose
+        double[][] sub = new double[x.length][1];
+
+        for (int i = 0; i < x.length; i++)
+            sub[i][0] = x[i] - y[i];
+
+        double[][] trans = transpose(sub);
+
+
+    }
+
+    private double p_norm(double[] x, int p)
+    {
+        double p_n = 0;
+        for (double v : x)
+            p_n = Math.pow(Math.abs(v), p);
+
+        return Math.pow(p_n, 1.0/p);
+    }
+
+    private double[] mean_vector(ArrayList<ArrayList<DataObject>> obj)
+    {
+        double[] means = new double[DV.fieldLength];
+        int cnt = 0;
+
+        for (int i = 0; i < obj.size(); i++)
+        {
+            for (int j = 0; j < obj.get(i).size(); j++)
+            {
+                for (int k = 0; k < obj.get(i).get(j).data.length; k++)
+                {
+                    for (int w = 0; w < DV.fieldLength; w++)
+                    {
+                        means[w] += obj.get(i).get(j).data[k][w];
+                    }
+
+                    cnt++;
+                }
+            }
+        }
+
+        for (int w = 0; w < DV.fieldLength; w++)
+        {
+            means[w] /= cnt;
+        }
+
+        return means;
+    }
+
+    private double[][] covariance_matrix(double[] x, double[] y)
+    {
+        double[][] cov = new double[x.length][x.length];
+
+        return new double[0][0];
+    }
+
+    // transpose matrix x
+    private double[][] transpose(double[][] x)
+    {
+        double[][] y = new double[x.length][x.length];
+
+        for (int i = 0; i < x.length; i++)
+        {
+            for (int j = 0; j < x.length; j++)
+                y[i][j] = x[j][i];
+        }
+
+        return y;
     }
 
 
@@ -2646,7 +3312,7 @@ public class HyperBlockVisualization
             }
 
             hyper_blocks.get(index).hyper_block.add(temp);
-            hyper_blocks.get(index).getBounds();
+            hyper_blocks.get(index).findBounds();
         }
 
         for (int i = 0; i < combined_hb_index.size(); i++)
@@ -4486,9 +5152,8 @@ public class HyperBlockVisualization
                 }
 
                 // get bounds
-                hyper_blocks.get(finalC).getBounds();
+                hyper_blocks.get(finalC).findBounds();
 
-                // remove all selected blocks from hyperblocks
                 // remove all selected blocks from hyperblocks
                 for (int i = 0, offset = 0; i < combine_checks.size(); i++)
                 {
@@ -4507,7 +5172,7 @@ public class HyperBlockVisualization
 
                 // redo graphs
                 tiles_active = false;
-                tile.doClick();
+                updateGraphs();
             });
 
             JButton confirm_analyse = new JButton("Confirm Analyse");
@@ -5214,7 +5879,7 @@ public class HyperBlockVisualization
                     }
 
                     // get bounds
-                    hyper_blocks.get(finalC).getBounds();
+                    hyper_blocks.get(finalC).findBounds();
 
                     // remove all selected blocks from hyperblocks
                     for (int i = 0, offset = 0; i < checks.size(); i++)
