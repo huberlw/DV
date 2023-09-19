@@ -694,10 +694,32 @@ public class HyperBlockVisualization
                 avg3[j] /= upper;
             }
 
+            // find data closest to each average
+            // euclidean distance
 
-            stuff.add(avg1);
-            stuff.add(avg2);
-            stuff.add(avg3);
+            double[] real1 = new double[DV.fieldLength];
+            double[] real2 = new double[DV.fieldLength];
+            double[] real3 = new double[DV.fieldLength];
+
+            double dist1 = Double.MAX_VALUE;
+            double dist2 = Double.MAX_VALUE;
+            double dist3 = Double.MAX_VALUE;
+
+            for (int j = 0; j < hyper_blocks.get(num).hyper_block.get(0).size(); j++)
+            {
+                if (dist1 > euclidean_distance(avg1, hyper_blocks.get(num).hyper_block.get(0).get(j)))
+                    real1 = hyper_blocks.get(num).hyper_block.get(0).get(j);
+
+                if (dist2 > euclidean_distance(avg2, hyper_blocks.get(num).hyper_block.get(0).get(j)))
+                    real2 = hyper_blocks.get(num).hyper_block.get(0).get(j);
+
+                if (dist3 > euclidean_distance(avg3, hyper_blocks.get(num).hyper_block.get(0).get(j)))
+                    real3 = hyper_blocks.get(num).hyper_block.get(0).get(j);
+            }
+
+            stuff.add(real1);
+            stuff.add(real2);
+            stuff.add(real3);
         }
         else
         {
@@ -716,7 +738,17 @@ public class HyperBlockVisualization
             for (int j = 0; j < hyper_blocks.get(num).hyper_block.get(0).get(0).length; j++)
                 avg[j] /= hyper_blocks.get(num).hyper_block.get(0).size();
 
-            stuff.add(avg);
+            double[] real = new double[DV.fieldLength];
+
+            double dist = Double.MAX_VALUE;
+
+            for (int j = 0; j < hyper_blocks.get(num).hyper_block.get(0).size(); j++)
+            {
+                if (dist > euclidean_distance(avg, hyper_blocks.get(num).hyper_block.get(0).get(j)))
+                    real = hyper_blocks.get(num).hyper_block.get(0).get(j);
+            }
+
+            stuff.add(real);
         }
 
         return stuff;

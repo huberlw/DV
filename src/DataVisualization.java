@@ -111,7 +111,7 @@ public class DataVisualization
             // bubble sort ascending
 
             for (int j = 0; j < DV.fieldLength; j++)
-                AngleSliders.createSliderPanel_GLC("tmp " + j, (int) (DV.angles[j] * 100), j);//DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
 
             // get overlap area
             getOverlap();

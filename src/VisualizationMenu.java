@@ -628,7 +628,7 @@ public class VisualizationMenu extends JPanel
                     for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
                     {
                         if (DV.glc_or_dsc)
-                            AngleSliders.createSliderPanel_GLC("tmp " + 1, (int) (DV.angles[j] * 100), j);//DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
                         else
                             AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
                     }
@@ -732,7 +732,7 @@ public class VisualizationMenu extends JPanel
                     {
                         DV.activeAttributes.set(index, attributes[index].isSelected());
 
-                        int cnt = 0;
+                        /*int cnt = 0;
                         for (int i = 0; i < DV.activeAttributes.size(); i++)
                         {
                             if (DV.activeAttributes.get(i))
@@ -748,7 +748,48 @@ public class VisualizationMenu extends JPanel
                         {
                             attributes[index].setSelected(true);
                             DV.activeAttributes.set(index, true);
+                        }*/
+
+                        DV.fieldLength--;
+
+                        for (int i = 0; i < DV.data.size(); i++)
+                        {
+                            for (int j = 0; j < DV.data.get(i).data.length; j++)
+                            {
+                                double[] tmp = new double[DV.fieldLength];
+
+                                for (int k = 0, cnt = 0; k < DV.data.get(i).data[j].length; k++)
+                                {
+                                    if (k != index)
+                                    {
+                                        tmp[cnt] = DV.data.get(i).data[j][k];
+                                        cnt++;
+                                    }
+                                }
+
+                                DV.data.get(i).data[j] = tmp;
+                            }
                         }
+
+                        double[] new_angles = new double[DV.fieldLength];
+
+                        for (int k = 0, cnt = 0; k < DV.angles.length; k++)
+                        {
+                            if (k != index)
+                            {
+                                new_angles[cnt] = DV.angles[k];
+                                cnt++;
+                            }
+                            else
+                            {
+                                DV.fieldNames.remove(index);
+                            }
+                        }
+
+                        DV.angles = new_angles;
+
+                        DataVisualization.optimizeSetup();
+                        DataVisualization.drawGraphs();
                     });
 
                     removal.add(attributes[index]);

@@ -912,10 +912,10 @@ public class DV extends JFrame
                 if (success)
                 {
                     // optimize data setup with Linear Discriminant Analysis
-                    //DataVisualization.optimizeSetup();
+                    DataVisualization.optimizeSetup();
                     //DataVisualization.SVM();
-                    //DataVisualization.drawGraphs();
-                    DataVisualization.drawReg();
+                    DataVisualization.drawGraphs();
+                    //DataVisualization.drawReg();
                 }
                 else
                 {
