@@ -773,7 +773,7 @@ public class DV extends JFrame
     /**
      * Asks user questions about data then creates project
      */
-    private void createNewProject()
+    public void createNewProject()
     {
         try
         {
@@ -912,9 +912,13 @@ public class DV extends JFrame
                 if (success)
                 {
                     // optimize data setup with Linear Discriminant Analysis
-                    DataVisualization.optimizeSetup();
+                    //DataVisualization.optimizeSetup();
                     //DataVisualization.SVM();
-                    DataVisualization.drawGraphs();
+                    //DataVisualization.drawGraphs();
+
+                    HyperBlockGeneration yippee = new HyperBlockGeneration();
+                    yippee.increase_level();
+
                     //DataVisualization.drawReg();
 
                 }
@@ -948,6 +952,7 @@ public class DV extends JFrame
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             JOptionPane.showMessageDialog(
                     mainFrame,
                     "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",

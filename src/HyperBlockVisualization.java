@@ -177,6 +177,13 @@ public class HyperBlockVisualization
 
     private void choose_plot()
     {
+        if (true)
+        {
+            graphPanel.removeAll();
+            graphLabel.setText("");
+            return;
+        }
+
         switch (plot_id)
         {
             case 0 ->
@@ -550,7 +557,7 @@ public class HyperBlockVisualization
         return chartPanel;
     }
 
-    private void increase_level()
+    public void increase_level()
     {
         // get all artificial datapoints
         System.out.println("Avgs: " + artificial.size());
@@ -4284,7 +4291,6 @@ public class HyperBlockVisualization
             attributes.add(tmpField);
         }
 
-        // order attributes by sizes
         for (ArrayList<Pnt> attribute : attributes)
         {
             attribute.sort(Comparator.comparingDouble(o -> o.value));

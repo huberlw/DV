@@ -5,6 +5,9 @@ import javax.swing.*;
 import java.util.*;
 import java.util.List;
 
+import static java.lang.Math.max;
+import static java.util.Arrays.sort;
+
 public class HyperBlockGeneration
 {
     // DO int CURRENT LEVEL
@@ -46,16 +49,181 @@ public class HyperBlockGeneration
      ***********************************************************
      */
     // Accuracy threshold for hyperblocks
-    //double acc_threshold = DV.accuracy / 100;
+    double acc_threshold = 100;
+
+
+    HyperBlockGeneration()
+    {
+        // put in list and sort
+        // get largest interval
+        // continue until no more intervals
+        // do dustin algorithm
+        getData();
+        generateHyperblocks();
+        hb_test();
+
+        // visualize blocks
+        // save blocks
+    }
+
+    private void generateHyperblocks()
+    {
+        // create hyperblocks
+        hyper_blocks.clear();
+
+        ArrayList<ArrayList<DataATTR>> attributes = new ArrayList<>();
+
+        for (int k = 0; k < DV.fieldLength; k++)
+        {
+            ArrayList<DataATTR> tmpField = new ArrayList<>();
+
+            for (int i = 0; i < DV.data.size(); i++)
+            {
+                for (int j = 0; j < DV.data.get(i).data.length; j++)
+                {
+                    tmpField.add(new DataATTR(DV.data.get(i).data[j][k], i, j));
+                }
+            }
+
+            attributes.add(tmpField);
+        }
+
+        // Hyperblocks generated with this algorithm
+        ArrayList<HyperBlock> gen_hb = new ArrayList<>();
+
+        /***
+         * DELETE THIS LATER
+         * THIS IS JUST TO CREATE A SET OF DATA THAT IS NOT IN ANY INTERVAL HYPERBLOCK
+         */
+        ArrayList<ArrayList<DataATTR>> all_intv = new ArrayList<>();
+
+        while (!attributes.get(0).isEmpty())
+        {
+            // get largest hyperblock for each attribute
+            ArrayList<DataATTR> intv = interval_hyper(attributes, acc_threshold, gen_hb);
+            all_intv.add(intv);
+
+            // if Hyperblock is unique then add
+            if (intv.size() > 1)
+            {
+                // Create and add new Hyperblock
+                ArrayList<ArrayList<double[]>> hb_data = new ArrayList<>();
+                ArrayList<double[]> intv_data = new ArrayList<>();
+
+                for (int i = 0; i < intv.size(); i++)
+                {
+                    int cl = intv.get(i).cl;
+                    int cl_index = intv.get(i).cl_index;
+
+                    intv_data.add(DV.data.get(cl).data[cl_index]);
+                }
+
+                // Add data and Hyperblock
+                hb_data.add(intv_data);
+                HyperBlock tmp = new HyperBlock(hb_data);
+
+                /***
+                 * CHANGE THIS LATER TO VOTING
+                 */
+                tmp.classNum = intv.get(0).cl;
+
+
+                gen_hb.add(tmp);
+
+            }
+            // break loop if a unique HB cannot be found
+            else
+            {
+                break;
+            }
+        }
+
+        /***
+         * DELETE THIS LATER
+         * THIS IS JUST TO CREATE A SET OF DATA THAT IS NOT IN ANY INTERVAL HYPERBLOCK
+         */
+        // Create dataset without data from interval Hyperblocks
+        ArrayList<ArrayList<double[]>> data = new ArrayList<>();
+        ArrayList<ArrayList<double[]>> out_data = new ArrayList<>();
+        ArrayList<ArrayList<Integer>> skips = new ArrayList<>();
+
+        // all data
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            data.add(new ArrayList<>(Arrays.asList(DV.data.get(i).data)));
+            out_data.add(new ArrayList<>());
+            skips.add(new ArrayList<>());
+        }
+
+        // find which data to skip
+        for (int i = 0; i < all_intv.size(); i++)
+        {
+            for (int j = 0; j < all_intv.get(i).size(); j++)
+            {
+                int cl = all_intv.get(i).get(j).cl;
+                int cl_index = all_intv.get(i).get(j).cl_index;
+
+                skips.get(cl).add(cl_index);
+            }
+        }
+
+        for (int i = 0; i < skips.size(); i++)
+            Collections.sort(skips.get(i));
+
+        for (int i = 0; i < DV.data.size(); i++)
+        {
+            for (int j = 0; j < DV.data.get(i).data.length; j++)
+            {
+                if (!skips.get(i).isEmpty())
+                {
+                    if (j != skips.get(i).get(0))
+                    {
+                        out_data.get(i).add(DV.data.get(i).data[j]);
+                    }
+                    else
+                    {
+                        skips.get(i).remove(0);
+                    }
+                }
+                else
+                {
+                    out_data.get(i).add(DV.data.get(i).data[j]);
+                }
+            }
+        }
+
+        // run dustin algorithm
+        hyper_blocks.addAll(gen_hb);
+        merger_hyperblock(data, out_data);
+
+        // reorder blocks
+        ArrayList<HyperBlock> upper = new ArrayList<>();
+        ArrayList<HyperBlock> lower = new ArrayList<>();
+
+        for (HyperBlock hyperBlock : hyper_blocks)
+        {
+            if (hyperBlock.classNum == DV.upperClass)
+                upper.add(hyperBlock);
+            else
+                lower.add(hyperBlock);
+        }
+
+        upper.sort(new BlockComparator());
+        lower.sort(new BlockComparator());
+
+        hyper_blocks.clear();
+        hyper_blocks.addAll(upper);
+        hyper_blocks.addAll(lower);
+    }
 
 
     /**
      * Data Attribute. Stores one attribute of a datapoint and an identifying key shared with other attributes of the same datapoint.
-     * @param key identifier of a datapoint
      * @param value value of one attribute of a datapoint
      * @param cl class of a datapoint
+     * @param cl_index index of point within class
      */
-    private record DataATTR(int key, double value, int cl) {}
+    private record DataATTR(double value, int cl, int cl_index) {}
 
 
     /**
@@ -67,7 +235,41 @@ public class HyperBlockGeneration
      */
     private ArrayList<DataATTR> interval_hyper(ArrayList<ArrayList<DataATTR>> data_by_attr, double acc_threshold, ArrayList<HyperBlock> existing_hb)
     {
-        // Current largest interval for each attribute
+        int attr = -1;
+        int[] best = {-1, -1, -1};
+
+        // search each attribute
+        for (int i = 0; i < data_by_attr.size(); i++)
+        {
+            // sort data by value
+            data_by_attr.get(i).sort(Comparator.comparingDouble(o -> o.value));
+
+            // get longest interval for attribute
+            int[] interval = longest_interval(data_by_attr.get(i), acc_threshold, existing_hb, i);
+
+            if (interval[0] > 1 && interval[0] > best[0])
+            {
+                attr = i;
+                best[0] = interval[0];
+                best[1] = interval[1];
+                best[2] = interval[2];
+            }
+        }
+
+        // construct ArrayList of data
+        ArrayList<DataATTR> longest = new ArrayList<>();
+
+        if (best[0] != -1)
+        {
+            for (int i = best[1]; i <= best[2]; i++)
+            {
+                longest.add(data_by_attr.get(attr).get(i));
+            }
+        }
+
+        return longest;
+
+        /*// Current largest interval for each attribute
         ArrayList<ArrayList<DataATTR>> global_interval = new ArrayList<>();
 
         // loop through each attribute
@@ -197,7 +399,96 @@ public class HyperBlockGeneration
 
         // add attribute and class
         global_interval.get(biggest).add(new DataATTR(-1, biggest, global_interval.get(biggest).get(0).cl));
-        return global_interval.get(biggest);
+        return global_interval.get(biggest);*/
+    }
+
+
+    private int[] longest_interval(ArrayList<DataATTR> data_by_attr, double acc_threshold, ArrayList<HyperBlock> existing_hb, int attr)
+    {
+        // intervals and size
+        int[] intr = new int[] {1, 0, 0};
+        int[] max_intr = new int[] {-1, -1, -1};
+        int n = data_by_attr.size();
+
+        for (int i = 0; i < n; i++)
+        {
+            // If current class matches with next
+            if (i < n - 1 &&
+                    data_by_attr.get(i + 1).cl == data_by_attr.get(i).cl)
+            {
+                intr[0]++;
+            }
+            else
+            {
+                // Remove value from interval if identical
+                if (i < n - 1 && data_by_attr.get(i + 1).value == data_by_attr.get(i).value)
+                {
+                    intr = remove_value_from_interval(data_by_attr, intr, data_by_attr.get(i).value);
+                    i = skip_value_in_interval(data_by_attr, i, data_by_attr.get(i).value);
+                }
+
+                // Update longest interval if it doesn't overlap
+                if (intr[0] > max_intr[0] &&
+                        check_interval_hyperblock_overlap(data_by_attr, intr, attr, existing_hb))
+                {
+                    max_intr[0] = intr[0];
+                    max_intr[1] = intr[1];
+                    max_intr[2] = intr[2];
+                }
+
+                // Reset current interval
+                intr[0] = 1;
+                intr[1] = i + 1;
+            }
+
+            intr[2] = i + 1;
+        }
+
+        // return largest interval
+        return max_intr;
+    }
+
+
+    private int[] remove_value_from_interval(ArrayList<DataATTR> data_by_attr, int[] intr, double value)
+    {
+        while (data_by_attr.get(intr[2]).value == value)
+        {
+            if (intr[2] > 0)
+            {
+                intr[0]--;
+                intr[2]--;
+            }
+            else if (intr[1] <= intr[2])
+            {
+                intr[0] = -1;
+                intr[2] = intr[1];
+                break;
+            }
+            else
+            {
+                intr[0] = -1;
+                break;
+            }
+        }
+
+        return new int[]{intr[0], intr[1], intr[2]};
+    }
+
+    private int skip_value_in_interval(ArrayList<DataATTR> data_by_attr, int index, double value)
+    {
+        while (data_by_attr.get(index).value == value)
+        {
+            if (index < data_by_attr.size() - 1)
+            {
+                index++;
+            }
+            else
+            {
+                return data_by_attr.size() - 2;
+            }
+        }
+
+        return index - 1;
     }
 
 
@@ -499,16 +790,17 @@ public class HyperBlockGeneration
 
     /**
      * Checks if a given interval overlaps with any existing hyperblock.
-     * @param interval interval to check
-     * @param existing_hb all existing hyperblocks
+     * @param data_by_attr data interval exists on
+     * @param intv interval to check
      * @param attr attribute interval exists on
+     * @param existing_hb all existing hyperblocks
      * @return whether the interval is unique or not
      */
-    private boolean check_interval_hyperblock_overlap(ArrayList<DataATTR> interval, ArrayList<HyperBlock> existing_hb, int attr)
+    private boolean check_interval_hyperblock_overlap(ArrayList<DataATTR> data_by_attr, int[] intv,  int attr, ArrayList<HyperBlock> existing_hb)
     {
         // get interval range
-        double intv_max = interval.get(0).value;
-        double intv_min = interval.get(interval.size()-1).value;
+        double intv_min = data_by_attr.get(intv[1]).value;
+        double intv_max = data_by_attr.get(intv[2]).value;
 
         // check if interval range overlaps with any existing hyperblocks
         // to not overlap the interval maximum must be below all existing hyperblock minimums
@@ -551,9 +843,335 @@ public class HyperBlockGeneration
         }
     }
 
-    private void merger_hyperblock()
+    private void merger_hyperblock(ArrayList<ArrayList<double[]>> data, ArrayList<ArrayList<double[]>> out_data)
     {
+        ArrayList<HyperBlock> blocks = new ArrayList<>(hyper_blocks);
+        hyper_blocks.clear();
 
+        for (int i = 0, cnt = blocks.size(); i < out_data.size(); i++)
+        {
+            // create hyperblock from each datapoint
+            for (int j = 0; j < out_data.get(i).size(); j++)
+            {
+                blocks.add(new HyperBlock(new ArrayList<>()));
+                blocks.get(cnt).hyper_block.add(new ArrayList<>(List.of(out_data.get(i).get(j))));
+                blocks.get(cnt).findBounds();
+                blocks.get(cnt).classNum = i;
+                cnt++;
+            }
+        }
+
+        boolean actionTaken;
+        ArrayList<Integer> toBeDeleted = new ArrayList<>();
+        int cnt = blocks.size();
+
+        do
+        {
+            if (cnt <= 0)
+            {
+                cnt = blocks.size();
+            }
+
+            toBeDeleted.clear();
+            actionTaken = false;
+
+            if (blocks.size() <= 0)
+            {
+                break;
+            }
+
+            HyperBlock tmp = blocks.get(0);
+            blocks.remove(0);
+
+            int tmpClass = tmp.classNum;
+
+            for (int i = 0; i < blocks.size(); i++)
+            {
+                int curClass = blocks.get(i).classNum;
+
+                if (tmpClass != curClass)
+                    continue;
+
+                ArrayList<Double> maxPoint = new ArrayList<>();
+                ArrayList<Double> minPoint = new ArrayList<>();
+
+                // define combined space
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    double newLocalMax = Math.max(tmp.maximums.get(0)[j], blocks.get(i).maximums.get(0)[j]);
+                    double newLocalMin = Math.min(tmp.minimums.get(0)[j], blocks.get(i).minimums.get(0)[j]);
+
+                    maxPoint.add(newLocalMax);
+                    minPoint.add(newLocalMin);
+                }
+
+                ArrayList<double[]> pointsInSpace = new ArrayList<>();
+                ArrayList<Integer> classInSpace = new ArrayList<>();
+
+                for (int j = 0; j < data.size(); j++)
+                {
+                    for (int k = 0; k < data.get(j).size(); k++)
+                    {
+                        boolean withinSpace = true;
+                        double[] tmp_pnt = new double[DV.fieldLength];
+
+                        for (int w = 0; w < DV.fieldLength; w++)
+                        {
+                            tmp_pnt[w] = data.get(j).get(k)[w];
+
+                            if (!(tmp_pnt[w] <= maxPoint.get(w) && tmp_pnt[w] >= minPoint.get(w)))
+                            {
+                                withinSpace = false;
+                                break;
+                            }
+                        }
+
+                        if (withinSpace)
+                        {
+                            pointsInSpace.add(tmp_pnt);
+                            classInSpace.add(j);
+                        }
+                    }
+                }
+
+                // check if new space is pure
+                HashSet<Integer> classCnt = new HashSet<>(classInSpace);
+
+                if (classCnt.size() <= 1)
+                {
+                    actionTaken = true;
+                    tmp.hyper_block.get(0).clear();
+                    tmp.hyper_block.get(0).addAll(pointsInSpace);
+                    tmp.findBounds();
+                    toBeDeleted.add(i);
+                }
+            }
+
+            int offset = 0;
+
+            for (int i : toBeDeleted)
+            {
+                blocks.remove(i-offset);
+                offset++;
+            }
+
+            blocks.add(tmp);
+            cnt--;
+
+        } while (actionTaken || cnt > 0);
+
+        // impure
+        cnt = blocks.size();
+
+        do
+        {
+            if (cnt <= 0)
+            {
+                cnt = blocks.size();
+            }
+
+            toBeDeleted.clear();
+            actionTaken = false;
+
+            if (blocks.size() <= 1)
+            {
+                break;
+            }
+
+            HyperBlock tmp = blocks.get(0);
+            blocks.remove(0);
+
+            ArrayList<Double> acc = new ArrayList<>();
+
+            for (int i = 0; i < blocks.size(); i++)
+            {
+                // get majority class
+                int majorityClass = 0;
+
+                HashMap<Integer, Integer> classCnt = new HashMap<>();
+
+                for (int j = 0; j < blocks.get(i).hyper_block.size(); j++)
+                {
+                    int curClass = blocks.get(i).classNum;
+
+                    if (classCnt.containsKey(curClass))
+                    {
+                        classCnt.replace(curClass, classCnt.get(curClass) + 1);
+                    }
+                    else
+                    {
+                        classCnt.put(curClass, 1);
+                    }
+                }
+
+                int majorityCnt = Integer.MIN_VALUE;
+
+                for (int key : classCnt.keySet())
+                {
+                    if (classCnt.get(key) > majorityCnt)
+                    {
+                        majorityCnt = classCnt.get(key);
+                        majorityClass = key;
+                    }
+                }
+
+                ArrayList<Double> maxPoint = new ArrayList<>();
+                ArrayList<Double> minPoint = new ArrayList<>();
+
+                // define combined space
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    double newLocalMax = Math.max(tmp.maximums.get(0)[j], blocks.get(i).maximums.get(0)[j]);
+                    double newLocalMin = Math.min(tmp.minimums.get(0)[j], blocks.get(i).minimums.get(0)[j]);
+
+                    maxPoint.add(newLocalMax);
+                    minPoint.add(newLocalMin);
+                }
+
+                ArrayList<double[]> pointsInSpace = new ArrayList<>();
+                ArrayList<Integer> classInSpace = new ArrayList<>();
+
+                for (int j = 0; j < data.size(); j++)
+                {
+                    for (int k = 0; k < data.get(j).size(); k++)
+                    {
+                        boolean withinSpace = true;
+                        double[] tmp_pnt = new double[DV.fieldLength];
+
+                        for (int w = 0; w < DV.fieldLength; w++)
+                        {
+                            tmp_pnt[w] = data.get(j).get(k)[w];
+
+                            if (!(tmp_pnt[w] <= maxPoint.get(w) && tmp_pnt[w] >= minPoint.get(w)))
+                            {
+                                withinSpace = false;
+                                break;
+                            }
+                        }
+
+                        if (withinSpace)
+                        {
+                            pointsInSpace.add(tmp_pnt);
+                            classInSpace.add(j);
+                        }
+                    }
+                }
+
+                classCnt.clear();
+
+                // check if new space is pure enough
+                for (int ints : classInSpace)
+                {
+                    if (classCnt.containsKey(ints))
+                    {
+                        classCnt.replace(ints, classCnt.get(ints) + 1);
+                    }
+                    else
+                    {
+                        classCnt.put(ints, 1);
+                    }
+                }
+
+                double curClassTotal = 0;
+                double classTotal = 0;
+
+                for (int key : classCnt.keySet())
+                {
+                    if (key == majorityClass)
+                    {
+                        curClassTotal = classCnt.get(key);
+                    }
+
+                    classTotal += classCnt.get(key);
+                }
+
+                acc.add(curClassTotal / classTotal);
+            }
+
+            int highestAccIndex = 0;
+
+            for (int j = 0; j < acc.size(); j++)
+            {
+                if (acc.get(j) > acc.get(highestAccIndex))
+                {
+                    highestAccIndex = j;
+                }
+            }
+
+            // if acc meets threshold
+            if (acc.get(highestAccIndex) >= acc_threshold)
+            {
+                actionTaken = true;
+
+                ArrayList<Double> maxPoint = new ArrayList<>();
+                ArrayList<Double> minPoint = new ArrayList<>();
+
+                // define combined space
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    double newLocalMax = Math.max(tmp.maximums.get(0)[j], blocks.get(highestAccIndex).maximums.get(0)[j]);
+                    double newLocalMin = Math.min(tmp.minimums.get(0)[j], blocks.get(highestAccIndex).minimums.get(0)[j]);
+
+                    maxPoint.add(newLocalMax);
+                    minPoint.add(newLocalMin);
+                }
+
+                ArrayList<double[]> pointsInSpace = new ArrayList<>();
+                ArrayList<Integer> classInSpace = new ArrayList<>();
+
+                for (int j = 0; j < data.size(); j++)
+                {
+                    for (int k = 0; k < data.get(j).size(); k++)
+                    {
+                        boolean withinSpace = true;
+                        double[] tmp_pnt = new double[DV.fieldLength];
+
+                        for (int w = 0; w < DV.fieldLength; w++)
+                        {
+                            tmp_pnt[w] = data.get(j).get(k)[w];
+
+                            if (!(tmp_pnt[w] <= maxPoint.get(w) && tmp_pnt[w] >= minPoint.get(w)))
+                            {
+                                withinSpace = false;
+                                break;
+                            }
+                        }
+
+                        if (withinSpace)
+                        {
+                            pointsInSpace.add(tmp_pnt);
+                            classInSpace.add(j);
+                        }
+                    }
+                }
+
+                if (tmp.hyper_block.get(0).size() < blocks.get(highestAccIndex).hyper_block.get(0).size())
+                {
+                    tmp.classNum = blocks.get(highestAccIndex).classNum;
+                }
+
+                tmp.hyper_block.get(0).clear();
+                tmp.hyper_block.get(0).addAll(pointsInSpace);
+                tmp.findBounds();
+
+                // store this index to delete the cube that was combined
+                toBeDeleted.add(highestAccIndex);
+            }
+
+            int offset = 0;
+
+            for (int i : toBeDeleted)
+            {
+                blocks.remove(i-offset);
+                offset++;
+            }
+
+            blocks.add(tmp);
+            cnt--;
+
+        } while (actionTaken || cnt > 0);
+
+        hyper_blocks.addAll(blocks);
     }
 
     private void interval_merger_hyperblock()
@@ -1750,10 +2368,10 @@ public class HyperBlockGeneration
 
 
 
-    class BlockComparator implements Comparator<HyperBlock>
+    static class BlockComparator implements Comparator<HyperBlock>
     {
 
-        // override the compare() method
+        // Gives largest Hyperblock
         public int compare(HyperBlock b1, HyperBlock b2)
         {
             int b1_size = 0;
@@ -1765,21 +2383,13 @@ public class HyperBlockGeneration
             for (int i = 0; i < b2.hyper_block.size(); i++)
                 b2_size += b2.hyper_block.get(i).size();
 
-            if (b1_size == b2_size)
-                return 0;
-            else if (b1_size < b2_size)
-                return 1;
-            else
-                return -1;
+            return Integer.compare(b2_size, b1_size);
         }
     }
 
-    /*private void increase_level()
+    public void increase_level()
     {
         // get all artificial datapoints
-        System.out.println("Avgs: " + artificial.size());
-        System.out.println("HBs: " + hyper_blocks.size());
-
         originalObjects = new ArrayList<>();
         originalObjects.addAll(objects);
 
@@ -1792,7 +2402,7 @@ public class HyperBlockGeneration
         // starting
         for (int i = 0; i < hyper_blocks.size(); i++)
         {
-            ArrayList<double[]> stuff = create_averages_more_detailed_and_lossless(i);//create_averages_more_detailed(i);//find_evelope_cases(i);
+            ArrayList<double[]> stuff = find_evelope_cases(i);
 
             for (int j = 0; j < stuff.size(); j++)
             {
@@ -1804,10 +2414,10 @@ public class HyperBlockGeneration
 
         }
 
-        DV.misclassifiedData.clear();
+        //DV.misclassifiedData.clear();
 
-        misclassified.clear();
-        acc.clear();
+        //misclassified.clear();
+        //acc.clear();
 
         objects = new ArrayList<>();
         upperObjects = new ArrayList<>();
@@ -1834,11 +2444,11 @@ public class HyperBlockGeneration
         DV.data.add(newObj);
         DV.data.add(newObj2);
 
-        generateHyperblocks3();
+        generateHyperblocks();
         blockCheck();
 
         average_hb_test();
-    }*/
+    }
 
     private void average_hb_test()
     {
@@ -1929,11 +2539,84 @@ public class HyperBlockGeneration
         for (int i = 0; i < hyper_blocks.size(); i++)
         {
             if (good[i] + bad[i] > 0)
-                System.out.println("HB-" + (i+1) + ":\n" + "\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: " + (good[i] / (double)(good[i] + bad[i])));
+                System.out.println("HB-" + (i+1) + ":\n" + "\tSize: " + (good[i] + bad[i]) + "\n\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: " + (good[i] / (double)(good[i] + bad[i])));
             else
-                System.out.println("HB-" + (i+1) + ":\n" + "\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: NAN");
+                System.out.println("HB-" + (i+1) + ":\n" + "\tSize: " + (good[i] + bad[i]) + "\n\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: NAN");
         }
         System.out.println("\nData not in any HB: " + not_in);
+        System.out.println("\n\n\n");
+    }
+
+    private void hb_test()
+    {
+        // we need to keep track of if each point is in each HB
+        // if this point is good
+        // if this point is bad
+        // or if this point is not in any hb
+        int[] good = new int[hyper_blocks.size()];
+        int[] bad = new int[hyper_blocks.size()];
+
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            good[i] = 0;
+            bad[i] = 0;
+        }
+        int not_in = 0;
+
+        // populate main series
+        for (int d = 0; d < objects.size(); d++)
+        {
+            for (DataObject data : objects.get(d))
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    for (int hb = 0; hb < hyper_blocks.size(); hb++)
+                    {
+                        for (int k = 0; k < hyper_blocks.get(hb).hyper_block.size(); k++)
+                        {
+                            boolean within_cur = true;
+
+                            for (int j = 0; j < DV.fieldLength; j++)
+                            {
+                                if (data.data[i][j] < hyper_blocks.get(hb).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(hb).maximums.get(k)[j])
+                                {
+                                    within_cur = false;
+                                }
+
+                                if (j == DV.fieldLength - 1)
+                                {
+                                    if (within_cur)
+                                    {
+                                        if (d == hyper_blocks.get(hb).classNum)
+                                        {
+                                            good[hb]++;
+                                        }
+                                        else
+                                        {
+                                            bad[hb]++;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        // we now know the correctly and incorrectly classified points in each HB
+        // we also know the number of points not in any HB
+
+        System.out.println("\n\n\n");
+
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            if (good[i] + bad[i] > 0)
+                System.out.println("HB-" + (i+1) + ":\n" + "\tSize: " + (good[i] + bad[i]) + "\n\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: " + (good[i] / (double)(good[i] + bad[i])));
+            else
+                System.out.println("HB-" + (i+1) + ":\n" + "\tSize: " + (good[i] + bad[i]) + "\n\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: NAN");
+        }
         System.out.println("\n\n\n");
     }
 
@@ -2102,8 +2785,6 @@ public class HyperBlockGeneration
             }
         }
 
-        System.out.println("TOTAL NUM IN BLOCKS: " + bcnt + "\n");
-
         int[] counter = new int[hyper_blocks.size()];
         ArrayList<ArrayList<double[]>> hello = new ArrayList<>();
 
@@ -2165,8 +2846,8 @@ public class HyperBlockGeneration
                 }
             }
 
-            System.out.println("\nBlock " + (h+1) + " Size: " + counter[h]);
-            System.out.println("Block " + (h+1) + " Accuracy: " + (maj_cnt / counter[h]));
+            //System.out.println("\nBlock " + (h+1) + " Size: " + counter[h]);
+            //System.out.println("Block " + (h+1) + " Accuracy: " + (maj_cnt / counter[h]));
 
             acc.add(maj_cnt / counter[h]);
             misclassified.add(counter[h] - (int)maj_cnt);
@@ -2186,7 +2867,7 @@ public class HyperBlockGeneration
                 }
             }
 
-            System.out.println("Block " + (h+1) + " Duplicates: " + cnt);
+            //System.out.println("Block " + (h+1) + " Duplicates: " + cnt);
 
             ArrayList<double[]> tmptmp = new ArrayList<>(inside);
             hello.add(tmptmp);
