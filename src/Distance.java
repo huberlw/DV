@@ -1,6 +1,12 @@
 public class Distance
 {
-    private double euclidean(double[] x, double[] y)
+    /**
+     * Euclidean Distance
+     * @param x n-d point
+     * @param y n-d point
+     * @return euclidean distance between x and y
+     */
+    private double euclidean_distance(double[] x, double[] y)
     {
         double dist = 0;
 
@@ -13,7 +19,14 @@ public class Distance
         return Math.sqrt(dist);
     }
 
-    private double[] lossless(double[] x, double[] y)
+
+    /**
+     * Interpretable Distance Technique
+     * @param x n-d point
+     * @param y n-d point
+     * @return interpretable distance between x and y
+     */
+    private double[] lossless_distance(double[] x, double[] y)
     {
         double[] dist = new double[x.length];
 

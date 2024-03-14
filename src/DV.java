@@ -200,7 +200,7 @@ public class DV extends JFrame
     static double testSplit = 0;
     static ArrayList<DataObject> trainData;
     static ArrayList<DataObject> testData;
-    static ArrayList<double[]> misclassifiedData;
+    static ArrayList<ArrayList<double[]>> misclassifiedData;
     static ArrayList<DataObject> normalizedData;
     static ArrayList<DataObject> originalData;
     static DataObject supportVectors;
@@ -653,7 +653,7 @@ public class DV extends JFrame
         // create hyperblocks for all data
         JButton hpBtn = new JButton("Hyperblocks");
         hpBtn.setToolTipText("Generate hyperblocks for all data");
-        hpBtn.addActionListener(e -> new HyperBlockVisualization());
+        //hpBtn.addActionListener(e -> new HyperBlockVisualization());
         toolBar.add(hpBtn);
         toolBar.addSeparator();
 
@@ -912,15 +912,9 @@ public class DV extends JFrame
                 if (success)
                 {
                     // optimize data setup with Linear Discriminant Analysis
-                    //DataVisualization.optimizeSetup();
+                    DataVisualization.optimizeSetup();
                     //DataVisualization.SVM();
-                    //DataVisualization.drawGraphs();
-
-                    HyperBlockGeneration yippee = new HyperBlockGeneration();
-                    yippee.increase_level();
-
-                    //DataVisualization.drawReg();
-
+                    DataVisualization.drawGraphs();
                 }
                 else
                 {

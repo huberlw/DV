@@ -24,395 +24,108 @@ public class ColorMenu extends JPanel
 
         JButton[] colorOptions = new JButton[9];
 
+
         // set domain line color
-        colorOptions[0] = new JButton("Domain Line Color");
-        colorOptions[0].setToolTipText("Sets color of subset of utilized data lines");
-        colorOptions[0].setBorderPainted(false);
-        colorOptions[0].setFocusPainted(false);
-        colorOptions[0].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[0].setFont(colorOptions[0].getFont().deriveFont(12f));
+        colorOptions[0] = colorChangeButton(
+                "Domain Line Color",
+                "Sets color of subset of utilized data lines",
+                DV.domainLines);
         colorOptions[0].setBackground(Color.LIGHT_GRAY);
-        colorOptions[0].setIcon(createIcon(DV.domainLines));
-        colorOptions[0].addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                colorOption.set(0);
-                colorOptions[0].setBackground(Color.LIGHT_GRAY);
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                colorOptions[0].setBackground(new Color(218,218,218));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                if (colorOption.get() == 0)
-                    colorOptions[0].setBackground(Color.LIGHT_GRAY);
-                else
-                    colorOptions[0].setBackground(UIManager.getColor("control"));
-            }
-        });
+        colorOptions[0].addMouseListener(highlightButton(colorOptions, colorOption, 0));
 
         constraints.gridx = 0;
         constraints.gridy = 0;
         constraints.fill = GridBagConstraints.HORIZONTAL;
         colors.add(colorOptions[0], constraints);
 
+
         // set overlap line color
-        colorOptions[1] = new JButton("Overlap Line Color");
-        colorOptions[1].setToolTipText("Sets color of overlap lines");
-        colorOptions[1].setBorderPainted(false);
-        colorOptions[1].setFocusPainted(false);
-        colorOptions[1].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[1].setFont(colorOptions[1].getFont().deriveFont(12f));
-        colorOptions[1].setIcon(createIcon(DV.overlapLines));
-        colorOptions[1].addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                colorOption.set(1);
-                colorOptions[1].setBackground(Color.LIGHT_GRAY);
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                colorOptions[1].setBackground(new Color(218,218,218));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                if (colorOption.get() == 1)
-                    colorOptions[1].setBackground(Color.LIGHT_GRAY);
-                else
-                    colorOptions[1].setBackground(UIManager.getColor("control"));
-            }
-        });
+        colorOptions[1] = colorChangeButton(
+                "Overlap Line Color",
+                "Sets color of overlap lines",
+                DV.overlapLines);
+        colorOptions[1].addMouseListener(highlightButton(colorOptions, colorOption, 1));
 
         constraints.gridy = 1;
         colors.add(colorOptions[1], constraints);
 
+
         // set threshold line color
-        colorOptions[2] = new JButton("Threshold Line Color");
-        colorOptions[2].setToolTipText("Sets color of threshold line");
-        colorOptions[2].setBorderPainted(false);
-        colorOptions[2].setFocusPainted(false);
-        colorOptions[2].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[2].setFont(colorOptions[2].getFont().deriveFont(12f));
-        colorOptions[2].setIcon(createIcon(DV.thresholdLine));
-        colorOptions[2].addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                colorOption.set(2);
-                colorOptions[2].setBackground(Color.LIGHT_GRAY);
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                colorOptions[2].setBackground(new Color(218,218,218));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                if (colorOption.get() == 2)
-                    colorOptions[2].setBackground(Color.LIGHT_GRAY);
-                else
-                    colorOptions[2].setBackground(UIManager.getColor("control"));
-            }
-        });
+        colorOptions[2] = colorChangeButton(
+                "Threshold Line Color",
+                "Sets color of threshold line",
+                DV.thresholdLine);
+        colorOptions[2].addMouseListener(highlightButton(colorOptions, colorOption, 2));
 
         constraints.gridy = 2;
         colors.add(colorOptions[2], constraints);
 
+
         // set background color
-        colorOptions[3] = new JButton("Background Color");
-        colorOptions[3].setToolTipText("Sets color of graph background");
-        colorOptions[3].setBorderPainted(false);
-        colorOptions[3].setFocusPainted(false);
-        colorOptions[3].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[3].setFont(colorOptions[3].getFont().deriveFont(12f));
-        colorOptions[3].setIcon(createIcon(DV.background));
-        colorOptions[3].addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                colorOption.set(3);
-                colorOptions[3].setBackground(Color.LIGHT_GRAY);
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                colorOptions[3].setBackground(new Color(218,218,218));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                if (colorOption.get() == 3)
-                    colorOptions[3].setBackground(Color.LIGHT_GRAY);
-                else
-                    colorOptions[3].setBackground(UIManager.getColor("control"));
-            }
-        });
+        colorOptions[3] = colorChangeButton(
+                "Background Color",
+                "Sets color of graph background",
+                DV.background);
+        colorOptions[3].addMouseListener(highlightButton(colorOptions, colorOption, 3));
 
         constraints.gridy = 3;
         colors.add(colorOptions[3], constraints);
 
+
         // set upper graph color
-        colorOptions[4] = new JButton("Upper Graph Color");
-        colorOptions[4].setToolTipText("Sets color of upperGraph");
-        colorOptions[4].setBorderPainted(false);
-        colorOptions[4].setFocusPainted(false);
-        colorOptions[4].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[4].setFont(colorOptions[4].getFont().deriveFont(12f));
-        colorOptions[4].setIcon(createIcon(DV.graphColors[0]));
-        colorOptions[4].addMouseListener(new MouseListener()
-                {
-                    @Override
-                    public void mouseClicked(MouseEvent e)
-                    {
-                        colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                        colorOption.set(4);
-                        colorOptions[4].setBackground(Color.LIGHT_GRAY);
-                    }
-
-                    @Override
-                    public void mousePressed(MouseEvent e) {}
-
-                    @Override
-                    public void mouseReleased(MouseEvent e) {}
-
-                    @Override
-                    public void mouseEntered(MouseEvent e)
-                    {
-                        colorOptions[4].setBackground(new Color(218,218,218));
-                    }
-
-                    @Override
-                    public void mouseExited(MouseEvent e)
-                    {
-                        if (colorOption.get() == 4)
-                            colorOptions[4].setBackground(Color.LIGHT_GRAY);
-                        else
-                            colorOptions[4].setBackground(UIManager.getColor("control"));
-                    }
-                });
+        colorOptions[4] = colorChangeButton(
+                "Upper Graph Color",
+                "Sets color of upperGraph",
+                DV.graphColors[0]);
+        colorOptions[4].addMouseListener(highlightButton(colorOptions, colorOption, 4));
 
         constraints.gridy = 4;
         colors.add(colorOptions[4], constraints);
 
+
         // set lower graph color
-        colorOptions[5] = new JButton("Lower Graph Color");
-        colorOptions[5].setToolTipText("Sets color of lower graph");
-        colorOptions[5].setBorderPainted(false);
-        colorOptions[5].setFocusPainted(false);
-        colorOptions[5].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[5].setFont(colorOptions[5].getFont().deriveFont(12f));
-        colorOptions[5].setIcon(createIcon(DV.graphColors[1]));
-        colorOptions[5].addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                colorOption.set(5);
-                colorOptions[5].setBackground(Color.LIGHT_GRAY);
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                colorOptions[5].setBackground(new Color(218,218,218));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                if (colorOption.get() == 5)
-                    colorOptions[5].setBackground(Color.LIGHT_GRAY);
-                else
-                    colorOptions[5].setBackground(UIManager.getColor("control"));
-            }
-        });
+        colorOptions[5] = colorChangeButton(
+                "Lower Graph Color",
+                "Sets color of lower graph",
+                DV.graphColors[1]);
+        colorOptions[5].addMouseListener(highlightButton(colorOptions, colorOption, 5));
 
         constraints.gridy = 5;
         colors.add(colorOptions[5], constraints);
 
+
         // set endpoint color
-        colorOptions[6] = new JButton("Endpoint Color");
-        colorOptions[6].setToolTipText("Sets color of endpoints for upper and lower graphs");
-        colorOptions[6].setBorderPainted(false);
-        colorOptions[6].setFocusPainted(false);
-        colorOptions[6].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[6].setFont(colorOptions[6].getFont().deriveFont(12f));
-        colorOptions[6].setIcon(createIcon(DV.endpoints));
-        colorOptions[6].addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                colorOption.set(6);
-                colorOptions[6].setBackground(Color.LIGHT_GRAY);
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                colorOptions[6].setBackground(new Color(218,218,218));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                if (colorOption.get() == 6)
-                    colorOptions[6].setBackground(Color.LIGHT_GRAY);
-                else
-                    colorOptions[6].setBackground(UIManager.getColor("control"));
-            }
-        });
+        colorOptions[6] = colorChangeButton(
+                "Endpoint Color",
+                "Sets color of endpoints for upper and lower graphs",
+                DV.endpoints);
+        colorOptions[6].addMouseListener(highlightButton(colorOptions, colorOption, 6));
 
         constraints.gridy = 6;
         colors.add(colorOptions[6], constraints);
 
+
         // set lower graph color
-        colorOptions[7] = new JButton("SVM Color");
-        colorOptions[7].setToolTipText("Sets color of support vectors when drawn.");
-        colorOptions[7].setBorderPainted(false);
-        colorOptions[7].setFocusPainted(false);
-        colorOptions[7].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[7].setFont(colorOptions[7].getFont().deriveFont(12f));
-        colorOptions[7].setIcon(createIcon(DV.svmLines));
-        colorOptions[7].addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                colorOption.set(7);
-                colorOptions[7].setBackground(Color.LIGHT_GRAY);
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                colorOptions[7].setBackground(new Color(218,218,218));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                if (colorOption.get() == 7)
-                    colorOptions[7].setBackground(Color.LIGHT_GRAY);
-                else
-                    colorOptions[7].setBackground(UIManager.getColor("control"));
-            }
-        });
+        colorOptions[7] = colorChangeButton(
+                "SVM Color",
+                "Sets color of support vectors when drawn.",
+                DV.svmLines);
+        colorOptions[7].addMouseListener(highlightButton(colorOptions, colorOption, 7));
 
         constraints.gridy = 7;
         colors.add(colorOptions[7], constraints);
 
+
         // set lower graph color
-        colorOptions[8] = new JButton("SVM Endpoint Color");
-        colorOptions[8].setToolTipText("Sets color of support vectors endpoints when drawn.");
-        colorOptions[8].setBorderPainted(false);
-        colorOptions[8].setFocusPainted(false);
-        colorOptions[8].setHorizontalAlignment(SwingConstants.LEFT);
-        colorOptions[8].setFont(colorOptions[8].getFont().deriveFont(12f));
-        colorOptions[8].setIcon(createIcon(DV.svmEndpoints));
-        colorOptions[8].addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
-                colorOption.set(8);
-                colorOptions[8].setBackground(Color.LIGHT_GRAY);
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e)
-            {
-                colorOptions[7].setBackground(new Color(218,218,218));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e)
-            {
-                if (colorOption.get() == 8)
-                    colorOptions[8].setBackground(Color.LIGHT_GRAY);
-                else
-                    colorOptions[8].setBackground(UIManager.getColor("control"));
-            }
-        });
+        colorOptions[8] = colorChangeButton(
+                "SVM Endpoint Color",
+                "Sets color of support vectors endpoints when drawn.",
+                DV.svmEndpoints);
+        colorOptions[8].addMouseListener(highlightButton(colorOptions, colorOption, 8));
 
         constraints.gridy = 8;
         colors.add(colorOptions[8], constraints);
+
 
         constraints.gridx = 1;
         constraints.gridy = 0;
@@ -421,29 +134,16 @@ public class ColorMenu extends JPanel
         JColorChooser colorChooser = new JColorChooser();
         colors.add(colorChooser, constraints);
 
-        JButton applyBtn = new JButton("Apply Color");
-        applyBtn.setToolTipText("Applies the selected color to the selected graph component.");
-        applyBtn.setFont(applyBtn.getFont().deriveFont(Font.BOLD, 12f));
-
-        applyBtn.addActionListener(e ->
-        {
-            Color newColor = colorChooser.getColor();
-
-            if (newColor != null)
-            {
-                int component = colorOption.get();
-                setColor(component, newColor);
-                colorOptions[component].setIcon(createIcon(newColor));
-            }
-        });
 
         constraints.gridx = 1;
         constraints.gridy = 10;
         constraints.gridheight = 1;
         constraints.gridwidth = 1;
         constraints.fill = GridBagConstraints.HORIZONTAL;
-        colors.add(applyBtn, constraints);
+        colors.add(applyButton(colorChooser, colorOption, colorOptions), constraints);
 
+
+        // display color menu
         int choice = JOptionPane.showConfirmDialog(DV.mainFrame, colors, "Color Options", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (choice == 0)
@@ -457,6 +157,98 @@ public class ColorMenu extends JPanel
                 colorOptions[component].setIcon(createIcon(newColor));
             }
         }
+    }
+
+
+    /**
+     * Button which selects a DV feature to change its color
+     * @param label label for button
+     * @param tooltip tooltip for button
+     * @param icon_color current color
+     * @return button which selects a DV feature
+     */
+    private JButton colorChangeButton(String label, String tooltip, Color icon_color)
+    {
+        JButton colorBtn = new JButton(label);
+        colorBtn.setToolTipText(tooltip);
+        colorBtn.setBorderPainted(false);
+        colorBtn.setFocusPainted(false);
+        colorBtn.setHorizontalAlignment(SwingConstants.LEFT);
+        colorBtn.setFont(colorBtn.getFont().deriveFont(12f));
+        colorBtn.setIcon(createIcon(icon_color));
+
+        return colorBtn;
+    }
+
+
+    /**
+     * MouseListener which highlights the current button when clicked or hovered over
+     * @param colorOptions all color options for DV
+     * @param colorOption previously selected color option
+     * @param cur current color option
+     * @return MouseListener which highlights the current button
+     */
+    private MouseListener highlightButton(JButton[] colorOptions, AtomicInteger colorOption, int cur)
+    {
+        return new MouseListener()
+        {
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                colorOptions[colorOption.get()].setBackground(UIManager.getColor("control"));
+                colorOption.set(cur);
+                colorOptions[cur].setBackground(Color.LIGHT_GRAY);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {}
+
+            @Override
+            public void mouseReleased(MouseEvent e) {}
+
+            @Override
+            public void mouseEntered(MouseEvent e)
+            {
+                colorOptions[cur].setBackground(new Color(218,218,218));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e)
+            {
+                if (colorOption.get() == cur)
+                    colorOptions[cur].setBackground(Color.LIGHT_GRAY);
+                else
+                    colorOptions[cur].setBackground(UIManager.getColor("control"));
+            }
+        };
+    }
+
+
+    /**
+     * Button that applies a color to a component
+     * @param colorChooser color chooser
+     * @param colorOption current DV component
+     * @param colorOptions all DV components
+     * @return Button that applies the selected color to the selected component
+     */
+    private JButton applyButton(JColorChooser colorChooser, AtomicInteger colorOption, JButton[] colorOptions)
+    {
+        JButton applyBtn = new JButton("Apply Color");
+        applyBtn.setToolTipText("Applies the selected color to the selected graph component.");
+        applyBtn.setFont(applyBtn.getFont().deriveFont(Font.BOLD, 12f));
+        applyBtn.addActionListener(e ->
+        {
+            Color newColor = colorChooser.getColor();
+
+            if (newColor != null)
+            {
+                int component = colorOption.get();
+                setColor(component, newColor);
+                colorOptions[component].setIcon(createIcon(newColor));
+            }
+        });
+
+        return applyBtn;
     }
 
 
@@ -480,6 +272,10 @@ public class ColorMenu extends JPanel
             case 7 -> DV.svmLines = newColor;
             case 8 -> DV.svmEndpoints = newColor;
         }
+
+        // redraw graphs
+        if (DV.data != null)
+            DataVisualization.drawGraphs();
     }
 
 

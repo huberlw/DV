@@ -103,15 +103,18 @@ public class DataVisualization
                     findBestThreshold(0);
             }
 
-            // optimize angles
-            optimizeAngles(false);
+            if (DV.glc_or_dsc)
+            {
+                // optimize angles
+                optimizeAngles(false);
 
-            DV.angleSliderPanel.removeAll();
+                DV.angleSliderPanel.removeAll();
 
-            // bubble sort ascending
+                // bubble sort ascending
 
-            for (int j = 0; j < DV.fieldLength; j++)
-                AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                for (int j = 0; j < DV.fieldLength; j++)
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+            }
 
             // get overlap area
             getOverlap();
@@ -1648,19 +1651,22 @@ public class DataVisualization
 
         double max = 0;
 
-        // get bar lengths
-        for (int i = 0; i < DV.data.size(); i++)
+        if (DV.glc_or_dsc)
         {
-            int[] barRanges = new int[400];
-            // translate endpoint to slider ticks
-            // increment bar which endpoint lands
-            for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+            // get bar lengths
+            for (int i = 0; i < DV.data.size(); i++)
             {
-                int tmpTick = (int) (Math.round((DV.data.get(i).coordinates[j][active-1][0] / DV.fieldLength * 200) + 200));
-                barRanges[tmpTick]++;
+                int[] barRanges = new int[400];
+                // translate endpoint to slider ticks
+                // increment bar which endpoint lands
+                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                {
+                    int tmpTick = (int) (Math.round((DV.data.get(i).coordinates[j][active-1][0] / DV.fieldLength * 200) + 200));
+                    barRanges[tmpTick]++;
 
-                if (barRanges[tmpTick] > max)
-                    max = barRanges[tmpTick];
+                    if (barRanges[tmpTick] > max)
+                        max = barRanges[tmpTick];
+                }
             }
         }
 

@@ -1,5 +1,10 @@
+import java.util.logging.Logger;
+
 public class DataObject
 {
+    // exception logger
+    private final static Logger LOGGER = Logger.getLogger(Analytics.class.getName());
+
     // class name and data
     String className;
     double[][] data;
