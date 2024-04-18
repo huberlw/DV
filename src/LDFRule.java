@@ -3,15 +3,12 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.NumberTickUnit;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.labels.StandardXYItemLabelGenerator;
-import org.jfree.chart.plot.DefaultDrawingSupplier;
-import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleEdge;
-import org.jfree.ui.RectangleInsets;
 
 import javax.swing.*;
 import java.awt.*;
@@ -157,16 +154,16 @@ public class LDFRule
 
         for (int i = 0; i < ruleStrips.size(); i++)
         {
-            for (int j = 0; j < DV.data.size(); j++)
+            for (int j = 0; j < DV.trainData.size(); j++)
             {
-                for (int k = 0; k < DV.data.get(j).coordinates.length; k++)
+                for (int k = 0; k < DV.trainData.get(j).coordinates.length; k++)
                 {
                     // check if within strip
                     boolean inDomain = false;
                     boolean inRange = false;
 
-                    double x = DV.data.get(j).coordinates[k][DV.fieldLength-1][0];
-                    double y = DV.data.get(j).coordinates[k][DV.fieldLength-1][1];
+                    double x = DV.trainData.get(j).coordinates[k][DV.fieldLength-1][0];
+                    double y = DV.trainData.get(j).coordinates[k][DV.fieldLength-1][1];
 
                     if (ruleStrips.get(i)[0][0] < ruleStrips.get(i)[1][0])
                     {
@@ -223,8 +220,8 @@ public class LDFRule
                         }
                         else
                         {
-                            double lowB = DV.data.get(ruleStripRanges.get(i)[0]).coordinates[ruleStripRanges.get(i)[1]][DV.fieldLength-1][0];
-                            double highB = DV.data.get(ruleStripRanges.get(i)[2]).coordinates[ruleStripRanges.get(i)[3]][DV.fieldLength-1][0];
+                            double lowB = DV.trainData.get(ruleStripRanges.get(i)[0]).coordinates[ruleStripRanges.get(i)[1]][DV.fieldLength-1][0];
+                            double highB = DV.trainData.get(ruleStripRanges.get(i)[2]).coordinates[ruleStripRanges.get(i)[3]][DV.fieldLength-1][0];
 
                             if (x < lowB)
                             {
@@ -252,16 +249,16 @@ public class LDFRule
      */
     private void getStripRules()
     {
-        String upperClass = DV.data.get(DV.upperClass).className;
+        String upperClass = DV.trainData.get(DV.upperClass).className;
         StringBuilder lowerClasses = new StringBuilder();
 
-        for (int i = 0; i < DV.data.size(); i++)
+        for (int i = 0; i < DV.trainData.size(); i++)
         {
             if (DV.lowerClasses.get(i))
             {
-                lowerClasses.append(DV.data.get(i).className);
+                lowerClasses.append(DV.trainData.get(i).className);
 
-                if (i != DV.data.size() - 1)
+                if (i != DV.trainData.size() - 1)
                     lowerClasses.append(", ");
             }
         }
@@ -274,8 +271,8 @@ public class LDFRule
 
             for (int j = 0; j < DV.fieldLength; j++)
             {
-                sb.append(String.format("%.2f", DV.data.get(ruleStripRanges.get(i)[0]).data[ruleStripRanges.get(i)[1]][j])).append(" &le; x");
-                sb.append(j).append(" &le; ").append(String.format("%.2f", DV.data.get(ruleStripRanges.get(i)[2]).data[ruleStripRanges.get(i)[3]][j]));
+                sb.append(String.format("%.2f", DV.trainData.get(ruleStripRanges.get(i)[0]).data[ruleStripRanges.get(i)[1]][j])).append(" &le; x");
+                sb.append(j).append(" &le; ").append(String.format("%.2f", DV.trainData.get(ruleStripRanges.get(i)[2]).data[ruleStripRanges.get(i)[3]][j]));
 
                 if (j != DV.fieldLength - 1) sb.append(", ");
             }
@@ -333,48 +330,9 @@ public class LDFRule
 
         for (int i = 0; i < ruleStrips.size(); i++)
         {
-            double rangeLow, rangeHigh;
+            int classification = getClassification(i);
 
-            if (ruleStrips.get(i)[0][0] < ruleStrips.get(i)[1][0])
-            {
-                rangeLow = ruleStrips.get(i)[0][0];
-                rangeHigh = ruleStrips.get(i)[1][0];
-            }
-            else
-            {
-                rangeHigh = ruleStrips.get(i)[0][0];
-                rangeLow = ruleStrips.get(i)[1][0];
-            }
-
-            int classification;
-
-            if (DV.upperIsLower)
-            {
-                if (rangeLow <= DV.threshold && rangeHigh <= DV.threshold)
-                    classification = 1;
-                else if (rangeLow > DV.threshold && rangeHigh > DV.threshold)
-                    classification = 0;
-                else
-                    classification = -1;
-            }
-            else
-            {
-                if (rangeLow <= DV.threshold && rangeHigh <= DV.threshold)
-                    classification = 0;
-                else if (rangeLow > DV.threshold && rangeHigh > DV.threshold)
-                    classification = 1;
-                else
-                    classification = -1;
-            }
-
-            String accuracy;
-
-            if (classification == 0)
-                accuracy = String.format("%.2f", (ruleStripClassification.get(i)[0] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100);
-            else if (classification == 1)
-                accuracy = String.format("%.2f", (ruleStripClassification.get(i)[1] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100);
-            else
-                accuracy = "ERROR: strip overlaps threshold";
+            String accuracy = getAccuracyLabel(classification, i);
 
             sb.append("<b>Strip ").append(i).append(":</b> ").append(accuracy).append("%");
 
@@ -387,6 +345,69 @@ public class LDFRule
         purity.setText(sb.toString());
     }
 
+    /**
+     * Label for accuracy
+     * @param cls class of strip
+     * @param i rule strip index
+     * @return accuracy label
+     */
+    private String getAccuracyLabel(int cls, int i)
+    {
+        String accuracy;
+        if (cls == 0)
+            accuracy = String.format("%.2f", (ruleStripClassification.get(i)[0] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100);
+        else if (cls == 1)
+            accuracy = String.format("%.2f", (ruleStripClassification.get(i)[1] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100);
+        else
+            accuracy = "ERROR: strip overlaps threshold";
+
+        return accuracy;
+    }
+
+
+    /**
+     * Get class of rule strip
+     * @param i rule strip index
+     * @return class
+     */
+    private int getClassification(int i)
+    {
+        double rangeLow, rangeHigh;
+        if (ruleStrips.get(i)[0][0] < ruleStrips.get(i)[1][0])
+        {
+            rangeLow = ruleStrips.get(i)[0][0];
+            rangeHigh = ruleStrips.get(i)[1][0];
+        }
+        else
+        {
+            rangeHigh = ruleStrips.get(i)[0][0];
+            rangeLow = ruleStrips.get(i)[1][0];
+        }
+
+        int classification;
+
+        if (DV.upperIsLower)
+        {
+            if (rangeLow <= DV.threshold && rangeHigh <= DV.threshold)
+                classification = 1;
+            else if (rangeLow > DV.threshold && rangeHigh > DV.threshold)
+                classification = 0;
+            else
+                classification = -1;
+        }
+        else
+        {
+            if (rangeLow <= DV.threshold && rangeHigh <= DV.threshold)
+                classification = 0;
+            else if (rangeLow > DV.threshold && rangeHigh > DV.threshold)
+                classification = 1;
+            else
+                classification = -1;
+        }
+
+        return classification;
+    }
+
 
     /**
      * Draws Combined and Separate graphs.
@@ -395,7 +416,7 @@ public class LDFRule
     {
         // holds classes to be graphed
         ArrayList<ArrayList<DataObject>> objects = new ArrayList<>();
-        ArrayList<DataObject> upperObjects = new ArrayList<>(List.of(DV.data.get(DV.upperClass)));
+        ArrayList<DataObject> upperObjects = new ArrayList<>(List.of(DV.trainData.get(DV.upperClass)));
         ArrayList<DataObject> lowerObjects = new ArrayList<>();
 
         // get classes to be graphed
@@ -404,7 +425,7 @@ public class LDFRule
             for (int j = 0; j < DV.classNumber; j++)
             {
                 if (DV.lowerClasses.get(j))
-                    lowerObjects.add(DV.data.get(j));
+                    lowerObjects.add(DV.trainData.get(j));
             }
         }
 
@@ -516,40 +537,9 @@ public class LDFRule
         // add data to series
         midpoints.addSeries(midpointSeries);
 
-        JFreeChart chart = ChartFactory.createXYLineChart(
-                "",
-                "",
-                "",
-                graphLines,
-                PlotOrientation.VERTICAL,
-                false,
-                true,
-                false);
-
-        // format chart
-        chart.setBorderVisible(false);
-        chart.setPadding(RectangleInsets.ZERO_INSETS);
-
-        // get plot
-        XYPlot plot = (XYPlot) chart.getPlot();
-
-        // format plot
-        plot.setDrawingSupplier(new DefaultDrawingSupplier(
-                new Paint[] { DV.graphColors[0] },
-                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
-        plot.getRangeAxis().setVisible(false);
-        plot.getDomainAxis().setVisible(false);
-        plot.setOutlinePaint(null);
-        plot.setOutlineVisible(false);
-        plot.setInsets(RectangleInsets.ZERO_INSETS);
-        plot.setDomainPannable(true);
-        plot.setRangePannable(true);
-        plot.setBackgroundPaint(DV.background);
-        plot.setDomainGridlinePaint(Color.GRAY);
-        plot.setRangeGridlinePaint(Color.GRAY);
+        // get chart and plot
+        JFreeChart chart = ChartsAndPlots.createChart(graphLines, false);
+        XYPlot plot = ChartsAndPlots.createPlot(chart, 0);
 
         // set domain and range of graph
         double bound = DV.fieldLength;
@@ -573,17 +563,7 @@ public class LDFRule
         plot.setRenderer(0, stripRenderer);
         plot.setDataset(0, strips);
         stripRenderer.setBaseItemLabelsVisible(true);
-        stripRenderer.setBaseItemLabelGenerator(new StandardXYItemLabelGenerator()
-        {
-            @Override
-            public String generateLabel(XYDataset dataset, int series, int item)
-            {
-                if (item == 0)
-                    return "Strip " + series;
-                else
-                    return null;
-            }
-        });
+        stripRenderer.setBaseItemLabelGenerator(stripLabelGenerator());
 
         // set endpoint renderer and dataset
         plot.setRenderer(1, endpointRenderer);
@@ -610,116 +590,7 @@ public class LDFRule
         plot.setRenderer(5, timeLineRenderer);
         plot.setDataset(5, timeLine);
 
-        ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPopupMenu(null);
-        chartPanel.setMouseZoomable(false);
-        chartPanel.restoreAutoBounds();
-
-        chartPanel.addMouseWheelListener(e ->
-        {
-            if (e.getWheelRotation() > 0)
-                chartPanel.zoomOutDomain(0.5, 0.5);
-            else if (e.getWheelRotation() < 0)
-                chartPanel.zoomInDomain(1.5, 1.5);
-        });
-
-        chartPanel.addChartMouseListener(new ChartMouseListener()
-        {
-            @Override
-            public void chartMouseClicked(ChartMouseEvent chartMouseEvent) {}
-
-            @Override
-            public void chartMouseMoved(ChartMouseEvent cme)
-            {
-                if(clicked)
-                {
-                    Rectangle2D dataArea = chartPanel.getScreenDataArea();
-                    JFreeChart chart = cme.getChart();
-                    XYPlot plot = (XYPlot) chart.getPlot();
-                    ValueAxis xAxis = plot.getDomainAxis();
-                    ValueAxis yAxis = plot.getRangeAxis();
-
-                    double curX = cme.getTrigger().getX();
-                    double curY = cme.getTrigger().getY();
-
-                    double newX = xAxis.java2DToValue(curX, dataArea, RectangleEdge.BOTTOM);
-                    double newY = yAxis.java2DToValue(curY, dataArea, RectangleEdge.LEFT);
-
-                    System.out.println("Coordinates: " + newX + " " + newY);
-
-                    if (!start)
-                    {
-                        start = true;
-
-                        double[][] tmpPnt = new double[2][2];
-                        tmpPnt[0] = new double[]{ newX, newY };
-                        tmpPnt[1] = new double[] { 0, 0 };
-
-                        ruleStrips.add(tmpPnt);
-
-                        XYSeries strip = new XYSeries(rIndex, false, true);
-                        strip.add(tmpPnt[0][0], tmpPnt[0][1]);
-
-                        strips.addSeries(strip);
-                        stripRenderer.setSeriesPaint(rIndex, new Color(255, 0, 0, 100));
-                        stripRenderer.setSeriesStroke(rIndex, new BasicStroke(4f));
-                    }
-                    else
-                    {
-                        ruleStrips.get(rIndex)[1][0] = newX;
-                        ruleStrips.get(rIndex)[1][1] = newY;
-
-                        strips.removeSeries(rIndex);
-
-                        XYSeries strip = new XYSeries(rIndex, false, true);
-                        strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[0][1]);
-                        strip.add(ruleStrips.get(rIndex)[1][0], ruleStrips.get(rIndex)[0][1]);
-                        strip.add(ruleStrips.get(rIndex)[1][0], ruleStrips.get(rIndex)[1][1]);
-                        strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[1][1]);
-                        strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[0][1]);
-
-                        strips.addSeries(strip);
-                    }
-                }
-            }
-        });
-
-        chartPanel.addMouseListener(new MouseListener()
-        {
-            @Override
-            public void mouseClicked(MouseEvent e)
-            {
-                if (SwingUtilities.isRightMouseButton(e))
-                {
-                    if (clicked)
-                    {
-                        rIndex++;
-                        start = false;
-                        clicked = false;
-
-                        stripAnalysis();
-                    }
-                    else
-                    {
-                        clicked = true;
-                    }
-                }
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {}
-
-            @Override
-            public void mouseReleased(MouseEvent e) {}
-
-            @Override
-            public void mouseEntered(MouseEvent e) {}
-
-            @Override
-            public void mouseExited(MouseEvent e) {}
-        });
-
-        return chartPanel;
+        return getChartPanel(chart);
     }
 
 
@@ -816,40 +687,9 @@ public class LDFRule
         // add data to series
         midpoints.addSeries(midpointSeries);
 
-        JFreeChart chart = ChartFactory.createXYLineChart(
-                "",
-                "",
-                "",
-                graphLines,
-                PlotOrientation.VERTICAL,
-                false,
-                true,
-                false);
-
-        // format chart
-        chart.setBorderVisible(false);
-        chart.setPadding(RectangleInsets.ZERO_INSETS);
-
-        // get plot
-        XYPlot plot = (XYPlot) chart.getPlot();
-
-        // format plot
-        plot.setDrawingSupplier(new DefaultDrawingSupplier(
-                new Paint[] { DV.graphColors[0] },
-                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
-        plot.getRangeAxis().setVisible(false);
-        plot.getDomainAxis().setVisible(false);
-        plot.setOutlinePaint(null);
-        plot.setOutlineVisible(false);
-        plot.setInsets(RectangleInsets.ZERO_INSETS);
-        plot.setDomainPannable(true);
-        plot.setRangePannable(true);
-        plot.setBackgroundPaint(DV.background);
-        plot.setDomainGridlinePaint(Color.GRAY);
-        plot.setRangeGridlinePaint(Color.GRAY);
+        // get chart and plot
+        JFreeChart chart = ChartsAndPlots.createChart(graphLines, false);
+        XYPlot plot = ChartsAndPlots.createPlot(chart, 0);
 
         // set domain and range of graph
         double bound = DV.fieldLength;
@@ -873,17 +713,7 @@ public class LDFRule
         plot.setRenderer(0, stripRenderer);
         plot.setDataset(0, strips);
         stripRenderer.setBaseItemLabelsVisible(true);
-        stripRenderer.setBaseItemLabelGenerator(new StandardXYItemLabelGenerator()
-        {
-            @Override
-            public String generateLabel(XYDataset dataset, int series, int item)
-            {
-                if (item == 0)
-                    return "Strip " + series;
-                else
-                    return null;
-            }
-        });
+        stripRenderer.setBaseItemLabelGenerator(stripLabelGenerator());
 
         // set endpoint renderer and dataset
         plot.setRenderer(1, endpointRenderer);
@@ -910,6 +740,17 @@ public class LDFRule
         plot.setRenderer(5, timeLineRenderer);
         plot.setDataset(5, timeLine);
 
+        return getChartPanel(chart);
+    }
+
+
+    /**
+     * Creates ChartPanel with mouse listeners from chart
+     * @param chart visualization chart
+     * @return ChartPanel with mouse listeners
+     */
+    private ChartPanel getChartPanel(JFreeChart chart)
+    {
         ChartPanel chartPanel = new ChartPanel(chart);
         chartPanel.setPopupMenu(null);
         chartPanel.setMouseZoomable(false);
@@ -971,16 +812,22 @@ public class LDFRule
 
                         strips.removeSeries(rIndex);
 
-                        XYSeries strip = new XYSeries(rIndex, false, true);
-                        strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[0][1]);
-                        strip.add(ruleStrips.get(rIndex)[1][0], ruleStrips.get(rIndex)[0][1]);
-                        strip.add(ruleStrips.get(rIndex)[1][0], ruleStrips.get(rIndex)[1][1]);
-                        strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[1][1]);
-                        strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[0][1]);
+                        XYSeries strip = getXySeries();
 
                         strips.addSeries(strip);
                     }
                 }
+            }
+
+            private XYSeries getXySeries()
+            {
+                XYSeries strip = new XYSeries(rIndex, false, true);
+                strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[0][1]);
+                strip.add(ruleStrips.get(rIndex)[1][0], ruleStrips.get(rIndex)[0][1]);
+                strip.add(ruleStrips.get(rIndex)[1][0], ruleStrips.get(rIndex)[1][1]);
+                strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[1][1]);
+                strip.add(ruleStrips.get(rIndex)[0][0], ruleStrips.get(rIndex)[0][1]);
+                return strip;
             }
         });
 
@@ -1018,7 +865,26 @@ public class LDFRule
             @Override
             public void mouseExited(MouseEvent e) {}
         });
-
         return chartPanel;
+    }
+
+
+    /**
+     * Creates label for a strip
+     * @return item label generator
+     */
+    private StandardXYItemLabelGenerator stripLabelGenerator()
+    {
+        return new StandardXYItemLabelGenerator()
+        {
+            @Override
+            public String generateLabel(XYDataset dataset, int series, int item)
+            {
+                if (item == 0)
+                    return "Strip " + series;
+                else
+                    return null;
+            }
+        };
     }
 }

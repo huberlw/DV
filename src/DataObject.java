@@ -1,3 +1,4 @@
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class DataObject
@@ -33,14 +34,14 @@ public class DataObject
      */
     public double updateCoordinatesGLC(double[] angles)
     {
-        // save the highest point
+        // save the highest x/y value
         double highest = Double.MIN_VALUE;
 
-        int cnt = 0;
+        int active = 0;
         for (int i = 0; i < DV.activeAttributes.size(); i++)
         {
             if (DV.activeAttributes.get(i))
-                cnt++;
+                active++;
         }
 
         // generate coordinates for every datapoint
@@ -48,14 +49,14 @@ public class DataObject
         {
             try
             {
-                coordinates[i] = generateCoordinatesGLC(data[i], angles, cnt);
+                coordinates[i] = generateCoordinatesGLC(data[i], angles, active);
             }
             catch(Exception e)
             {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, e.toString(), e);
             }
 
-            // check for new highest
+            // check for new highest x/y value
             if (coordinates[i][coordinates[i].length-1][0] > highest)
                 highest = coordinates[i][coordinates[i].length-1][0];
             else if (coordinates[i][coordinates[i].length-1][1] > highest)
@@ -66,6 +67,7 @@ public class DataObject
 
         double vertical_scale = (DV.mainPanel.getHeight() * 0.7) / (DV.graphPanel.getWidth() * 0.8);
 
+        // if there is only 1 class (and therefore 1 graph) then double the vertical size
         if (DV.classNumber == 1)
             vertical_scale *= 2;
 
@@ -86,32 +88,32 @@ public class DataObject
      * Generates coordinates for a datapoint
      * @param dataPoint datapoint in DataObject
      * @param angles weights for each value
+     * @param active number of active attributes
      * @return coordinates for datapoint
      */
     private double[][] generateCoordinatesGLC(double[] dataPoint, double[] angles, int active)
     {
         // output points
         double[][] xyPoints = new double[active][2];
-        xyPoints = new double[dataPoint.length][2];
 
         // get xyPoints
+        // skip to first active attribute
         int i = 0;
         while (!DV.activeAttributes.get(i)) i++;
-
         xyPoints[0] = getXYPointGLC(dataPoint[i], angles[i]);
         i++;
 
         for (int j = 1; i < dataPoint.length; i++)
         {
-            //if (DV.activeAttributes.get(i))
-            //{
+            if (DV.activeAttributes.get(i))
+            {
                 xyPoints[j] = getXYPointGLC(dataPoint[i], angles[i]);
 
                 // add previous points to current points
                 xyPoints[j][0] += xyPoints[j-1][0];
                 xyPoints[j][1] += xyPoints[j-1][1];
                 j++;
-            //}
+            }
         }
 
         return xyPoints;
@@ -146,7 +148,7 @@ public class DataObject
 
 
     /**
-     *
+     * Creates angles for Dynamic Scaffold Coordinates
      * @param datapoint datapoint to create angles for
      * @param cur_angles angles from GLC-L visualization
      * @return DSC angles combined with GLC-L angles
@@ -173,7 +175,7 @@ public class DataObject
             else
                 angles[cnt] = (int) Math.round(Math.toDegrees(Math.atan(value1 / value2)));
 
-            angles[cnt] += cur_angles[cnt];
+            angles[cnt] += (int) cur_angles[cnt];
         }
 
         return angles;
@@ -195,6 +197,8 @@ public class DataObject
         {
             double[] datapoint;
 
+            // copy datapoint
+            // duplicate last attribute if uneven
             if (i != data.length - 2 || data[i].length % 2 == 0)
                 datapoint = data[i];
             else
@@ -204,6 +208,7 @@ public class DataObject
                 datapoint[data[i].length] = data[i][data[i].length-1];
             }
 
+            // generate coordinates
             coordinates[i] = generateCoordinatesDSC(datapoint, generateDSCAngles(datapoint, angles));
 
             // check for new highest

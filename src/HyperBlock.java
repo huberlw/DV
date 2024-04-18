@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class HyperBlock
 {
@@ -22,6 +21,7 @@ public class HyperBlock
     ArrayList<double[]> maximums;
     ArrayList<double[]> minimums;
 
+
     /**
      * Constructor for HyperBlock
      * @param hyper_block datapoints to go in hyperblock
@@ -36,12 +36,24 @@ public class HyperBlock
         findBounds();
     }
 
+
+    /**
+     * Constructor for HyperBlock
+     * @param max maximum bound for hyperblock
+     * @param min minimum bound for hyperblock
+     */
     HyperBlock(double[] max, double[] min)
     {
         setBounds(max, min);
         findData();
     }
 
+
+    /**
+     * Sets minimum and maximum bound for a hyperblock
+     * @param max maximum bound
+     * @param min minimum bound
+     */
     private void setBounds(double[] max, double[] min)
     {
         maximums = new ArrayList<>();
@@ -51,15 +63,19 @@ public class HyperBlock
         minimums.add(min);
     }
 
+
+    /**
+     * Finds all data within a hyperblock
+     */
     private void findData()
     {
         ArrayList<ArrayList<double[]>> dps = new ArrayList<>();
 
-        for (int i = 0; i < DV.data.size(); i++)
+        for (int i = 0; i < DV.trainData.size(); i++)
         {
             dps.add(new ArrayList<>());
 
-            for (int j = 0; j < DV.data.get(i).data.length; j++)
+            for (int j = 0; j < DV.trainData.get(i).data.length; j++)
             {
                 for (int q = 0; q < maximums.size(); q++)
                 {
@@ -67,7 +83,7 @@ public class HyperBlock
 
                     for (int k = 0; k < DV.fieldLength; k++)
                     {
-                        if (DV.data.get(i).data[j][k] > maximums.get(q)[k] || DV.data.get(i).data[j][k] < minimums.get(q)[k])
+                        if (DV.trainData.get(i).data[j][k] > maximums.get(q)[k] || DV.trainData.get(i).data[j][k] < minimums.get(q)[k])
                         {
                             inside = false;
                             break;
@@ -75,11 +91,7 @@ public class HyperBlock
                     }
 
                     if (inside)
-                    {
-                        double[] dp = new double[DV.fieldLength];
-                        System.arraycopy(DV.data.get(i).data[j], 0, dp, 0, DV.fieldLength);
-                        dps.get(i).add(dp);
-                    }
+                        dps.get(i).add(DV.trainData.get(i).data[j]);
                 }
             }
         }
@@ -89,7 +101,7 @@ public class HyperBlock
 
 
     /**
-     * Gest minimums and maximums of a hyperblock
+     * Gets minimums and maximums of a hyperblock
      */
     public void findBounds()
     {

@@ -185,7 +185,7 @@ public class AnalyticsMenu extends JPanel
             {
                 DV.displayRemoteAnalytics = true;
 
-                if (DV.data != null)
+                if (DV.trainData != null)
                 {
                     // generate analytics
                     generateAnalytics();

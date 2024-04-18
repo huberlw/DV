@@ -2,8 +2,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 
@@ -103,7 +101,7 @@ public class DataSetup
                     ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
 
                     // transform classes into data objects
-                    DV.data = createDataObjects(splitByClass);
+                    DV.trainData = createDataObjects(splitByClass);
                     DV.normalizedData = createDataObjects(splitByClass);
                     DV.originalData = createDataObjects(originalByClass);
 
@@ -111,18 +109,17 @@ public class DataSetup
 
                     for (int i = 0; i < DV.classNumber; i++)
                     {
-                        DV.highlights[i] = new boolean[DV.data.get(i).data.length];
+                        DV.highlights[i] = new boolean[DV.trainData.get(i).data.length];
 
-                        for (int j = 0; j < DV.data.get(i).data.length; j++)
+                        for (int j = 0; j < DV.trainData.get(i).data.length; j++)
                             DV.highlights[i][j] = false;
                     }
 
-                    createSplit();
-                    DV.data = DV.trainData;
+                    //createSplit();
                 }
                 else
                 {
-                    DV.data = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
+                    DV.trainData = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
                     DV.normalizedData = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
                     DV.originalData = createDataObjects(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])));
 
@@ -130,13 +127,13 @@ public class DataSetup
 
                     for (int i = 0; i < DV.classNumber; i++)
                     {
-                        DV.highlights[i] = new boolean[DV.data.get(i).data.length];
+                        DV.highlights[i] = new boolean[DV.trainData.get(i).data.length];
 
-                        for (int j = 0; j < DV.data.get(i).data.length; j++)
+                        for (int j = 0; j < DV.trainData.get(i).data.length; j++)
                             DV.highlights[i][j] = false;
                     }
 
-                    createSplit();
+                    //createSplit();
                 }
 
                 DV.max = Arrays.copyOf(maxValues, maxValues.length);
@@ -260,13 +257,13 @@ public class DataSetup
                         ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
 
                         // add new data
-                        DV.data = addImportedData(splitByClass, false);
+                        DV.trainData = addImportedData(splitByClass, false);
                         DV.originalData = addImportedData(originalByClass, true);
                     }
                     else
                     {
                         // add new data
-                        DV.data = addImportedData(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])), false);
+                        DV.trainData = addImportedData(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])), false);
                         DV.originalData = addImportedData(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])), true);
                     }
 
@@ -451,7 +448,7 @@ public class DataSetup
             }
 
             // create DataObjects
-            DV.data = createDataObjects(classData);
+            DV.trainData = createDataObjects(classData);
             classData.clear();
 
             // get original data
@@ -1023,10 +1020,10 @@ public class DataSetup
             for (int i = 0; i < DV.classNumber; i++)
             {
                 // create DataObject with previous points
-                if (data.get(i).length > 0 && i < DV.data.size())
+                if (data.get(i).length > 0 && i < DV.trainData.size())
                 {
                     // get all datapoints
-                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(DV.data.get(i).data));
+                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(DV.trainData.get(i).data));
                     tmpData.addAll(Arrays.asList(data.get(i)));
 
                     // create object
@@ -1044,7 +1041,7 @@ public class DataSetup
                     DV.lowerClasses.add(true);
                 }
                 else
-                    dataObjects.add(DV.data.get(i));
+                    dataObjects.add(DV.trainData.get(i));
             }
         }
 
@@ -1159,20 +1156,20 @@ public class DataSetup
             //DV.data.get(i).data = fisher_yates_shuffle(DV.data.get(i).data);
 
             // get size of training data
-            int trainSize = (int) Math.floor(DV.data.get(i).data.length * DV.trainSplit);
+            int trainSize = (int) Math.floor(DV.trainData.get(i).data.length * DV.trainSplit);
             double[][] training = new double[trainSize][DV.fieldLength];
 
             // get training data
             for (int j = 0; j < trainSize; j++)
-                System.arraycopy(DV.data.get(i).data[j], 0, training[j], 0, DV.fieldLength);
+                System.arraycopy(DV.trainData.get(i).data[j], 0, training[j], 0, DV.fieldLength);
 
             // get size of testing data
-            int testSize = DV.data.get(i).data.length - trainSize;
+            int testSize = DV.trainData.get(i).data.length - trainSize;
             double[][] testing = new double[testSize][DV.fieldLength];
 
             // get testing data
-            for (int j = trainSize; j < DV.data.get(i).data.length; j++)
-                System.arraycopy(DV.data.get(i).data[j], 0, testing[j - trainSize], 0, DV.fieldLength);
+            for (int j = trainSize; j < DV.trainData.get(i).data.length; j++)
+                System.arraycopy(DV.trainData.get(i).data[j], 0, testing[j - trainSize], 0, DV.fieldLength);
 
             // store training and testing data
             DV.trainData.add(new DataObject(DV.uniqueClasses.get(i), training));

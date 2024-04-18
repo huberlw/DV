@@ -49,11 +49,11 @@ public class Analytics
             {
                 StringBuilder classes = new StringBuilder();
 
-                for (int i = 0; i < DV.data.size(); i++)
+                for (int i = 0; i < DV.trainData.size(); i++)
                 {
-                    classes.append("Class ").append(i).append(": ").append(DV.data.get(i).className);
+                    classes.append("Class ").append(i).append(": ").append(DV.trainData.get(i).className);
 
-                    if (i != DV.data.size() - 1)
+                    if (i != DV.trainData.size() - 1)
                         classes.append(", ");
                 }
 
@@ -250,16 +250,28 @@ public class Analytics
         protected Boolean doInBackground()
         {
             // get point distribution
-            int[][] pntDist = getPointDistribution(DV.data, DV.threshold);
+            int[][] pntDist = getPointDistribution(DV.trainData, DV.threshold);
 
             // stores number of correctly classified datapoints
             DV.allDataClassifications = new int[]{ 0, 0 };
             DV.allDataClassifications[0] = pntDist[0][0] + pntDist[1][1];
             DV.allDataClassifications[1] = pntDist[0][0] + pntDist[0][1] + pntDist[1][0] + pntDist[1][1];
 
+            if ((double) DV.allDataClassifications[0] / DV.allDataClassifications[1] <= 0.5)
+            {
+                DV.upperIsLower = !DV.upperIsLower;
+
+                pntDist = getPointDistribution(DV.trainData, DV.threshold);
+
+                // stores number of correctly classified datapoints
+                DV.allDataClassifications = new int[]{ 0, 0 };
+                DV.allDataClassifications[0] = pntDist[0][0] + pntDist[1][1];
+                DV.allDataClassifications[1] = pntDist[0][0] + pntDist[0][1] + pntDist[1][0] + pntDist[1][1];
+            }
+
             // all points in dataset
             int totalPoints = 0;
-            for (DataObject data : DV.data)
+            for (DataObject data : DV.trainData)
                 totalPoints += data.data.length;
 
             // create confusion matrix
@@ -333,7 +345,7 @@ public class Analytics
             // total datapoints within subset of utilized data
             int totalPointsUsed = upper.size() + lower.size();
             int totalPoints = 0;
-            for (DataObject data : DV.data)
+            for (DataObject data : DV.trainData)
                 totalPoints += data.data.length;
 
             String fileName = "source\\Python\\DWO_CM.csv";
@@ -439,7 +451,7 @@ public class Analytics
             // total datapoints within subset of utilized data
             int totalPointsUsed = upper.size() + lower.size();
             int totalPoints = 0;
-            for (DataObject data : DV.data)
+            for (DataObject data : DV.trainData)
                 totalPoints += data.data.length;
 
             // get percentage of overlap points used
@@ -532,7 +544,7 @@ public class Analytics
                 int totalPointsUsed = lower.size() + upper.size();
                 int correctPoints = 0;
                 int totalPoints = 0;
-                for (DataObject data : DV.data)
+                for (DataObject data : DV.trainData)
                     totalPoints += data.data.length;
 
                 // get point distribution
@@ -659,8 +671,8 @@ public class Analytics
             int totalPointsUsed = pntDist[0][0] + pntDist[0][1] + pntDist[1][0] + pntDist[1][1];
 
             int totalPoints = 0;
-            for (int i = 0; i < DV.data.size(); i++)
-                totalPoints += DV.data.get(i).data.length;
+            for (int i = 0; i < DV.trainData.size(); i++)
+                totalPoints += DV.trainData.get(i).data.length;
 
             // create confusion matrix
             StringBuilder cm = confusionMatrixBuilder(
@@ -889,7 +901,7 @@ public class Analytics
             while ((output = reader.readLine()) != null)
             {
                 // get angles and threshold
-                if (storeFunction && cnt <= DV.data.get(0).coordinates[0].length)
+                if (storeFunction && cnt <= DV.trainData.get(0).coordinates[0].length)
                 {
                     LDAFunction.add(Double.parseDouble(output));
                     cnt++;
@@ -924,15 +936,15 @@ public class Analytics
         DV.misclassifiedData = new ArrayList<>();
 
         // get point distribution
-        for (int i = 0; i < DV.data.size(); i++)
+        for (int i = 0; i < DV.trainData.size(); i++)
         {
             DV.misclassifiedData.add(new ArrayList<>());
 
             if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
-                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
                 {
-                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
+                    double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
 
                     // check if endpoint is within the subset of used data
                     if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
@@ -942,25 +954,25 @@ public class Analytics
                         {
                             // check if endpoint is correctly classified
                             if (endpoint > DV.threshold)
-                                DV.misclassifiedData.get(i).add(DV.data.get(i).data[j]);
+                                DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
                         }
                         else if (i == DV.upperClass)
                         {
                             // check if endpoint is correctly classified
                             if (endpoint < DV.threshold)
-                                DV.misclassifiedData.get(i).add(DV.data.get(i).data[j]);
+                                DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
                         }
                         else if(DV.lowerClasses.get(i) && DV.upperIsLower)
                         {
                             // check if endpoint is correctly classified
                             if (endpoint < DV.threshold)
-                                DV.misclassifiedData.get(i).add(DV.data.get(i).data[j]);
+                                DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
                         }
                         else
                         {
                             // check if endpoint is correctly classified
                             if (endpoint > DV.threshold)
-                                DV.misclassifiedData.get(i).add(DV.data.get(i).data[j]);
+                                DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
                         }
                     }
                 }
@@ -1041,19 +1053,19 @@ public class Analytics
     private static void getUpperAndLowerNonOverlapping(ArrayList<double[]> upper, ArrayList<double[]> lower)
     {
         // check all classes
-        for (int i = 0; i < DV.data.size(); i++)
+        for (int i = 0; i < DV.trainData.size(); i++)
         {
-            for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+            for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
             {
-                double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
+                double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
 
                 // if endpoint is outside of overlap then store point
                 if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
                 {
                     if (i == DV.upperClass)
-                        upper.add(DV.data.get(i).data[j]);
+                        upper.add(DV.trainData.get(i).data[j]);
                     else
-                        lower.add(DV.data.get(i).data[j]);
+                        lower.add(DV.trainData.get(i).data[j]);
                 }
             }
         }
@@ -1068,19 +1080,19 @@ public class Analytics
     private static void getUpperAndLowerOverlapping(ArrayList<double[]> upper, ArrayList<double[]> lower)
     {
         // check all classes
-        for (int i = 0; i < DV.data.size(); i++)
+        for (int i = 0; i < DV.trainData.size(); i++)
         {
-            for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+            for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
             {
-                double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
+                double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
 
                 // if endpoint is within overlap then store point
                 if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
                 {
                     if (i == DV.upperClass)
-                        upper.add(DV.data.get(i).data[j]);
+                        upper.add(DV.trainData.get(i).data[j]);
                     else
-                        lower.add(DV.data.get(i).data[j]);
+                        lower.add(DV.trainData.get(i).data[j]);
                 }
             }
         }
@@ -1095,19 +1107,19 @@ public class Analytics
     private static void getUpperAndLower(ArrayList<double[]> upper, ArrayList<double[]> lower)
     {
         // check all classes
-        for (int i = 0; i < DV.data.size(); i++)
+        for (int i = 0; i < DV.trainData.size(); i++)
         {
-            for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+            for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
             {
-                double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
+                double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
 
                 // if endpoint is within domain
                 if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
                 {
                     if (i == DV.upperClass)
-                        upper.add(DV.data.get(i).data[j]);
+                        upper.add(DV.trainData.get(i).data[j]);
                     else
-                        lower.add(DV.data.get(i).data[j]);
+                        lower.add(DV.trainData.get(i).data[j]);
                 }
             }
         }

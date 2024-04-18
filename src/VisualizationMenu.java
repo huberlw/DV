@@ -1,8 +1,6 @@
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
-import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -13,6 +11,9 @@ import java.util.Map;
 
 public class VisualizationMenu extends JPanel
 {
+    static String scalarFunction = "x";
+    static String vectorFunction = "N/A";
+
     /**
      * Creates Visualization Options Menu on mouseLocation
      */
@@ -21,9 +22,87 @@ public class VisualizationMenu extends JPanel
         // visualization panel
         JPanel visPanel = new JPanel();
         visPanel.setLayout(new GridBagLayout());
-        GridBagConstraints constraints = new GridBagConstraints();
+        GridBagConstraints c = new GridBagConstraints();
 
         // choose plot type
+        c.gridx = 0;
+        c.gridy = 0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.insets = new Insets(5, 5, 5, 5);
+        visPanel.add(getPlotButton(), c);
+
+        // choose class to visualize as main
+        c.gridx = 1;
+        c.gridy = 0;
+        visPanel.add(setUpperClassButton(), c);
+
+        // specify visualization
+        c.gridx = 0;
+        c.gridy = 1;
+        visPanel.add(removeClassButton(), c);
+
+        // reorder attributes
+        c.gridx = 1;
+        c.gridy = 1;
+        visPanel.add(reorderAttributesButton(), c);
+
+        // remove attributes
+        c.gridx = 0;
+        c.gridy = 2;
+        visPanel.add(removeAttributesButton(), c);
+
+        // change visualization function for each attribute of each vector
+        c.gridx = 1;
+        c.gridy = 2;
+        visPanel.add(setScalarFunctionButton(), c);
+
+        // change visualization function
+        c.gridx = 0;
+        c.gridy = 3;
+        visPanel.add(setNDFunctionButton(), c);
+
+        // visualize overlap area
+        c.gridx = 1;
+        c.gridy = 3;
+        visPanel.add(visOverlapBox(), c);
+
+        // visualize only support vectors
+        c.gridx = 0;
+        c.gridy = 4;
+        visPanel.add(visOnlySVMBox(), c);
+
+        // visualize support vectors
+        c.gridx = 1;
+        c.gridy = 4;
+        visPanel.add(visSVMBox(), c);
+        
+        // activates / deactivates domain
+        c.gridx = 0;
+        c.gridy = 5;
+        visPanel.add(domainActiveBox(), c);
+
+        // draw first line of GLC-L visualization
+        c.gridx = 1;
+        c.gridy = 5;
+        visPanel.add(drawFirstLineBox(), c);
+
+        // open analytics in another window
+        c.gridx = 0;
+        c.gridy = 6;
+        c.gridwidth = 2;
+        visPanel.add(separateVisButton(), c);
+
+        // show visualization menu
+        JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Visualization Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
+    }
+
+
+    /**
+     * Creates button to choose plot type
+     * @return button
+     */
+    private JButton getPlotButton()
+    {
         JButton plotBtn = new JButton("Plot Type");
         plotBtn.setToolTipText("Choose GLC-L or DSC2 plot");
         plotBtn.setFont(plotBtn.getFont().deriveFont(12f));
@@ -46,7 +125,7 @@ public class VisualizationMenu extends JPanel
 
             DV.glc_or_dsc = glc.isSelected();
 
-            if (choice == 0 && DV.data != null)
+            if (choice == 0 && DV.trainData != null)
             {
                 DV.angleSliderPanel.removeAll();
 
@@ -54,20 +133,23 @@ public class VisualizationMenu extends JPanel
                 DataVisualization.drawGraphs();
             }
         });
+        
+        return plotBtn;
+    }
 
-        constraints.gridx = 0;
-        constraints.gridy = 0;
-        constraints.fill = GridBagConstraints.HORIZONTAL;
-        constraints.insets = new Insets(5, 5, 5, 5);
-        visPanel.add(plotBtn, constraints);
 
-        // choose class to visualize as main
+    /**
+     * Creates button to set the upper class of the visualization
+     * @return button
+     */
+    private JButton setUpperClassButton()
+    {
         JButton chooseUpperClassBtn = new JButton("Upper Class");
         chooseUpperClassBtn.setToolTipText("Choose class to be visualized on upper graph");
         chooseUpperClassBtn.setFont(chooseUpperClassBtn.getFont().deriveFont(12f));
         chooseUpperClassBtn.addActionListener(e ->
         {
-            if (DV.data != null)
+            if (DV.trainData != null)
             {
                 int chosen = JOptionPane.showOptionDialog(
                         DV.mainFrame,
@@ -97,6 +179,18 @@ public class VisualizationMenu extends JPanel
                             DV.lowerClasses.set(i, false);
                     }
 
+                    // create highlights
+                    DV.highlights = new boolean[DV.classNumber][];
+                    DV.highlights[0] = new boolean[DV.trainData.get(DV.upperClass).data.length];
+
+                    for (int i = 0; i < DV.classNumber; i++)
+                    {
+                        DV.highlights[i] = new boolean[DV.trainData.get(i).data.length];
+
+                        for (int j = 0; j < DV.trainData.get(i).data.length; j++)
+                            DV.highlights[i][j] = false;
+                    }
+
                     // generate new cross validation
                     DV.crossValidationNotGenerated = true;
 
@@ -107,25 +201,28 @@ public class VisualizationMenu extends JPanel
             }
             else
             {
-                JOptionPane.showMessageDialog(
-                        DV.mainFrame,
+                DV.warningPopup(
                         "Please create a project before choosing the upper class.\nFor additional information, please view the \"Help\" tab.",
-                        "Error: not data",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error: no data");
             }
         });
+        
+        return chooseUpperClassBtn;
+    }
 
-        constraints.gridx = 1;
-        constraints.gridy = 0;
-        visPanel.add(chooseUpperClassBtn, constraints);
 
-        // specify visualization
+    /**
+     * Creates button to remove class from 3+ class visualization
+     * @return button
+     */
+    private JButton removeClassButton()
+    {
         JButton specifyVisBtn = new JButton("Specify Visualization");
         specifyVisBtn.setToolTipText("Removes one class from the lower graph");
         specifyVisBtn.setFont(specifyVisBtn.getFont().deriveFont(12f));
         specifyVisBtn.addActionListener(e ->
         {
-            if (DV.data != null)
+            if (DV.trainData != null)
             {
                 // classes on lower graph
                 ArrayList<String> removableClasses = new ArrayList<>();
@@ -181,73 +278,27 @@ public class VisualizationMenu extends JPanel
             }
             else
             {
-                JOptionPane.showMessageDialog(
-                        DV.mainFrame,
+                DV.warningPopup(
                         "Please create a project before specifying the visualization.\nFor additional information, please view the \"Help\" tab.",
-                        "Error: not data",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error: not data");
             }
         });
+        return specifyVisBtn;
+    }
 
-        constraints.gridx = 0;
-        constraints.gridy = 1;
-        visPanel.add(specifyVisBtn, constraints);
 
-        // visualize overlap area
-        JButton visOverlapBtn = new JButton("Visualize Overlap");
-        JButton stopOverlapVisBtn = new JButton("Stop Visualizing Overlap");
-        visOverlapBtn.setToolTipText("Visualize the overlap area");
-        visOverlapBtn.setFont(visOverlapBtn.getFont().deriveFont(12f));
-        visOverlapBtn.addActionListener(e ->
-        {
-            if (DV.classNumber > 1 && DV.accuracy < 100)
-            {
-                constraints.gridx = 1;
-                constraints.gridy = 1;
-                visPanel.remove(visOverlapBtn);
-                visPanel.add(stopOverlapVisBtn, constraints);
-
-                visPanel.repaint();
-                visPanel.revalidate();
-
-                DV.drawOverlap = true;
-                DataVisualization.drawGraphs();
-            }
-            else
-                JOptionPane.showMessageDialog(DV.mainFrame, "No overlap area");
-        });
-
-        // stop visualizing overlap
-        stopOverlapVisBtn.setToolTipText("Visualize all data");
-        stopOverlapVisBtn.setFont(stopOverlapVisBtn.getFont().deriveFont(12f));
-        stopOverlapVisBtn.addActionListener(e ->
-        {
-            constraints.gridx = 1;
-            constraints.gridy = 1;
-            visPanel.remove(stopOverlapVisBtn);
-            visPanel.add(visOverlapBtn, constraints);
-
-            visPanel.repaint();
-            visPanel.revalidate();
-
-            DV.drawOverlap = false;
-            DataVisualization.drawGraphs();
-        });
-
-        constraints.gridx = 1;
-        constraints.gridy = 1;
-
-        if (!DV.drawOverlap)
-            visPanel.add(visOverlapBtn, constraints);
-        else
-            visPanel.add(stopOverlapVisBtn, constraints);
-
+    /**
+     * Creates button to reorder attributes
+     * @return button
+     */
+    private JButton reorderAttributesButton()
+    {
         JButton reorderBtn = new JButton("Reorder Attributes");
         reorderBtn.setToolTipText("Reorder attributes in visualization");
         reorderBtn.setFont(reorderBtn.getFont().deriveFont(12f));
         reorderBtn.addActionListener(e ->
         {
-            if (DV.data != null)
+            if (DV.trainData != null)
             {
                 JPanel reorder = new JPanel();
                 reorder.setLayout(new GridBagLayout());
@@ -268,7 +319,6 @@ public class VisualizationMenu extends JPanel
                     {
                         return false;
                     }
-
                 };
 
                 table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -283,53 +333,7 @@ public class VisualizationMenu extends JPanel
                 reorder.add(manPane, c);
 
                 // move row up
-                JButton up = new JButton("Up");
-                up.setToolTipText("Moves selected row up.");
-                up.addActionListener(ee ->
-                {
-                    int index = table.getSelectedRow();
-
-                    if (index == 0 || index == -1) return;
-
-                    table.setValueAt(index+1, index-1, 0);
-                    table.setValueAt(index, index, 0);
-                    tm.moveRow(index, index, index-1);
-                    table.setRowSelectionInterval(index-1, index-1);
-
-                    // reorder
-                    double tmp2 = DV.angles[index];
-                    DV.angles[index] = DV.angles[index-1];
-                    DV.angles[index-1] = tmp2;
-
-                    String tmp3 = DV.fieldNames.get(index);
-                    DV.fieldNames.set(index, DV.fieldNames.get(index-1));
-                    DV.fieldNames.set(index-1, tmp3);
-
-                    // reorder in all data
-                    for (int k = 0; k < DV.data.size(); k++)
-                    {
-                        for (int w = 0; w < DV.data.get(k).data.length; w++)
-                        {
-                            double tmp = DV.data.get(k).data[w][index];
-                            DV.data.get(k).data[w][index] = DV.data.get(k).data[w][index-1];
-                            DV.data.get(k).data[w][index-1] = tmp;
-
-                        }
-                    }
-
-                    DV.angleSliderPanel.removeAll();
-
-                    // update angles
-                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
-                    {
-                        if (DV.glc_or_dsc)
-                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                        else
-                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                    }
-
-                    DataVisualization.drawGraphs();
-                });
+                JButton up = increaseAttributeIndex(table, tm);
 
                 c.gridy = ++yCnt;
                 c.weightx = 0.5;
@@ -337,304 +341,27 @@ public class VisualizationMenu extends JPanel
                 reorder.add(up, c);
 
                 // move row down
-                JButton down = new JButton("Down");
-                down.setToolTipText("Moves selected row down.");
-                down.addActionListener(ee ->
-                {
-                    int index = table.getSelectedRow();
-
-                    if (index == DV.fieldLength-1 || index == -1) return;
-
-                    table.setValueAt(index+1, index+1, 0);
-                    table.setValueAt(index+2, index, 0);
-                    tm.moveRow(index, index, index+1);
-                    table.setRowSelectionInterval(index+1, index+1);
-
-                    // reorder
-                    double tmp2 = DV.angles[index];
-                    DV.angles[index] = DV.angles[index+1];
-                    DV.angles[index+1] = tmp2;
-
-                    String tmp3 = DV.fieldNames.get(index);
-                    DV.fieldNames.set(index, DV.fieldNames.get(index+1));
-                    DV.fieldNames.set(index+1, tmp3);
-
-                    // reorder in all data
-                    for (int k = 0; k < DV.data.size(); k++)
-                    {
-                        for (int w = 0; w < DV.data.get(k).data.length; w++)
-                        {
-                            double tmp = DV.data.get(k).data[w][index];
-                            DV.data.get(k).data[w][index] = DV.data.get(k).data[w][index+1];
-                            DV.data.get(k).data[w][index+1] = tmp;
-
-                        }
-                    }
-
-                    DV.angleSliderPanel.removeAll();
-
-                    // update angles
-                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
-                    {
-                        if (DV.glc_or_dsc)
-                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                        else
-                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                    }
-
-                    DataVisualization.drawGraphs();
-                });
+                JButton down = decreaseAttributeIndex(table, tm);
 
                 c.gridx = 1;
                 reorder.add(down, c);
 
                 // original attribute order
-                JButton original = new JButton("Original Order");
-                original.setToolTipText("Order attributes in their original order.");
-                original.addActionListener(ee ->
-                {
-                    // bubble sort ascending
-                    for (int i = 0; i < DV.originalAttributeOrder.size() - 1; i++)
-                    {
-                        for (int j = 0; j < DV.originalAttributeOrder.size() - i - 1; j++)
-                        {
-                            if (DV.originalAttributeOrder.get(j) < DV.originalAttributeOrder.get(j+1))
-                            {
-                                int tmp1 = DV.originalAttributeOrder.get(j);
-                                DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
-                                DV.originalAttributeOrder.set(j+1, tmp1);
-
-                                double tmp2 = DV.angles[j];
-                                DV.angles[j] = DV.angles[j+1];
-                                DV.angles[j+1] = tmp2;
-
-                                String tmp3 = DV.fieldNames.get(j);
-                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
-                                DV.fieldNames.set(j+1, tmp3);
-
-                                // reorder in all data
-                                for (int k = 0; k < DV.data.size(); k++)
-                                {
-                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
-                                    {
-                                        double tmp = DV.data.get(k).data[w][j];
-                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
-                                        DV.data.get(k).data[w][j+1] = tmp;
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    tm.setRowCount(0);
-                    for (int i = 0; i < DV.fieldNames.size(); i++)
-                        tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
-
-                    DV.angleSliderPanel.removeAll();
-
-                    // update angles
-                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
-                    {
-                        if (DV.glc_or_dsc)
-                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                        else
-                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                    }
-
-                    DataVisualization.drawGraphs();
-                });
+                JButton original = defaultAttributeOrder(tm);
 
                 c.gridx = 0;
                 c.gridy = ++yCnt;
                 reorder.add(original, c);
 
                 // decision tree attribute order
-                JButton dt = new JButton("Decision Tree Order");
-                dt.setToolTipText("Order attributes according to a Decision Tree.");
-                dt.addActionListener(ee ->
-                {
-                    // get decision tree order
-                    double[] dt_weight = new double[DV.fieldLength];
-
-                    // create dt (python) process
-                    ProcessBuilder tree = new ProcessBuilder("cmd", "/c",
-                            "source\\Python\\DecisionTree\\DecisionTree.exe",
-                            "source\\Python\\DV_data.csv");
-
-                    try
-                    {
-                        // create file for python process
-                        DataVisualization.createCSVFile();
-
-                        // run python (LDA) process
-                        Process process = tree.start();
-
-                        // read python outputs
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                        String output;
-
-                        int cnt = 0;
-
-                        // get attribute order
-                        while ((output = reader.readLine()) != null)
-                            dt_weight[cnt++] = Double.parseDouble(output);
-
-                        // delete created file
-                        File fileToDelete = new File("source\\Python\\DV_data.csv");
-                        Files.deleteIfExists(fileToDelete.toPath());
-                    }
-                    catch (IOException dte)
-                    {
-                        JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Decision Tree", "Error", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
-
-                    // sort to original
-                    for (int i = 0; i < DV.originalAttributeOrder.size() - 1; i++)
-                    {
-                        for (int j = 0; j < DV.originalAttributeOrder.size() - i - 1; j++)
-                        {
-                            if (DV.originalAttributeOrder.get(j) < DV.originalAttributeOrder.get(j+1))
-                            {
-                                int tmp1 = DV.originalAttributeOrder.get(j);
-                                DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
-                                DV.originalAttributeOrder.set(j+1, tmp1);
-
-                                double tmp2 = DV.angles[j];
-                                DV.angles[j] = DV.angles[j+1];
-                                DV.angles[j+1] = tmp2;
-
-                                String tmp3 = DV.fieldNames.get(j);
-                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
-                                DV.fieldNames.set(j+1, tmp3);
-
-                                // reorder in all data
-                                for (int k = 0; k < DV.data.size(); k++)
-                                {
-                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
-                                    {
-                                        double tmp = DV.data.get(k).data[w][j];
-                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
-                                        DV.data.get(k).data[w][j+1] = tmp;
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // bubble sort ascending
-                    for (int i = 0; i < DV.fieldLength - 1; i++)
-                    {
-                        for (int j = 0; j < DV.fieldLength - i - 1; j++)
-                        {
-                            if (dt_weight[j] < dt_weight[j+1])
-                            {
-                                double tmp1 = dt_weight[j];
-                                dt_weight[j] = dt_weight[j+1];
-                                dt_weight[j+1] = tmp1;
-
-                                tmp1 = DV.angles[j];
-                                DV.angles[j] = DV.angles[j+1];
-                                DV.angles[j+1] = tmp1;
-
-                                String tmp2 = DV.fieldNames.get(j);
-                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
-                                DV.fieldNames.set(j+1, tmp2);
-
-                                // reorder in all data
-                                for (int k = 0; k < DV.data.size(); k++)
-                                {
-                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
-                                    {
-                                        double tmp = DV.data.get(k).data[w][j];
-                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
-                                        DV.data.get(k).data[w][j+1] = tmp;
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    tm.setRowCount(0);
-                    for (int i = 0; i < DV.fieldNames.size(); i++)
-                        tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
-
-                    DV.angleSliderPanel.removeAll();
-
-                    // update angles
-                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
-                    {
-                        if (DV.glc_or_dsc)
-                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                        else
-                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                    }
-
-                    DataVisualization.drawGraphs();
-                });
+                JButton dt = DTAttributeOrder(tm);
 
                 c.gridx = 1;
                 c.weightx = 0.5;
                 reorder.add(dt, c);
 
                 // order from least to greatest contribution
-                JButton lessToGreat = new JButton("Ascending Contribution");
-                lessToGreat.setToolTipText("Order attributes from least contributing (largest angle) to most contributing (smallest angle).");
-                lessToGreat.addActionListener(ee ->
-                {
-                    // bubble sort ascending
-                    for (int i = 0; i < DV.angles.length - 1; i++)
-                    {
-                        for (int j = 0; j < DV.angles.length - i - 1; j++)
-                        {
-                            if (DV.angles[j] < DV.angles[j+1])
-                            {
-                                double tmp1 = DV.angles[j];
-                                DV.angles[j] = DV.angles[j+1];
-                                DV.angles[j+1] = tmp1;
-
-                                String tmp2 = DV.fieldNames.get(j);
-                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
-                                DV.fieldNames.set(j+1, tmp2);
-
-                                int tmp3 = DV.originalAttributeOrder.get(j);
-                                DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
-                                DV.originalAttributeOrder.set(j+1, tmp3);
-
-                                // reorder in all data
-                                for (int k = 0; k < DV.data.size(); k++)
-                                {
-                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
-                                    {
-                                        double tmp = DV.data.get(k).data[w][j];
-                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
-                                        DV.data.get(k).data[w][j+1] = tmp;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    tm.setRowCount(0);
-                    for (int i = 0; i < DV.fieldNames.size(); i++)
-                        tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
-
-                    DV.angleSliderPanel.removeAll();
-
-                    // update angles
-                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
-                    {
-                        if (DV.glc_or_dsc)
-                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                        else
-                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                    }
-
-                    DataVisualization.drawGraphs();
-                });
+                JButton lessToGreat = increasingContributionAttributeOrder(tm);
 
                 c.gridx = 0;
                 c.gridy = ++yCnt;
@@ -642,61 +369,7 @@ public class VisualizationMenu extends JPanel
                 reorder.add(lessToGreat, c);
 
                 // order from greatest to least contribution
-                JButton greatToLess = new JButton("Descending Contribution");
-                greatToLess.setToolTipText("Order attributes from most contributing (smallest angle) to least contributing (largest angle).");
-                greatToLess.addActionListener(ee ->
-                {
-                    // bubble sort descending
-                    for (int i = 0; i < DV.fieldLength - 1; i++)
-                    {
-                        for (int j = 0; j < DV.fieldLength - i - 1; j++)
-                        {
-                            if (DV.angles[j] > DV.angles[j+1])
-                            {
-                                double tmp1 = DV.angles[j];
-                                DV.angles[j] = DV.angles[j+1];
-                                DV.angles[j+1] = tmp1;
-
-                                String tmp2 = DV.fieldNames.get(j);
-                                DV.fieldNames.set(j, DV.fieldNames.get(j+1));
-                                DV.fieldNames.set(j+1, tmp2);
-
-                                int tmp3 = DV.originalAttributeOrder.get(j);
-                                DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
-                                DV.originalAttributeOrder.set(j+1, tmp3);
-
-                                // reorder in all data
-                                for (int k = 0; k < DV.data.size(); k++)
-                                {
-                                    for (int w = 0; w < DV.data.get(k).data.length; w++)
-                                    {
-                                        double tmp = DV.data.get(k).data[w][j];
-                                        DV.data.get(k).data[w][j] = DV.data.get(k).data[w][j+1];
-                                        DV.data.get(k).data[w][j+1] = tmp;
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    tm.setRowCount(0);
-                    for (int i = 0; i < DV.fieldNames.size(); i++)
-                        tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
-
-                    DV.angleSliderPanel.removeAll();
-
-                    // update angles
-                    for (int j = 0; j < DV.data.get(0).coordinates[0].length; j++)
-                    {
-                        if (DV.glc_or_dsc)
-                            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                        else
-                            AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-                    }
-
-                    DataVisualization.drawGraphs();
-                });
+                JButton greatToLess = decreasingContributionAttributeOrder(tm);
 
                 c.gridx = 1;
                 c.weightx = 0.5;
@@ -706,16 +379,564 @@ public class VisualizationMenu extends JPanel
             }
         });
 
-        constraints.gridx = 0;
-        constraints.gridy = 2;
-        visPanel.add(reorderBtn, constraints);
+        return reorderBtn;
+    }
 
+
+    /**
+     * Creates Button to increase attribute index
+     * @param table table display
+     * @param tm table of attributes
+     * @return button
+     */
+    private JButton increaseAttributeIndex(JTable table, DefaultTableModel tm)
+    {
+        JButton up = new JButton("Up");
+        up.setToolTipText("Moves selected row up.");
+        up.addActionListener(ee ->
+        {
+            int index = table.getSelectedRow();
+
+            if (index == 0 || index == -1) return;
+
+            table.setValueAt(index+1, index-1, 0);
+            table.setValueAt(index, index, 0);
+            tm.moveRow(index, index, index-1);
+            table.setRowSelectionInterval(index-1, index-1);
+
+            // reorder
+            swap(index, index-1);
+
+            // update angles
+            DV.angleSliderPanel.removeAll();
+
+            for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
+            {
+                if (DV.glc_or_dsc)
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                else
+                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+            }
+
+            DataVisualization.drawGraphs();
+        });
+
+        return up;
+    }
+
+
+    /**
+     * Creates Button to decrease attribute index
+     * @param table table display
+     * @param tm table of attributes
+     * @return button
+     */
+    private JButton decreaseAttributeIndex(JTable table, DefaultTableModel tm)
+    {
+        JButton down = new JButton("Down");
+        down.setToolTipText("Moves selected row down.");
+        down.addActionListener(ee ->
+        {
+            int index = table.getSelectedRow();
+
+            if (index == DV.fieldLength-1 || index == -1) return;
+
+            table.setValueAt(index+1, index+1, 0);
+            table.setValueAt(index+2, index, 0);
+            tm.moveRow(index, index, index+1);
+            table.setRowSelectionInterval(index+1, index+1);
+
+            // reorder
+            swap(index, index + 1);
+
+            // update angles
+            DV.angleSliderPanel.removeAll();
+
+            for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
+            {
+                if (DV.glc_or_dsc)
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                else
+                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+            }
+
+            DataVisualization.drawGraphs();
+        });
+
+        return down;
+    }
+
+
+    /**
+     * Creates button to reset attribute order to default
+     * @param tm table of attributes
+     * @return button
+     */
+    private JButton defaultAttributeOrder(DefaultTableModel tm)
+    {
+        JButton original = new JButton("Original Order");
+        original.setToolTipText("Order attributes in their original order.");
+        original.addActionListener(ee ->
+        {
+            // bubble sort ascending
+            quickSort(DV.originalAttributeOrder, 0, DV.originalAttributeOrder.size() - 1);
+
+            tm.setRowCount(0);
+            for (int i = 0; i < DV.fieldNames.size(); i++)
+                tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
+
+            DV.angleSliderPanel.removeAll();
+
+            // update angles
+            for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
+            {
+                if (DV.glc_or_dsc)
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                else
+                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+            }
+
+            DataVisualization.drawGraphs();
+        });
+
+        return original;
+    }
+
+
+    /**
+     * Creates button to set attribute order to that of a Decision Tree (DT)
+     * @param tm table of attributes
+     * @return button
+     */
+    private JButton DTAttributeOrder(DefaultTableModel tm)
+    {
+        JButton dt = new JButton("Decision Tree Order");
+        dt.setToolTipText("Order attributes according to a Decision Tree.");
+        dt.addActionListener(ee ->
+        {
+            // get decision tree order
+            double[] dt_weight = new double[DV.fieldLength];
+
+            // create dt (python) process
+            ProcessBuilder tree = new ProcessBuilder("cmd", "/c",
+                    "source\\Python\\DecisionTree\\DecisionTree.exe",
+                    "source\\Python\\DV_data.csv");
+
+            try
+            {
+                // create file for python process
+                CSV.createCSVDataObject(DV.trainData, "source\\Python\\DV_data.csv");
+
+                // run python (LDA) process
+                Process process = tree.start();
+
+                // read python outputs
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String output;
+
+                int cnt = 0;
+
+                // get attribute order
+                while ((output = reader.readLine()) != null)
+                    dt_weight[cnt++] = Double.parseDouble(output);
+
+                // delete created file
+                File fileToDelete = new File("source\\Python\\DV_data.csv");
+                Files.deleteIfExists(fileToDelete.toPath());
+            }
+            catch (IOException dte)
+            {
+                JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Decision Tree", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // sort to original
+            for (int i = 0; i < DV.originalAttributeOrder.size() - 1; i++)
+            {
+                for (int j = 0; j < DV.originalAttributeOrder.size() - i - 1; j++)
+                {
+                    if (DV.originalAttributeOrder.get(j) < DV.originalAttributeOrder.get(j+1))
+                    {
+                        int tmp1 = DV.originalAttributeOrder.get(j);
+                        DV.originalAttributeOrder.set(j, DV.originalAttributeOrder.get(j+1));
+                        DV.originalAttributeOrder.set(j+1, tmp1);
+
+                        double tmp2 = DV.angles[j];
+                        DV.angles[j] = DV.angles[j+1];
+                        DV.angles[j+1] = tmp2;
+
+                        String tmp3 = DV.fieldNames.get(j);
+                        DV.fieldNames.set(j, DV.fieldNames.get(j+1));
+                        DV.fieldNames.set(j+1, tmp3);
+
+                        // reorder in all data
+                        for (int k = 0; k < DV.trainData.size(); k++)
+                        {
+                            for (int w = 0; w < DV.trainData.get(k).data.length; w++)
+                            {
+                                double tmp = DV.trainData.get(k).data[w][j];
+                                DV.trainData.get(k).data[w][j] = DV.trainData.get(k).data[w][j+1];
+                                DV.trainData.get(k).data[w][j+1] = tmp;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // bubble sort ascending
+            quickSort(dt_weight, 0, dt_weight.length - 1);
+
+            tm.setRowCount(0);
+            for (int i = 0; i < DV.fieldNames.size(); i++)
+                tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
+
+            DV.angleSliderPanel.removeAll();
+
+            // update angles
+            for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
+            {
+                if (DV.glc_or_dsc)
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                else
+                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+            }
+
+            DataVisualization.drawGraphs();
+        });
+        return dt;
+    }
+
+
+    /**
+     * Creates button to sort attribute order by increasing LDF contribution
+     * @param tm table of attributes
+     * @return button
+     */
+    private JButton increasingContributionAttributeOrder(DefaultTableModel tm)
+    {
+        JButton lessToGreat = new JButton("Ascending Contribution");
+        lessToGreat.setToolTipText("Order attributes from least contributing (largest angle) to most contributing (smallest angle).");
+        lessToGreat.addActionListener(ee ->
+        {
+            // bubble sort ascending
+            quickSort(DV.angles, 0, DV.angles.length - 1);
+
+            tm.setRowCount(0);
+            for (int i = 0; i < DV.fieldNames.size(); i++)
+                tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
+
+            DV.angleSliderPanel.removeAll();
+
+            // update angles
+            for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
+            {
+                if (DV.glc_or_dsc)
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                else
+                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+            }
+
+            DataVisualization.drawGraphs();
+        });
+        return lessToGreat;
+    }
+
+
+    /**
+     * Creates button to sort attribute order by decreasing LDF contribution
+     * @param tm table of attributes
+     * @return button
+     */
+    private JButton decreasingContributionAttributeOrder(DefaultTableModel tm)
+    {
+        JButton greatToLess = new JButton("Descending Contribution");
+        greatToLess.setToolTipText("Order attributes from most contributing (smallest angle) to least contributing (largest angle).");
+        greatToLess.addActionListener(ee ->
+        {
+            // bubble sort descending
+            quickSortDescending(DV.angles, 0, DV.angles.length - 1);
+
+            tm.setRowCount(0);
+            for (int i = 0; i < DV.fieldNames.size(); i++)
+                tm.insertRow(i, new Object[] {i+1, DV.fieldNames.get(i)});
+
+            DV.angleSliderPanel.removeAll();
+
+            // update angles
+            for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
+            {
+                if (DV.glc_or_dsc)
+                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
+                else
+                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
+            }
+
+            DataVisualization.drawGraphs();
+        });
+        return greatToLess;
+    }
+
+
+    /**
+     * Quick Sort Sorting Algorithm
+     * @param data data to sort
+     * @param low starting index
+     * @param high ending index
+     */
+    public static void quickSort(double[] data, int low, int high)
+    {
+        // ensure indices are ordered correctly
+        if (low < high)
+        {
+            // partition array and get pivot index
+            int p = partition(data, low, high);
+
+            // sort partitions
+            quickSort(data, low, p - 1);
+            quickSort(data, p + 1, high);
+        }
+    }
+
+
+    /**
+     * Quick Sort Sorting Algorithm
+     * @param data data to sort
+     * @param low starting index
+     * @param high ending index
+     */
+    private void quickSort(ArrayList<Integer> data, int low, int high)
+    {
+        // ensure indices are ordered correctly
+        if (low < high)
+        {
+            // partition array and get pivot index
+            int p = partition(data, low, high);
+
+            // sort partitions
+            quickSort(data, low, p - 1);
+            quickSort(data, p + 1, high);
+        }
+    }
+
+
+    /**
+     * Quick Sort Sorting Algorithm for Descending order
+     * @param data data to sort
+     * @param low starting index
+     * @param high ending index
+     */
+    private void quickSortDescending(double[] data, int low, int high)
+    {
+        // ensure indices are ordered correctly
+        if (low < high)
+        {
+            // partition array and get pivot index
+            int p = partitionDescending(data, low, high);
+
+            // sort partitions
+            quickSortDescending(data, low, p);
+            quickSortDescending(data, p + 1, high);
+        }
+    }
+
+
+    /**
+     * Partition for Quick Sort
+     * @param data data to sort
+     * @param low starting index
+     * @param high ending index
+     * @return pivot index
+     */
+    private static int partition(double[] data, int low, int high)
+    {
+        double pivot = data[high];
+
+        // temporary pivot index
+        int i = low - 1;
+        for (int j = low; j <= high - 1; j++)
+        {
+            // if the current element is less than or equal to the pivot
+            // swap the current element with the element at the temporary pivot
+            if (data[j] < pivot)
+            {
+                i++;
+                swap(data, i, j);
+
+            }
+        }
+
+        // swap pivot and last element
+        swap(data, i+1, high);
+        return i + 1;
+    }
+
+
+    /**
+     * Partition for Quick Sort
+     * @param data data to sort
+     * @param low starting index
+     * @param high ending index
+     * @return pivot index
+     */
+    private int partition(ArrayList<Integer> data, int low, int high)
+    {
+        double pivot = data.get(high);
+
+        // temporary pivot index
+        int i = low - 1;
+        for (int j = low; j <= high - 1; j++)
+        {
+            // if the current element is less than or equal to the pivot
+            // swap the current element with the element at the temporary pivot
+            if (data.get(j) < pivot)
+            {
+                i++;
+                swap(data, i, j);
+            }
+        }
+
+        // swap pivot and last element
+        swap(data, i+1, high);
+        return i + 1;
+    }
+
+
+    /**
+     * Partition for Quick Sort for Descending order
+     * @param data data to sort
+     * @param low starting index
+     * @param high ending index
+     * @return pivot index
+     */
+    private int partitionDescending(double[] data, int low, int high)
+    {
+        double pivot = data[low];
+
+        // temporary pivot index
+        int i = low;
+        for (int j = low + 1; j <= high; j++)
+        {
+            // if the current element is greater than or equal to the pivot
+            // swap the current element with the element at the temporary pivot
+            if (data[j] > pivot)
+            {
+                i++;
+                swap(data, i, j);
+            }
+        }
+
+        // swap pivot and last element
+        swap(data, i, low);
+        return i;
+    }
+
+
+    /**
+     * Swap elements in data, angles, fieldnames, and all data
+     * @param data data to be swapped
+     * @param i first index
+     * @param j second index
+     */
+    private static void swap(double[] data, int i, int j)
+    {
+        double tmp1 = data[i];
+        data[i] = data[j];
+        data[j] = tmp1;
+
+        tmp1 = DV.angles[i];
+        DV.angles[i] = DV.angles[j];
+        DV.angles[j] = tmp1;
+
+        String tmp2 = DV.fieldNames.get(i);
+        DV.fieldNames.set(i, DV.fieldNames.get(j));
+        DV.fieldNames.set(j, tmp2);
+
+        // reorder in all data
+        for (int k = 0; k < DV.trainData.size(); k++)
+        {
+            for (int w = 0; w < DV.trainData.get(k).data.length; w++)
+            {
+                double tmp3 = DV.trainData.get(k).data[w][i];
+                DV.trainData.get(k).data[w][i] = DV.trainData.get(k).data[w][j];
+                DV.trainData.get(k).data[w][j] = tmp3;
+            }
+        }
+    }
+
+
+    /**
+     * Swap elements in data, angles, fieldnames, and all data
+     * @param data data to be swapped
+     * @param i first index
+     * @param j second index
+     */
+    private void swap(ArrayList<Integer> data, int i, int j)
+    {
+        int tmp0 = data.get(i);
+        data.set(i, data.get(j));
+        data.set(j, tmp0);
+
+        double tmp1 = DV.angles[i];
+        DV.angles[i] = DV.angles[j];
+        DV.angles[j] = tmp1;
+
+        String tmp2 = DV.fieldNames.get(i);
+        DV.fieldNames.set(i, DV.fieldNames.get(j));
+        DV.fieldNames.set(j, tmp2);
+
+        // reorder in all data
+        for (int k = 0; k < DV.trainData.size(); k++)
+        {
+            for (int w = 0; w < DV.trainData.get(k).data.length; w++)
+            {
+                double tmp3 = DV.trainData.get(k).data[w][i];
+                DV.trainData.get(k).data[w][i] = DV.trainData.get(k).data[w][j];
+                DV.trainData.get(k).data[w][j] = tmp3;
+            }
+        }
+    }
+
+
+    /**
+     * Swap elements in angles, fieldnames, and all data
+     * @param i first index
+     * @param j second index
+     */
+    private void swap(int i, int j)
+    {
+        double tmp1 = DV.angles[i];
+        DV.angles[i] = DV.angles[j];
+        DV.angles[j] = tmp1;
+
+        String tmp2 = DV.fieldNames.get(i);
+        DV.fieldNames.set(i, DV.fieldNames.get(j));
+        DV.fieldNames.set(j, tmp2);
+
+        // reorder in all data
+        for (int k = 0; k < DV.trainData.size(); k++)
+        {
+            for (int w = 0; w < DV.trainData.get(k).data.length; w++)
+            {
+                double tmp3 = DV.trainData.get(k).data[w][i];
+                DV.trainData.get(k).data[w][i] = DV.trainData.get(k).data[w][j];
+                DV.trainData.get(k).data[w][j] = tmp3;
+            }
+        }
+    }
+
+
+    /**
+     * Creates button to remove attributes from visualization
+     * @return button
+     */
+    private JButton removeAttributesButton()
+    {
         JButton removeBtn = new JButton("Remove Attributes");
         removeBtn.setToolTipText("Remove attributes in visualization");
         removeBtn.setFont(removeBtn.getFont().deriveFont(12f));
         removeBtn.addActionListener(e ->
         {
-            if (DV.data != null)
+            if (DV.trainData != null)
             {
                 JPanel removal = new JPanel();
                 removal.setLayout(new BoxLayout(removal, BoxLayout.PAGE_AXIS));
@@ -732,42 +953,42 @@ public class VisualizationMenu extends JPanel
                     {
                         DV.activeAttributes.set(index, attributes[index].isSelected());
 
-                        /*int cnt = 0;
+                        // ensure there is at least 1 active attribute
+                        int active = 0;
                         for (int i = 0; i < DV.activeAttributes.size(); i++)
                         {
                             if (DV.activeAttributes.get(i))
-                                cnt++;
+                                active++;
                         }
 
-                        if (cnt > 0)
+                        if (active > 0)
                         {
-                            DataVisualization.findBestThreshold(0);
-                            DataVisualization.drawGraphs();
+                            DV.fieldLength--;
                         }
                         else
                         {
                             attributes[index].setSelected(true);
                             DV.activeAttributes.set(index, true);
-                        }*/
+                            return;
+                        }
 
-                        DV.fieldLength--;
-
-                        for (int i = 0; i < DV.data.size(); i++)
+                        //
+                        for (int i = 0; i < DV.trainData.size(); i++)
                         {
-                            for (int j = 0; j < DV.data.get(i).data.length; j++)
+                            for (int j = 0; j < DV.trainData.get(i).data.length; j++)
                             {
                                 double[] tmp = new double[DV.fieldLength];
 
-                                for (int k = 0, cnt = 0; k < DV.data.get(i).data[j].length; k++)
+                                for (int k = 0, cnt = 0; k < DV.trainData.get(i).data[j].length; k++)
                                 {
                                     if (k != index)
                                     {
-                                        tmp[cnt] = DV.data.get(i).data[j][k];
+                                        tmp[cnt] = DV.trainData.get(i).data[j][k];
                                         cnt++;
                                     }
                                 }
 
-                                DV.data.get(i).data[j] = tmp;
+                                DV.trainData.get(i).data[j] = tmp;
                             }
                         }
 
@@ -795,74 +1016,89 @@ public class VisualizationMenu extends JPanel
                     removal.add(attributes[index]);
                 }
 
-                JButton dtRemove = new JButton("Decision Tree");
-                dtRemove.setToolTipText("Remove attributes with low importance in a decision tree");
-                dtRemove.addActionListener(dte ->
-                {
-                    // get decision tree order
-                    double[] dt_weight = new double[DV.fieldLength];
-
-                    // create dt (python) process
-                    ProcessBuilder tree = new ProcessBuilder("cmd", "/c",
-                            "source\\Python\\DecisionTree\\DecisionTree.exe",
-                            "source\\Python\\DV_data.csv");
-
-                    try
-                    {
-                        // create file for python process
-                        DataVisualization.createCSVFile();
-
-                        // run python (LDA) process
-                        Process process = tree.start();
-
-                        // read python outputs
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                        String output;
-
-                        int cnt = 0;
-
-                        // get attribute order
-                        while ((output = reader.readLine()) != null)
-                            dt_weight[cnt++] = Double.parseDouble(output);
-
-                        // delete created file
-                        File fileToDelete = new File("source\\Python\\DV_data.csv");
-                        Files.deleteIfExists(fileToDelete.toPath());
-                    }
-                    catch (IOException er)
-                    {
-                        JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Decision Tree", "Error", JOptionPane.ERROR_MESSAGE);
-                    }
-
-                    for (int i = 0; i < dt_weight.length; i++)
-                    {
-                        if (dt_weight[i] == 0)
-                        {
-                            attributes[i].setSelected(false);
-                            DV.activeAttributes.set(i, false);
-                        }
-                        else
-                        {
-                            attributes[i].setSelected(true);
-                            DV.activeAttributes.set(i, true);
-                        }
-                    }
-
-                    DataVisualization.findBestThreshold(0);
-                    DataVisualization.drawGraphs();
-                });
-
-                removal.add(dtRemove);
-
+                removal.add(DTRemoveAttribute(attributes));
                 JOptionPane.showMessageDialog(DV.mainFrame, removal, "Remove Attributes", JOptionPane.PLAIN_MESSAGE);
             }
         });
 
-        constraints.gridx = 1;
-        constraints.gridy = 2;
-        visPanel.add(removeBtn, constraints);
+        return removeBtn;
+    }
 
-        // change visualization function for each attribute of each vector
+
+    /**
+     * Creates button to remove attributes from visualization based on a Decision Tree (DT)
+     * @param attributes attributes to remove
+     * @return button
+     */
+    private static JButton DTRemoveAttribute(JCheckBox[] attributes)
+    {
+        JButton dtRemove = new JButton("Decision Tree");
+        dtRemove.setToolTipText("Remove attributes with low importance in a decision tree");
+        dtRemove.addActionListener(dte ->
+        {
+            // get decision tree order
+            double[] dt_weight = new double[DV.fieldLength];
+
+            // create dt (python) process
+            ProcessBuilder tree = new ProcessBuilder("cmd", "/c",
+                    "source\\Python\\DecisionTree\\DecisionTree.exe",
+                    "source\\Python\\DV_data.csv");
+
+            try
+            {
+                // create file for python process
+                CSV.createCSVDataObject(DV.trainData, "source\\Python\\DV_data.csv");
+
+                // run python (LDA) process
+                Process process = tree.start();
+
+                // read python outputs
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String output;
+
+                int cnt = 0;
+
+                // get attribute order
+                while ((output = reader.readLine()) != null)
+                    dt_weight[cnt++] = Double.parseDouble(output);
+
+                // delete created file
+                File fileToDelete = new File("source\\Python\\DV_data.csv");
+                Files.deleteIfExists(fileToDelete.toPath());
+            }
+            catch (IOException er)
+            {
+                JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Decision Tree", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+
+            for (int i = 0; i < dt_weight.length; i++)
+            {
+                if (dt_weight[i] == 0)
+                {
+                    attributes[i].setSelected(false);
+                    DV.activeAttributes.set(i, false);
+                }
+                else
+                {
+                    attributes[i].setSelected(true);
+                    DV.activeAttributes.set(i, true);
+                }
+            }
+
+            DataVisualization.findGlobalBestThreshold(0);
+            DataVisualization.drawGraphs();
+        });
+
+        return dtRemove;
+    }
+
+
+    /**
+     * Creates button to apply a scalar function to all data
+     * @return button
+     */
+    private JButton setScalarFunctionButton()
+    {
         JButton scalarVisFuncBtn = new JButton("Scalar Function");
         scalarVisFuncBtn.setToolTipText("Applies given function to all attributes of all data points");
         scalarVisFuncBtn.setFont(scalarVisFuncBtn.getFont().deriveFont(12f));
@@ -877,7 +1113,7 @@ public class VisualizationMenu extends JPanel
             // maximum text field
             JTextField funcField = new JTextField();
             funcField.setPreferredSize(new Dimension(200, 30));
-            funcField.setText(DV.scalarFunction);
+            funcField.setText(scalarFunction);
             JLabel funcLabel = new JLabel("Function: f(x) = ");
             funcLabel.setFont(funcLabel.getFont().deriveFont(12f));
             textPanel.add(funcLabel);
@@ -919,16 +1155,16 @@ public class VisualizationMenu extends JPanel
                             exp.eval();
 
                             // apply function if working
-                            DV.scalarFunction = func;
+                            scalarFunction = func;
 
-                            for (int i = 0; i < DV.normalizedData.size(); i++)
+                            for (int i = 0; i < DV.trainData.size(); i++)
                             {
-                                for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
+                                for (int j = 0; j < DV.trainData.get(i).data.length; j++)
                                 {
                                     for (int k = 0; k < DV.fieldLength; k++)
                                     {
-                                        variables.put("x", DV.data.get(i).data[j][k]);
-                                        DV.data.get(i).data[j][k] = exp.eval();
+                                        variables.put("x", DV.trainData.get(i).data[j][k]);
+                                        DV.trainData.get(i).data[j][k] = exp.eval();
                                     }
                                 }
                             }
@@ -940,30 +1176,52 @@ public class VisualizationMenu extends JPanel
                         catch (Exception exc)
                         {
                             // invalid function input
-                            JOptionPane.showMessageDialog(
-                                    DV.mainFrame,
+                            DV.warningPopup("Error",
                                     """
-                                            Error: input is invalid.
-                                            Please enter a valid function.
-                                            Select "Help" for more info.
-                                            """,
-                                    "Error",
-                                    JOptionPane.ERROR_MESSAGE);
+                                    Error: input is invalid.
+                                    Please enter a valid function.
+                                    Select "Help" for more info.
+                                    """);
                         }
 
                         notChosen = false;
                     }
-                    case 2 -> DV.scalarFuncInfoPopup();
+                    case 2 -> DV.informationPopup(
+                            "Function Help",
+                            """
+                                    Enter a function with "x" as the only variable.
+                                    All functions must use the symbols below.
+                                    Symbols not included below cannot be used.
+                                    
+                                        Addition: +
+                                        Subtraction: -
+                                        Multiplication: *
+                                        Division: /
+                                        Exponent: ^
+                                        Square Root: sqrt()
+                                        Parenthesis: ( )
+                                        Sine: sin()
+                                        Cosine: cos()
+                                        Tangent: tan()
+                                        e: 2.7182818
+                                    
+                                    Example:
+                                        f(x) = 2 * sqrt(sin(x^2))
+                                    """);
                     default -> { return; }
                 }
             }
         });
+        return scalarVisFuncBtn;
+    }
 
-        constraints.gridx = 0;
-        constraints.gridy = 3;
-        visPanel.add(scalarVisFuncBtn, constraints);
 
-        // change visualization function for each vector
+    /**
+     * Creates button to apply a vector function to all data
+     * @return button
+     */
+    private JButton setNDFunctionButton()
+    {
         JButton vectorVisFuncBtn = new JButton("n-D Point Function");
         vectorVisFuncBtn.setToolTipText("Applies given function to all n-D points");
         vectorVisFuncBtn.setFont(vectorVisFuncBtn.getFont().deriveFont(12f));
@@ -987,71 +1245,7 @@ public class VisualizationMenu extends JPanel
             vecPanel.add(vecLabel);
             vecPanel.add(svmVec);
             vecPanel.add(userVec);
-            JButton userVecInput = new JButton("User n-D Points Input");
-            userVecInput.addActionListener(ee ->
-            {
-                if (DV.data.size() > 0)
-                {
-                    // set filter on file chooser
-                    JFileChooser fileDialog = new JFileChooser();
-                    fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
-
-                    // set to current directory
-                    File workingDirectory = new File(System.getProperty("user.dir"));
-                    fileDialog.setCurrentDirectory(workingDirectory);
-
-                    // open file dialog
-                    int results = fileDialog.showOpenDialog(DV.mainFrame);
-
-                    if (results == JFileChooser.APPROVE_OPTION)
-                    {
-                        File importFile = fileDialog.getSelectedFile();
-
-                        // check if import was successful
-                        boolean success = DataSetup.setupSupportVectors(importFile);
-
-                        // create graphs
-                        if (success)
-                        {
-                            JOptionPane.showMessageDialog(
-                                    DV.mainFrame,
-                                    "Vectors successfully imported.\n",
-                                    "Success: vectors imported",
-                                    JOptionPane.ERROR_MESSAGE);
-                        }
-                        else
-                        {
-                            // add blank graph
-                            JOptionPane.showMessageDialog(
-                                    DV.mainFrame,
-                                    "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                                    "Error: could not open file",
-                                    JOptionPane.ERROR_MESSAGE);
-                        }
-                    }
-                    else if (results != JFileChooser.CANCEL_OPTION)
-                    {
-                        JOptionPane.showMessageDialog(
-                                DV.mainFrame,
-                                "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                                "Error: could not open file",
-                                JOptionPane.ERROR_MESSAGE);
-                    }
-                }
-                else
-                {
-                    JOptionPane.showMessageDialog(
-                            DV.mainFrame,
-                            "Please create a project before importing data.\nFor additional information, please view the \"Help\" tab.",
-                            "Error: could not import data",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-
-                // repaint and revalidate graph
-                DV.graphPanel.repaint();
-                DV.graphPanel.revalidate();
-            });
-            vecPanel.add(userVecInput);
+            vecPanel.add(getUserVectors());
             funcPanel.add(vecPanel);
 
             // radio button group
@@ -1082,18 +1276,18 @@ public class VisualizationMenu extends JPanel
             // maximum text field
             JTextField funcField = new JTextField();
             funcField.setPreferredSize(new Dimension(200, 30));
-            funcField.setText(DV.vectorFunction);
+            funcField.setText(vectorFunction);
             JLabel funcLabel = new JLabel("Function: f(x, y) = ");
             funcLabel.setFont(funcLabel.getFont().deriveFont(12f));
             textPanel.add(funcLabel);
             textPanel.add(funcField);
 
             // set text
-            if (DV.vectorFunction.equals("(1/" + DV.standardFieldLength + " * dot(x, y) + 1)^3"))
+            if (vectorFunction.equals("(1/" + DV.standardFieldLength + " * dot(x, y) + 1)^3"))
                 svmPolyFunc.setSelected(true);
-            else if (DV.vectorFunction.equals("e^(-1/" + DV.standardFieldLength + " * norm(vSub(x, y))^2)"))
+            else if (vectorFunction.equals("e^(-1/" + DV.standardFieldLength + " * norm(vSub(x, y))^2)"))
                 svmRBFFunc.setSelected(true);
-            else if (DV.vectorFunction.equals("N/A"))
+            else if (vectorFunction.equals("N/A"))
                 noFunc.setSelected(true);
             else
                 customFunc.setSelected(true);
@@ -1141,6 +1335,9 @@ public class VisualizationMenu extends JPanel
                 {
                     case 0 ->
                     {
+                        if (svmVec.isSelected() && !DV.haveSVM)
+                            DataVisualization.SVM();
+
                         // get function and remove spaces
                         String func = funcField.getText();
 
@@ -1155,8 +1352,8 @@ public class VisualizationMenu extends JPanel
                             for (int i = 0; i < DV.fieldLength; i++)
                                 DV.activeAttributes.add(true);
 
-                            DV.data = new ArrayList<>();
-                            DV.data.addAll(DV.normalizedData);
+                            DV.trainData = new ArrayList<>();
+                            DV.trainData.addAll(DV.normalizedData);
 
                             DV.crossValidationNotGenerated = true;
 
@@ -1176,20 +1373,17 @@ public class VisualizationMenu extends JPanel
                                 exp.eval();
 
                                 // apply function if working
-                                DV.vectorFunction = func;
+                                vectorFunction = func;
                                 ArrayList<double[][]> splitByClass = new ArrayList<>();
-
-                                for (int i = 0; i < DV.normalizedData.size(); i++)
+                                for (int i = 0; i < DV.trainData.size(); i++)
                                 {
                                     ArrayList<double[]> classData = new ArrayList<>();
-
-                                    for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
+                                    for (int j = 0; j < DV.trainData.get(i).data.length; j++)
                                     {
                                         ArrayList<Double> newRow = new ArrayList<>();
-
                                         for (int k = 0; k < DV.supportVectors.data.length; k++)
                                         {
-                                            final double[] x = DV.normalizedData.get(i).data[j];
+                                            final double[] x = DV.trainData.get(i).data[j];
                                             final double[] y = DV.supportVectors.data[k];
 
                                             variables.put("x", () -> x);
@@ -1213,11 +1407,8 @@ public class VisualizationMenu extends JPanel
                                     splitByClass.add(newClassData);
                                 }
 
-                                DV.data = DataSetup.createDataObjects(splitByClass);
-                                DV.trainData = DV.data;
-
+                                DV.trainData = DataSetup.createDataObjects(splitByClass);
                                 DV.fieldLength = splitByClass.get(0)[0].length;
-
                                 DV.angles = new double[DV.fieldLength];
                                 DV.prevAngles = new double[DV.fieldLength];
                                 DV.fieldNames.clear();
@@ -1239,74 +1430,167 @@ public class VisualizationMenu extends JPanel
                             catch (Exception exc)
                             {
                                 // invalid function input
-                                JOptionPane.showMessageDialog(
-                                        DV.mainFrame,
+                                DV.warningPopup("Error",
                                         """
-                                                Error: input is invalid.
-                                                Please enter a valid function.
-                                                Select "Help" for more info.
-                                                """,
-                                        "Error",
-                                        JOptionPane.ERROR_MESSAGE);
+                                        Error: input is invalid.
+                                        Please enter a valid function.
+                                        Select "Help" for more info.
+                                        """);
                             }
                         }
 
                         notChosen = false;
                     }
-                    case 2 -> DV.vectorFuncInfoPopup();
+                    case 2 -> DV.informationPopup(
+                            "Function Help",
+                            """
+                                Enter a function with "x" and "y" as the only variables.
+                                "x" will be a vector in the dataset and "y" will be a support vector.
+                                All functions must use the symbols below.
+                                Symbols not included below cannot be used.
+                                
+                                    Addition: +
+                                    Subtraction: -
+                                    Multiplication: *
+                                    Division: /
+                                    Exponent: ^
+                                    Square Root: sqrt()
+                                    Parenthesis: ( )
+                                    Sine: sin()
+                                    Cosine: cos()
+                                    Tangent: tan()
+                                    Dot Product: dot(x,y)
+                                    Vector Norm: norm(x,y)
+                                    Vector Addition: vAdd(x,y)
+                                    Vector Subtraction: vSub(x,y)
+                                    e: 2.7182818
+                                
+                                Example:
+                                    f(x) = e^(-1/9 * norm(vSub(x, y))^2)
+                                """);
                     default -> { return; }
                 }
             }
         });
 
-        constraints.gridx = 1;
-        constraints.gridy = 3;
-        visPanel.add(vectorVisFuncBtn, constraints);
+        return vectorVisFuncBtn;
+    }
 
-        JButton visSVMBtn = new JButton("Visualize Only SVM");
-        JButton stopVisSVMBtn = new JButton("Stop Visualizing Only SVM");
-        visSVMBtn.setToolTipText("Visualize only support vectors.");
-        visSVMBtn.setFont(visSVMBtn.getFont().deriveFont(12f));
-        visSVMBtn.addActionListener(e ->
+
+    /**
+     * Creates button to get user support vectors
+     * @return button
+     */
+    private static JButton getUserVectors()
+    {
+        JButton userVecInput = new JButton("User n-D Points Input");
+        userVecInput.addActionListener(ee ->
         {
-            if (DV.data != null && DV.supportVectors != null)
+            if (!DV.trainData.isEmpty())
             {
-                constraints.gridx = 0;
-                constraints.gridy = 3;
-                visPanel.remove(visSVMBtn);
-                visPanel.add(stopVisSVMBtn, constraints);
+                // set filter on file chooser
+                JFileChooser fileDialog = new JFileChooser();
+                fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
 
-                visPanel.repaint();
-                visPanel.revalidate();
+                // set to current directory
+                File workingDirectory = new File(System.getProperty("user.dir"));
+                fileDialog.setCurrentDirectory(workingDirectory);
 
-                DV.drawOnlySVM = true;
-                DataVisualization.drawGraphs();
+                // open file dialog
+                int results = fileDialog.showOpenDialog(DV.mainFrame);
+
+                if (results == JFileChooser.APPROVE_OPTION)
+                {
+                    File importFile = fileDialog.getSelectedFile();
+
+                    // check if import was successful
+                    boolean success = DataSetup.setupSupportVectors(importFile);
+
+                    // create graphs
+                    if (success)
+                    {
+                        DV.informationPopup(
+                                "Vectors successfully imported.\n",
+                                "Success: vectors imported");
+                    }
+                    else
+                    {
+                        // add blank graph
+                        DV.warningPopup(
+                                "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                                "Error: could not open file");
+                    }
+                }
+                else if (results != JFileChooser.CANCEL_OPTION)
+                {
+                    DV.warningPopup(
+                            "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
+                            "Error: could not open file");
+                }
             }
-        });
+            else
+            {
+                DV.warningPopup(
+                        "Please create a project before importing data.\nFor additional information, please view the \"Help\" tab.",
+                        "Error: could not import data");
+            }
 
-        stopVisSVMBtn.setToolTipText("Visualize only support vectors.");
-        stopVisSVMBtn.setFont(stopVisSVMBtn.getFont().deriveFont(12f));
-        stopVisSVMBtn.addActionListener(e ->
+            // repaint and revalidate graph
+            DV.graphPanel.repaint();
+            DV.graphPanel.revalidate();
+        });
+        return userVecInput;
+    }
+
+
+    /**
+     * Select whether to visualize only the overlap data or not
+     * @return check box
+     */
+    private JCheckBox visOverlapBox()
+    {
+        JCheckBox visOverlapBox = new JCheckBox("Visualize Overlap");
+        visOverlapBox.setToolTipText("Visualize the overlap area");
+        visOverlapBox.setFont(visOverlapBox.getFont().deriveFont(12f));
+        visOverlapBox.addActionListener(e ->
         {
-            if (DV.data != null && DV.supportVectors != null)
-            {
-                constraints.gridx = 0;
-                constraints.gridy = 3;
-                visPanel.remove(stopVisSVMBtn);
-                visPanel.add(visSVMBtn, constraints);
+            DV.drawOverlap = visOverlapBox.isSelected();
 
-                visPanel.repaint();
-                visPanel.revalidate();
-
-                DV.drawOnlySVM = false;
+            if (DV.trainData != null)
                 DataVisualization.drawGraphs();
-            }
         });
-
-        constraints.gridx = 0;
-        constraints.gridy = 4;
-        visPanel.add(visSVMBtn, constraints);
         
+        return visOverlapBox;
+    }
+
+
+    /**
+     * Select whether to visualize only SVM data or not
+     * @return check box
+     */
+    private JCheckBox visOnlySVMBox()
+    {
+        JCheckBox visOnlySVMBox = new JCheckBox("Visualize Only SVM");
+        visOnlySVMBox.setToolTipText("Visualize only support vectors.");
+        visOnlySVMBox.setFont(visOnlySVMBox.getFont().deriveFont(12f));
+        visOnlySVMBox.addActionListener(e ->
+        {
+            DV.drawOnlySVM = visOnlySVMBox.isSelected();
+
+            if (DV.trainData != null && DV.supportVectors != null)
+                DataVisualization.drawGraphs();
+        });
+        
+        return visOnlySVMBox;
+    }
+
+
+    /**
+     * Select whether to visualize the SVM data or not
+     * @return check box
+     */
+    private JCheckBox visSVMBox()
+    {
         JCheckBox svmVisBox = new JCheckBox("Visualize SVM", DV.drawSVM);
         svmVisBox.setToolTipText("Visualize support vectors along with all other data.");
         svmVisBox.setFont(svmVisBox.getFont().deriveFont(12f));
@@ -1314,43 +1598,60 @@ public class VisualizationMenu extends JPanel
         {
             DV.drawSVM = svmVisBox.isSelected();
 
-            if (DV.data != null && DV.supportVectors != null)
+            if (DV.trainData != null && DV.supportVectors != null)
                 DataVisualization.drawGraphs();
         });
+        
+        return svmVisBox;
+    }
 
-        constraints.gridx = 1;
-        constraints.gridy = 4;
-        visPanel.add(svmVisBox, constraints);
 
+    /**
+     * Select whether to activate the domain line or not
+     * @return check box
+     */
+    private JCheckBox domainActiveBox()
+    {
         JCheckBox domainActiveBox = new JCheckBox("Domain Active", DV.domainActive);
         domainActiveBox.setToolTipText("Whether the domain is active or not.");
         domainActiveBox.setFont(domainActiveBox.getFont().deriveFont(12f));
         domainActiveBox.addActionListener(eee ->
         {
             DV.domainActive = domainActiveBox.isSelected();
-            if (DV.data != null)
+            if (DV.trainData != null)
                 DataVisualization.drawGraphs();
         });
+        
+        return domainActiveBox;
+    }
 
-        constraints.gridx = 0;
-        constraints.gridy = 5;
-        visPanel.add(domainActiveBox, constraints);
 
+    /**
+     * Select whether to visualize the first line in a GLC-L visualization or not
+     * @return check box
+     */
+    private JCheckBox drawFirstLineBox()
+    {
         JCheckBox drawFirstLineBox = new JCheckBox("First Line", DV.showFirstSeg);
         drawFirstLineBox.setToolTipText("Whether to draw the first line segment of a graph or not.");
         drawFirstLineBox.setFont(drawFirstLineBox.getFont().deriveFont(12f));
         drawFirstLineBox.addActionListener(fle ->
         {
             DV.showFirstSeg = drawFirstLineBox.isSelected();
-            if (DV.data != null)
+            if (DV.trainData != null)
                 DataVisualization.drawGraphs();
         });
+        
+        return drawFirstLineBox;
+    }
 
-        constraints.gridx = 1;
-        constraints.gridy = 5;
-        visPanel.add(drawFirstLineBox, constraints);
 
-        // open analytics in another window
+    /**
+     * Creates button to visualize graphs in a different window
+     * @return button
+     */
+    private JButton separateVisButton()
+    {
         JButton separateVisBtn = new JButton("Visualization Window");
         separateVisBtn.setToolTipText("Open another window displaying the visualization");
         separateVisBtn.setFont(separateVisBtn.getFont().deriveFont(12f));
@@ -1364,7 +1665,6 @@ public class VisualizationMenu extends JPanel
                 JDialog dialog = optionPane.createDialog(DV.mainFrame, "Visualization");
                 dialog.setModal(false);
                 dialog.setVisible(true);
-
                 dialog.addWindowListener(new WindowAdapter()
                 {
                     @Override
@@ -1375,16 +1675,10 @@ public class VisualizationMenu extends JPanel
                     }
                 });
 
-                if (DV.data != null)
+                if (DV.trainData != null)
                     DataVisualization.drawGraphs();
             }
         });
-
-        constraints.gridx = 0;
-        constraints.gridy = 6;
-        constraints.gridwidth = 2;
-        visPanel.add(separateVisBtn, constraints);
-
-        JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Visualization Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
+        return separateVisBtn;
     }
 }

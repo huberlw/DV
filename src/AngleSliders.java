@@ -13,7 +13,7 @@ public class AngleSliders
     public static void createSliderPanel_GLC(String fieldName, int angle, int index)
     {
         // text for angle
-        JTextField angleText = createTextAngleInput(Double.toString(angle / 100.0));
+        JTextField angleText = createTextSliderInput(Double.toString(angle / 100.0));
 
         // slider for angle
         JSlider angleSlider = new JSlider(0, 18000, angle);
@@ -88,7 +88,7 @@ public class AngleSliders
         });
 
         // add to angle slider panel
-        DV.angleSliderPanel.add(createAnglePanel(angleSlider, angleLabel, angleText));
+        DV.angleSliderPanel.add(createSliderPanel(angleSlider, angleLabel, angleText));
     }
 
 
@@ -101,7 +101,7 @@ public class AngleSliders
     public static void createSliderPanel_DSC(String fieldName, int angle, int index)
     {
         // text for angle
-        JTextField angleText = createTextAngleInput(Double.toString(angle / 100.0));
+        JTextField angleText = createTextSliderInput(Double.toString(angle / 100.0));
 
         // slider for angle
         JSlider angleSlider = new JSlider(0, 18000, angle + 9000);
@@ -178,28 +178,23 @@ public class AngleSliders
         });
 
         // add to angle slider panel
-        DV.angleSliderPanel.add(createAnglePanel(angleSlider, angleLabel, angleText));
+        DV.angleSliderPanel.add(createSliderPanel(angleSlider, angleLabel, angleText));
     }
 
 
     /**
      * Creates panel for feature scaling for Hyperblock creation
+     * @param cLDF info for LDF rule for a single case
      * @param weightSlider slider for attribute weight
-     * @param fieldName name of feature to be weighted
      * @param scale value of weightSlider
      * @param featureNum index number of feature
-     * @param ruleBase datapoint info
-     * @param className class of datapoint
-     * @param opClassName other class is visualization
-     * @param curClass number of current class
-     * @param index index of feature
-     * @param upper_or_lower whether the current class is the upper or lower graph
      * @param bound feature bounds for given class
+     * @return slider
      */
-    public static JPanel createWeightSliderPanel_GLC(final JSlider weightSlider, String fieldName, int scale, int featureNum, String ruleBase, String className, String opClassName, int curClass, int index, int upper_or_lower, int bound)
+    public static JPanel createLDFSliderPanel_GLC(LDFCaseRule cLDF, final JSlider weightSlider, int scale, int featureNum, int bound)
     {
         // text for angle
-        JTextField angleText = createTextAngleInput(Integer.toString(scale));
+        JTextField angleText = createTextSliderInput(Integer.toString(scale));
 
         // slider for angle
         weightSlider.setToolTipText("Change weight of visualization");
@@ -210,9 +205,9 @@ public class AngleSliders
         // label for angle
         JLabel angleLabel = new JLabel();
         if (bound == 0)
-            angleLabel.setText(fieldName + " Lower Scale: " + scale + "%");
+            angleLabel.setText(DV.fieldNames.get(featureNum) + " Lower Scale: " + scale + "%");
         else
-            angleLabel.setText(fieldName + " Upper Scale: " + scale + "%");
+            angleLabel.setText(DV.fieldNames.get(featureNum) + " Upper Scale: " + scale + "%");
         angleLabel.setToolTipText("Change scale of attribute");
 
         // create table for slider labels
@@ -238,12 +233,12 @@ public class AngleSliders
                 // check is sliderValue is within limits
                 if (bound == 0)
                 {
-                    if (DV.data.get(curClass).data[index][featureNum] * sliderValue / 100.0 < DV.limits[featureNum][bound])
+                    if (DV.trainData.get(cLDF.curClass).data[cLDF.index][featureNum] * sliderValue / 100.0 < cLDF.limits[featureNum][bound])
                         return;
                 }
                 else
                 {
-                    if (DV.data.get(curClass).data[index][featureNum] * sliderValue / 100.0 > DV.limits[featureNum][bound])
+                    if (DV.trainData.get(cLDF.curClass).data[cLDF.index][featureNum] * sliderValue / 100.0 > cLDF.limits[featureNum][bound])
                         return;
                 }
 
@@ -254,12 +249,12 @@ public class AngleSliders
 
                     // set angle label to new value
                     if (bound == 0)
-                        angleLabel.setText(fieldName + " Lower Scale: " + sliderValue + "%");
+                        angleLabel.setText(DV.fieldNames.get(featureNum) + " Lower Scale: " + sliderValue + "%");
                     else
-                        angleLabel.setText(fieldName + " Upper Scale: " + sliderValue + "%");
+                        angleLabel.setText(DV.fieldNames.get(featureNum) + " Upper Scale: " + sliderValue + "%");
 
                     // set angle to new value
-                    DV.scale[bound][featureNum] = sliderValue / 100.0;
+                    cLDF.scale[bound][featureNum] = sliderValue / 100.0;
                 }
                 catch (NumberFormatException nfe)
                 {
@@ -267,8 +262,8 @@ public class AngleSliders
                 }
 
                 // redraw
-                DataVisualization.drawLDFRule(ruleBase, className, opClassName, curClass, index);
-                DataVisualization.drawLDF(curClass, index, upper_or_lower, ruleBase, className, opClassName);
+                cLDF.getLDFRule();
+                cLDF.drawLDF();
             }
         });
 
@@ -281,17 +276,17 @@ public class AngleSliders
             // check is sliderValue is within limits
             if (bound == 0)
             {
-                if (DV.data.get(curClass).data[index][featureNum] * sliderValue / 100.0 < DV.limits[featureNum][bound])
+                if (DV.trainData.get(cLDF.curClass).data[cLDF.index][featureNum] * sliderValue / 100.0 < cLDF.limits[featureNum][bound])
                 {
-                    weightSlider.setValue((int)(DV.limits[featureNum][bound] / DV.data.get(curClass).data[index][featureNum] * 100));
+                    weightSlider.setValue((int)(cLDF.limits[featureNum][bound] / DV.trainData.get(cLDF.curClass).data[cLDF.index][featureNum] * 100));
                     sliderValue = weightSlider.getValue();
                 }
             }
             else
             {
-                if (DV.data.get(curClass).data[index][featureNum] * sliderValue / 100.0 > DV.limits[featureNum][bound])
+                if (DV.trainData.get(cLDF.curClass).data[cLDF.index][featureNum] * sliderValue / 100.0 > cLDF.limits[featureNum][bound])
                 {
-                    weightSlider.setValue((int)(DV.limits[featureNum][bound] / DV.data.get(curClass).data[index][featureNum] * 100));
+                    weightSlider.setValue((int)(cLDF.limits[featureNum][bound] / DV.trainData.get(cLDF.curClass).data[cLDF.index][featureNum] * 100));
                     sliderValue = weightSlider.getValue();
                 }
             }
@@ -303,12 +298,12 @@ public class AngleSliders
 
                 // set angle label to new value
                 if (bound == 0)
-                    angleLabel.setText(fieldName + " Lower Scale: " + sliderValue + "%");
+                    angleLabel.setText(DV.fieldNames.get(featureNum) + " Lower Scale: " + sliderValue + "%");
                 else
-                    angleLabel.setText(fieldName + " Upper Scale: " + sliderValue + "%");
+                    angleLabel.setText(DV.fieldNames.get(featureNum) + " Upper Scale: " + sliderValue + "%");
 
                 // set angle to new value
-                DV.scale[bound][featureNum] = sliderValue / 100.0;
+                cLDF.scale[bound][featureNum] = sliderValue / 100.0;
             }
             catch (NumberFormatException nfe)
             {
@@ -316,12 +311,12 @@ public class AngleSliders
             }
 
             // redraw
-            DataVisualization.drawLDFRule(ruleBase, className, opClassName, curClass, index);
-            DataVisualization.drawLDF(curClass, index, upper_or_lower, ruleBase, className, opClassName);
+            cLDF.getLDFRule();
+            cLDF.drawLDF();
         });
 
         // add to angle slider panel
-        return createAnglePanel(weightSlider, angleLabel, angleText);
+        return createSliderPanel(weightSlider, angleLabel, angleText);
     }
 
 
@@ -330,14 +325,14 @@ public class AngleSliders
      * @param text initial angle
      * @return textbox
      */
-    private static JTextField createTextAngleInput(String text)
+    private static JTextField createTextSliderInput(String text)
     {
-        JTextField angleText = new JTextField(4);
-        angleText.setToolTipText("Change weight of visualization");
-        angleText.setFont(angleText.getFont().deriveFont(12f));
-        angleText.setText(text);
+        JTextField sliderText = new JTextField(4);
+        sliderText.setToolTipText("Change weight of visualization");
+        sliderText.setFont(sliderText.getFont().deriveFont(12f));
+        sliderText.setText(text);
 
-        return angleText;
+        return sliderText;
     }
 
 
@@ -348,24 +343,24 @@ public class AngleSliders
      * @param angleText text input box to adjust angle
      * @return panel holding slider and text input box
      */
-    private static JPanel createAnglePanel(JSlider angleSlider, JLabel angleLabel, JTextField angleText)
+    private static JPanel createSliderPanel(JSlider angleSlider, JLabel angleLabel, JTextField angleText)
     {
         // panel for angle
         // holds textField, slider, and label
-        JPanel anglePanel = new JPanel(new GridBagLayout());
+        JPanel sliderPanel = new JPanel(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
 
         c.gridx = 0;
         c.gridy = 0;
         c.fill = GridBagConstraints.HORIZONTAL;
-        anglePanel.add(angleSlider, c);
+        sliderPanel.add(angleSlider, c);
 
         c.gridy = 1;
-        anglePanel.add(angleLabel, c);
+        sliderPanel.add(angleLabel, c);
 
         c.gridx = 1;
-        anglePanel.add(angleText, c);
+        sliderPanel.add(angleText, c);
 
-        return anglePanel;
+        return sliderPanel;
     }
 }

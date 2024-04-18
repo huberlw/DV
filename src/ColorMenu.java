@@ -274,7 +274,7 @@ public class ColorMenu extends JPanel
         }
 
         // redraw graphs
-        if (DV.data != null)
+        if (DV.trainData != null)
             DataVisualization.drawGraphs();
     }
 

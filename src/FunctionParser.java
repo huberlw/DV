@@ -3,6 +3,13 @@ import java.util.function.DoubleUnaryOperator;
 
 import static java.util.Map.entry;
 
+/**
+ * Title:
+ * Author:
+ * Date: 1/22/2022
+ * Code Version: 9
+ * Availability: <a href="https://stackoverflow.com/questions/3422673/how-to-evaluate-a-math-expression-given-in-string-form">...</a>
+ */
 public class FunctionParser
 {
     // eval for Expression
@@ -28,17 +35,13 @@ public class FunctionParser
     );
 
 
-    // CODE IS FROM Boann on Stack Overflow
-    // Link: https://stackoverflow.com/questions/3422673/how-to-evaluate-a-math-expression-given-in-string-form
-
-
     /**
      * Evaluates a given expression
      * @param strExp expression to be evaluated
      * @param variables variable and value (ex. x = 1)
      * @return function that can be evaluated
      */
-    public static Expression parseScalerExpression(String strExp, Map<String, Double> variables)
+    static Expression parseScalerExpression(String strExp, Map<String, Double> variables)
     {
         return new Object()
         {
@@ -189,7 +192,7 @@ public class FunctionParser
      * @param variables variable and value (ex. x = {1, 2, 3})
      * @return function that can be evaluated
      */
-    public static Expression parseVectorExpression(String strExp, Map<String, VectorExpression> variables)
+    static Expression parseVectorExpression(String strExp, Map<String, VectorExpression> variables)
     {
         return new Object()
         {

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="discriminantAnalysis">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/discriminantAnalysis.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

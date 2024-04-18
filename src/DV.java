@@ -17,9 +17,14 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DV extends JFrame
 {
+    // error logging
+    private final static Logger LOGGER = Logger.getLogger(Analytics.class.getName());
+
     /**************************************************
      * FOR GUI
      *************************************************/
@@ -83,6 +88,7 @@ public class DV extends JFrame
     static boolean drawOverlap = false;
 
     // draw support vectors
+    static boolean haveSVM = false;
     static boolean drawSVM = false;
     static boolean drawOnlySVM = false;
 
@@ -96,9 +102,6 @@ public class DV extends JFrame
     // lower classes are visualized on the lower graph
     static int upperClass = 0;
     static ArrayList<Boolean> lowerClasses = new ArrayList<>(List.of(false));
-
-    // warn user about scaling
-    static boolean showPopup;
 
     // choose plot type: true == glc, false == dsc
     static boolean glc_or_dsc = true;
@@ -114,9 +117,6 @@ public class DV extends JFrame
      *************************************************/
     // overlap area
     static double[] overlapArea;
-
-    static boolean useOverlapPercent = false;
-    static double overlapPercent;
 
     // threshold point
     static double threshold;
@@ -175,27 +175,13 @@ public class DV extends JFrame
     static double[] prevAngles;
     static double[] standardAngles;
 
-    // attributes of LDF
-    static double[][] scale;
-    static double[][] limits;
-    static boolean[] discrete;
-    static int strips = 4;
-
     // min, max, mean, and sd for each column of data
     static double[] max;
     static double[] min;
     static double[] mean;
     static double[] sd;
 
-    /**
-     * CONSTRUCTION
-     */
-    static boolean activeLDF = false;
-
     // normalized and original data
-    static ArrayList<DataObject> data;
-
-    // train test split
     static double trainSplit = 1;
     static double testSplit = 0;
     static ArrayList<DataObject> trainData;
@@ -222,10 +208,6 @@ public class DV extends JFrame
     // active attributes
     static ArrayList<Boolean> activeAttributes;
 
-    // initialize with linear function
-    static String scalarFunction = "x";
-    static String vectorFunction = "N/A";
-
     /************************************************
      * FOR PROJECT
      ***********************************************/
@@ -240,7 +222,7 @@ public class DV extends JFrame
     public DV()
     {
         // set DV properties
-        super("DV");
+        super("DV 2.0");
         this.setSize(minSize[0], minSize[1]);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setExtendedState(this.getExtendedState() & (~JFrame.ICONIFIED));
@@ -662,7 +644,7 @@ public class DV extends JFrame
         resetScreenBtn.setToolTipText("Resets rendered zoom area");
         resetScreenBtn.addActionListener(e ->
         {
-            if (data != null)
+            if (trainData != null)
             {
                 DataVisualization.drawGraphs();
                 repaint();
@@ -698,7 +680,7 @@ public class DV extends JFrame
         barLineBtn.setToolTipText("Toggle for showing bar-line graph of endpoint placement");
         barLineBtn.addActionListener(e ->
         {
-            if (data != null)
+            if (trainData != null)
             {
                 showBars = !showBars;
                 DataVisualization.drawGraphs();
@@ -713,6 +695,7 @@ public class DV extends JFrame
         visOptionsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\line-chart.png"), visOptionsBtn.getHeight() - offset, visOptionsBtn.getHeight() - offset));
         analyticsBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\statistics.png"), analyticsBtn.getHeight() - offset, analyticsBtn.getHeight() - offset));
         ldfRuleBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\selection.png"), ldfRuleBtn.getHeight() - offset, ldfRuleBtn.getHeight() - offset));
+        hpBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\cube.png"), hpBtn.getHeight() - offset, hpBtn.getHeight() - offset));
         resetScreenBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\undo.png"), resetScreenBtn.getHeight() - offset, resetScreenBtn.getHeight() - offset));
         optimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\up-right-arrow.png"), optimizeBtn.getHeight() - offset, optimizeBtn.getHeight() - offset));
         undoOptimizeBtn.setIcon(resizeIcon(new ImageIcon("source\\icons\\revert.png"), undoOptimizeBtn.getHeight() - offset, undoOptimizeBtn.getHeight() - offset));
@@ -913,16 +896,13 @@ public class DV extends JFrame
                 {
                     // optimize data setup with Linear Discriminant Analysis
                     DataVisualization.optimizeSetup();
-                    //DataVisualization.SVM();
                     DataVisualization.drawGraphs();
                 }
                 else
                 {
-                    JOptionPane.showMessageDialog(
-                            mainFrame,
+                    warningPopup(
                             "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                            "Error: could not open file",
-                            JOptionPane.ERROR_MESSAGE);
+                            "Error: could not open file");
 
                     // add blank graph
                     graphPanel.add(blankGraph());
@@ -930,11 +910,9 @@ public class DV extends JFrame
             }
             else if (results != JFileChooser.CANCEL_OPTION)
             {
-                JOptionPane.showMessageDialog(
-                        mainFrame,
+                warningPopup(
                         "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                        "Error: could not open file",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error: could not open file");
 
                 // add blank graph
                 graphPanel.add(blankGraph());
@@ -946,12 +924,10 @@ public class DV extends JFrame
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                    mainFrame,
+            LOGGER.log(Level.SEVERE, e.toString(), e);
+            warningPopup(
                     "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not open file",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error: could not open file");
 
             // add blank graph if data was bad
             graphPanel.add(blankGraph());
@@ -970,7 +946,7 @@ public class DV extends JFrame
     {
         try
         {
-            if (data.size() > 0)
+            if (!trainData.isEmpty())
             {
                 // set filter on file chooser
                 JFileChooser fileDialog = new JFileChooser();
@@ -1003,11 +979,9 @@ public class DV extends JFrame
                     else
                     {
                         // add blank graph
-                        JOptionPane.showMessageDialog(
-                                mainFrame,
+                        warningPopup(
                                 "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                                "Error: could not open file",
-                                JOptionPane.ERROR_MESSAGE);
+                                "Error: could not open file");
 
                         // add blank graph
                         graphPanel.add(blankGraph());
@@ -1015,11 +989,9 @@ public class DV extends JFrame
                 }
                 else if (results != JFileChooser.CANCEL_OPTION)
                 {
-                    JOptionPane.showMessageDialog(
-                            mainFrame,
+                    warningPopup(
                             "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                            "Error: could not open file",
-                            JOptionPane.ERROR_MESSAGE);
+                            "Error: could not open file");
 
                     // add blank graph
                     graphPanel.add(blankGraph());
@@ -1027,11 +999,9 @@ public class DV extends JFrame
             }
             else
             {
-                JOptionPane.showMessageDialog(
-                        mainFrame,
+                warningPopup(
                         "Please create a project before importing data.\nFor additional information, please view the \"Help\" tab.",
-                        "Error: could not import data",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error: could not import data");
 
                 // add blank graph
                 graphPanel.add(blankGraph());
@@ -1043,11 +1013,9 @@ public class DV extends JFrame
         }
         catch (Exception e)
         {
-            JOptionPane.showMessageDialog(
-                    mainFrame,
+            warningPopup(
                     "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not open file",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error: could not open file");
 
             // add blank graph
             graphPanel.add(blankGraph());
@@ -1066,7 +1034,7 @@ public class DV extends JFrame
         {
             // set filter on file chooser
             JFileChooser fileDialog = new JFileChooser();
-            fileDialog.setFileFilter(new FileNameExtensionFilter("csv", "csv"));
+            fileDialog.setFileFilter(new FileNameExtensionFilter("DV2", "DV2"));
 
             // set to current directory
             File workingDirectory = new File(System.getProperty("user.dir"));
@@ -1106,11 +1074,9 @@ public class DV extends JFrame
             }
             else if (results != JFileChooser.CANCEL_OPTION)
             {
-                JOptionPane.showMessageDialog(
-                        mainFrame,
+                warningPopup(
                         "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                        "Error: could not open file",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error: could not open file");
 
                 // add blank graph
                 graphPanel.add(blankGraph());
@@ -1122,11 +1088,9 @@ public class DV extends JFrame
         }
         catch (Exception e)
         {
-            JOptionPane.showMessageDialog(
-                    mainFrame,
+            warningPopup(
                     "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not open file",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error: could not open file");
 
             // add blank graph
             graphPanel.add(blankGraph());
@@ -1143,7 +1107,7 @@ public class DV extends JFrame
      */
     private void saveProject()
     {
-        if (data != null && projectSaveName != null)
+        if (trainData != null && projectSaveName != null)
         {
             try
             {
@@ -1222,7 +1186,7 @@ public class DV extends JFrame
                 else out.write("0\n");
 
                 // are there previous confusion matrices
-                if (prevAllDataCM.size() > 0)
+                if (!prevAllDataCM.isEmpty())
                     out.write(prevAllDataCM.size() + "\n");
                 else
                     out.write("0\n");
@@ -1288,7 +1252,7 @@ public class DV extends JFrame
                 }
 
                 // save data
-                for (DataObject normData : data)
+                for (DataObject normData : trainData)
                 {
                     // save number of datapoints
                     out.write(normData.data.length + "\n");
@@ -1350,24 +1314,20 @@ public class DV extends JFrame
             }
             catch(IOException e)
             {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, e.toString(), e);
             }
         }
-        else if (data == null)
+        else if (trainData == null)
         {
-            JOptionPane.showMessageDialog(
-                    mainFrame,
+            warningPopup(
                     "Please create a project before saving.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not create project save",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error: could not create project save");
         }
         else
         {
-            JOptionPane.showMessageDialog(
-                    mainFrame,
+            warningPopup(
                     "There is no project save available. Please use \"Save As\" instead.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: no project save available",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error: no project save available");
         }
     }
 
@@ -1377,7 +1337,7 @@ public class DV extends JFrame
      */
     private void saveProjectAs()
     {
-        if (data != null)
+        if (trainData != null)
         {
             try
             {
@@ -1385,7 +1345,7 @@ public class DV extends JFrame
                 JFileChooser fileSaver = new JFileChooser();
                 fileSaver.setDialogType(JFileChooser.SAVE_DIALOG);
                 fileSaver.setAcceptAllFileFilterUsed(false);
-                fileSaver.addChoosableFileFilter(new FileNameExtensionFilter("CSV file", "csv"));
+                fileSaver.addChoosableFileFilter(new FileNameExtensionFilter("DV2 file", "DV2"));
 
                 // set to current directory
                 File workingDirectory = new File(System.getProperty("user.dir"));
@@ -1397,18 +1357,16 @@ public class DV extends JFrame
                     File fileToSave = fileSaver.getSelectedFile();
                     String fileName = fileToSave.toString();
 
-                    if (fileName.contains(".") && !fileName.contains(".csv"))
+                    if (fileName.contains(".") && !fileName.contains(".DV2"))
                     {
-                        JOptionPane.showMessageDialog(
-                                mainFrame,
-                                "All save files must have a .csv extension.",
-                                "Error: save file must be a CSV",
-                                JOptionPane.ERROR_MESSAGE);
+                        warningPopup(
+                                "All save files must have a .DV2 extension.",
+                                "Error: save file must be a DV2");
                     }
 
                     // add csv extension if not explicitly typed
-                    if (!fileName.contains(".csv"))
-                        fileName += ".csv";
+                    if (!fileName.contains(".DV2"))
+                        fileName += ".DV2";
 
                     projectSaveName = fileName;
 
@@ -1552,7 +1510,7 @@ public class DV extends JFrame
                     }
 
                     // save data
-                    for (DataObject normData : data)
+                    for (DataObject normData : trainData)
                     {
                         // save number of datapoints
                         out.write(normData.data.length + "\n");
@@ -1615,16 +1573,14 @@ public class DV extends JFrame
             }
             catch(IOException e)
             {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, e.toString(), e);
             }
         }
         else
         {
-            JOptionPane.showMessageDialog(
-                    mainFrame,
+            warningPopup(
                     "Please create a project before saving.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not create project save",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error: could not create project save");
         }
     }
 
@@ -1636,7 +1592,7 @@ public class DV extends JFrame
     {
         try
         {
-            if (data.size() > 0 && DV.classNumber > 1)
+            if (!trainData.isEmpty() && DV.classNumber > 1)
             {
                 // set filter on file chooser
                 JFileChooser fileDialog = new JFileChooser();
@@ -1675,48 +1631,36 @@ public class DV extends JFrame
                     }
                     else
                     {
-                        JOptionPane.showMessageDialog(
-                                mainFrame,
+                        warningPopup(
                                 "The validation set was not able to be created.\nPlease ensure the validation data's file has the same format as the original data file.",
-                                "Error: failed to create validation set",
-                                JOptionPane.ERROR_MESSAGE);
+                                "Error: failed to create validation set");
                     }
                 }
                 else
                 {
-                    JOptionPane.showMessageDialog(
-                            mainFrame,
+                    warningPopup(
                             "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                            "Error: could not open file",
-                            JOptionPane.ERROR_MESSAGE);
+                            "Error: could not open file");
                 }
-
-
             }
             else if (DV.classNumber == 1)
             {
-                JOptionPane.showMessageDialog(
-                        mainFrame,
+                warningPopup(
                         "Not enough classes to create validation set.\nFor additional information, please view the \"Help\" tab.",
-                        "Error: could not create validation set",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error: could not create validation set");
             }
             else
             {
-                JOptionPane.showMessageDialog(
-                        mainFrame,
+                warningPopup(
                         "Please create a project before creating a validation set.\nFor additional information, please view the \"Help\" tab.",
-                        "Error: could not create validation set",
-                        JOptionPane.ERROR_MESSAGE);
+                        "Error: could not create validation set");
             }
         }
         catch (Exception e)
         {
-            JOptionPane.showMessageDialog(
-                    mainFrame,
+            warningPopup(
                     "Please ensure the file is properly formatted.\nFor additional information, please view the \"Help\" tab.",
-                    "Error: could not open file",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error: could not open file");
         }
     }
 
@@ -1740,75 +1684,29 @@ public class DV extends JFrame
 
 
     /**
-     * Creates informative popup explaining how to
-     * enter a function
+     * Creates informative popup
      */
-    public static void scalarFuncInfoPopup()
+    public static void informationPopup(String title, String message)
     {
         JOptionPane.showMessageDialog(
-                mainFrame,
-                """
-                        Enter a function with "x" as the only variable.
-                        All functions must use the symbols below.
-                        Symbols not included below cannot be used.
-                        
-                            Addition: +
-                            Subtraction: -
-                            Multiplication: *
-                            Division: /
-                            Exponent: ^
-                            Square Root: sqrt()
-                            Parenthesis: ( )
-                            Sine: sin()
-                            Cosine: cos()
-                            Tangent: tan()
-                            e: 2.7182818
-                        
-                        Example:
-                            f(x) = 2 * sqrt(sin(x^2))
-                        """,
-                "Function Help",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+                DV.mainFrame,
+                message,
+                title,
+                JOptionPane.INFORMATION_MESSAGE);
     }
 
 
+
     /**
-     * Creates informative popup explaining how to
-     * enter a function
+     * Creates warning popup
      */
-    public static void vectorFuncInfoPopup()
+    public static void warningPopup(String title, String message)
     {
         JOptionPane.showMessageDialog(
-                mainFrame,
-                """
-                        Enter a function with "x" and "y" as the only variables.
-                        "x" will be a vector in the dataset and "y" will be a support vector.
-                        All functions must use the symbols below.
-                        Symbols not included below cannot be used.
-                        
-                            Addition: +
-                            Subtraction: -
-                            Multiplication: *
-                            Division: /
-                            Exponent: ^
-                            Square Root: sqrt()
-                            Parenthesis: ( )
-                            Sine: sin()
-                            Cosine: cos()
-                            Tangent: tan()
-                            Dot Product: dot(x,y)
-                            Vector Norm: norm(x,y)
-                            Vector Addition: vAdd(x,y)
-                            Vector Subtraction: vSub(x,y)
-                            e: 2.7182818
-                        
-                        Example:
-                            f(x) = e^(-1/9 * norm(vSub(x, y))^2)
-                        """,
-                "Function Help",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+                DV.mainFrame,
+                message,
+                title,
+                JOptionPane.ERROR_MESSAGE);
     }
 
 
@@ -1842,6 +1740,6 @@ public class DV extends JFrame
         drawOverlap = false;
 
         // reset popup
-        showPopup = true;
+        DataVisualization.showPopup = true;
     }
 }

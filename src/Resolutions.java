@@ -11,6 +11,7 @@ public class Resolutions
     public static int[] singleChartPanel = new int[]{950, 270};
     public static int[] uiControlsPanel = new int[] {1225, 18, 0};
 
+
     /**
      * Sizes for portions of the DV Program for various screen sizes
      * @param resolution screen size
