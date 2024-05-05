@@ -19,6 +19,10 @@ public class DataSetup
     static double[] mean;
     static double[] sd;
 
+    // default all columns
+    static boolean setValues = false;
+
+
     /**
      * Sets up DV with data from datafile
      * @param dataFile .csv file holding data
@@ -138,8 +142,12 @@ public class DataSetup
 
                 DV.max = Arrays.copyOf(maxValues, maxValues.length);
                 DV.min = Arrays.copyOf(minValues, minValues.length);
-                DV.mean = Arrays.copyOf(mean, mean.length);
-                DV.sd = Arrays.copyOf(sd, sd.length);
+
+                if (DV.zScoreMinMax)
+                {
+                    DV.mean = Arrays.copyOf(mean, mean.length);
+                    DV.sd = Arrays.copyOf(sd, sd.length);
+                }
 
                 return true;
             }
@@ -895,17 +903,25 @@ public class DataSetup
             }
             else
             {
-                String message = String.format("Minimum and maximum values in column %d are the same.\n" +
-                        "Would you like to manually enter a minimum and maximum or default all values to 0.5?", i+1);
-
-                // ask user for manual min max entry
-                double[] manualMinMax = manualMinMaxEntry(message);
-
-                // use manual min max or default to 0.5 if null
-                if (manualMinMax != null)
+                if (!setValues)
                 {
-                    for (int j = 0; j < data.length; j++)
-                        data[j][i] = (data[j][i] - manualMinMax[0]) / (manualMinMax[1] - manualMinMax[0]);
+                    String message = String.format("Minimum and maximum values in column %d are the same.\n" +
+                            "Would you like to manually enter a minimum and maximum or default all values to 0.5?", i+1);
+
+                    // ask user for manual min max entry
+                    double[] manualMinMax = manualMinMaxEntry(message);
+
+                    // use manual min max or default to 0.5 if null
+                    if (manualMinMax != null)
+                    {
+                        for (int j = 0; j < data.length; j++)
+                            data[j][i] = (data[j][i] - manualMinMax[0]) / (manualMinMax[1] - manualMinMax[0]);
+                    }
+                    else
+                    {
+                        for (int j = 0; j < data.length; j++)
+                            data[j][i] = 0.5;
+                    }
                 }
                 else
                 {
@@ -1057,7 +1073,7 @@ public class DataSetup
     public static double[] manualMinMaxEntry(String message)
     {
         // ask user for manual entry or default column to 0.5
-        Object[] options = { "Manual Entry", "Default to 0.5" };
+        Object[] options = { "Manual Entry", "Default Column to 0.5", "Default all similar Columns to 0.5" };
 
         int choice = JOptionPane.showOptionDialog(
                 DV.mainFrame,
@@ -1115,17 +1131,15 @@ public class DataSetup
                         else
                         {
                             // min is greater than or equal to max
-                            JOptionPane.showMessageDialog(
-                                    DV.mainFrame,
-                                    "Error: minimum is greater than or equal to maximum.\n" +
-                                            "Please ensure the minimum is less than the maximum.",
+                            DV.warningPopup(
                                     "Error",
-                                    JOptionPane.ERROR_MESSAGE);
+                                    "Error: minimum is greater than or equal to maximum.\n" +
+                                            "Please ensure the minimum is less than the maximum.");
                         }
                     }
                     catch (NumberFormatException nfe)
                     {
-                        JOptionPane.showMessageDialog(DV.mainFrame, "Error: please enter numerical values.", "Error", JOptionPane.ERROR_MESSAGE);
+                        DV.warningPopup("Error", "Error: please enter numerical values.");
                     }
                 }
                 else
@@ -1134,10 +1148,10 @@ public class DataSetup
                 }
             }
         }
-        else
-        {
-            return null;
-        }
+        else if (choice == 2)
+            setValues = true;
+
+        return null;
     }
 
 

@@ -59,15 +59,13 @@ public class AngleSliders
                 {
                     System.err.println("Illegal Input");
                 }
-
-                // redraw graphs
-                DataVisualization.drawGraphs();
             }
         });
 
         // change listener for slider
         angleSlider.addChangeListener(e ->
         {
+            long start = System.currentTimeMillis();
             // get new angle
             double fieldAngle = angleSlider.getValue() / 100.0;
 
@@ -84,7 +82,9 @@ public class AngleSliders
             }
 
             // redraw graphs
-            DataVisualization.drawGraphs();
+            DataVisualization.updateGraphs();
+            long end = System.currentTimeMillis();
+            System.out.println("Change Angle: " + (end-start));
         });
 
         // add to angle slider panel
@@ -149,9 +149,6 @@ public class AngleSliders
                 {
                     System.err.println("Illegal Input");
                 }
-
-                // redraw graphs
-                DataVisualization.drawGraphs();
             }
         });
 
@@ -174,7 +171,7 @@ public class AngleSliders
             }
 
             // redraw graphs
-            DataVisualization.drawGraphs();
+            DataVisualization.updateGraphs();
         });
 
         // add to angle slider panel

@@ -31,13 +31,12 @@ public class Analytics
     // holds confusion matrices in order
     final static Map<Integer, JTextArea> CONFUSION_MATRIX = new HashMap<>();
     final static Map<Integer, JTextArea> REMOTE_CONFUSION_MATRIX = new HashMap<>();
-    final static ArrayList<String> CROSS_VALIDATION = new ArrayList<>();
+    static String CROSS_VALIDATION = "Cross Validation Not Generated";
 
 
     /**
      * Generates all data, data without overlap,
      * overlap, worst case, user-validation, and SVM confusion matrices
-     * Generates k-Fold cross validation
      */
     public static class GenerateAnalytics extends SwingWorker<Boolean, Void>
     {
@@ -70,7 +69,6 @@ public class Analytics
 
                 // remove old analytics
                 DV.confusionMatrixPanel.removeAll();
-                DV.crossValidationPanel.removeAll();
 
                 // display analytics in separate window
                 if (DV.displayRemoteAnalytics)
@@ -129,19 +127,6 @@ public class Analytics
                 if (DV.svmAnalyticsChecked && DV.supportVectors != null)
                     svmA.execute();
 
-                // create k-fold cross validation
-                GetKFoldCrossValidation kFold = new GetKFoldCrossValidation();
-
-                if (DV.crossValidationNotGenerated && DV.crossValidationChecked)
-                {
-                    CROSS_VALIDATION.clear();
-
-                    if (DV.displayRemoteAnalytics)
-                        DV.remoteCrossValidationPanel.removeAll();
-
-                    kFold.execute();
-                }
-
                 // wait for threads to finish
                 try
                 {
@@ -152,11 +137,6 @@ public class Analytics
                     if (DV.worstCaseChecked) worstCM.get();
                     if (DV.userValidationImported && DV.userValidationChecked) userCM.get();
                     if (DV.svmAnalyticsChecked && DV.supportVectors != null) svmA.get();
-                    if (DV.crossValidationNotGenerated && DV.crossValidationChecked)
-                    {
-                        DV.crossValidationNotGenerated = false;
-                        kFold.get();
-                    }
                 }
                 catch (ExecutionException | InterruptedException e)
                 {
@@ -175,26 +155,65 @@ public class Analytics
                             DV.remoteConfusionMatrixPanel.add(REMOTE_CONFUSION_MATRIX.get(i));
                     }
                 }
-
-                // add cross validation
-                if (DV.crossValidationChecked)
-                {
-                    JTextArea cross_validate = new JTextArea(CROSS_VALIDATION.get(0));
-                    cross_validate.setFont(cross_validate.getFont().deriveFont(Font.BOLD, 12f));
-                    cross_validate.setEditable(false);
-                    DV.crossValidationPanel.add(cross_validate);
-
-                    if (DV.displayRemoteAnalytics)
-                    {
-                        JTextArea cross_validate2 = new JTextArea(CROSS_VALIDATION.get(0));
-                        cross_validate2.setFont(cross_validate2.getFont().deriveFont(Font.BOLD, 12f));
-                        cross_validate2.setEditable(false);
-                        DV.remoteCrossValidationPanel.add(cross_validate2);
-                    }
-                }
             }
 
             return true;
+        }
+    }
+
+
+    /**
+     * Generates k-Fold cross validation
+     */
+    public static void generateCrossValidation()
+    {
+        // only do analytics if multiclass
+        if (DV.classNumber > 1)
+        {
+            // create k-fold cross validation
+            GetKFoldCrossValidation kFold = new GetKFoldCrossValidation();
+            if (DV.crossValidationNotGenerated)
+            {
+                CROSS_VALIDATION = "Cross Validation Not Generated";
+                kFold.execute();
+
+                // wait for threads to finish
+                try
+                {
+                    DV.crossValidationNotGenerated = false;
+                    kFold.get();
+                }
+                catch (ExecutionException | InterruptedException e)
+                {
+                    LOGGER.log(Level.SEVERE, e.toString(), e);
+                    return;
+                }
+            }
+
+            // add cross validation
+            DV.crossValidationPanel.removeAll();
+            JTextArea cross_validate = new JTextArea(CROSS_VALIDATION);
+            cross_validate.setFont(cross_validate.getFont().deriveFont(Font.BOLD, 12f));
+            cross_validate.setEditable(false);
+            DV.crossValidationPanel.add(cross_validate);
+
+            if (DV.displayRemoteAnalytics)
+            {
+                DV.remoteCrossValidationPanel.removeAll();
+                JTextArea cross_validate2 = new JTextArea(CROSS_VALIDATION);
+                cross_validate2.setFont(cross_validate2.getFont().deriveFont(Font.BOLD, 12f));
+                cross_validate2.setEditable(false);
+                DV.remoteCrossValidationPanel.add(cross_validate2);
+            }
+        }
+
+        DV.crossValidationPanel.repaint();
+        DV.crossValidationPanel.revalidate();
+
+        if (DV.displayRemoteAnalytics)
+        {
+            DV.remoteCrossValidationPanel.repaint();
+            DV.remoteCrossValidationPanel.revalidate();
         }
     }
 
@@ -787,7 +806,7 @@ public class Analytics
     /**
      * Runs k-fold cross validation on dataset
      */
-    private static class GetKFoldCrossValidation extends SwingWorker<Boolean, Void>
+    public static class GetKFoldCrossValidation extends SwingWorker<Boolean, Void>
     {
         @Override
         protected Boolean doInBackground()
@@ -807,6 +826,11 @@ public class Analytics
                     "source\\Python\\kFoldCrossValidation\\kFoldCrossValidation.exe",
                     fileName,
                     String.valueOf(DV.kFolds));
+
+            /*ProcessBuilder cv = new ProcessBuilder("C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+                    "source\\Python\\code_and_pyinstaller_spec\\kFoldCrossValidation.py",
+                    fileName,
+                    String.valueOf(DV.kFolds));*/
 
             try
             {
@@ -846,7 +870,7 @@ public class Analytics
                     Files.deleteIfExists(fileToDelete.toPath());
 
                     // set cross validation table
-                    CROSS_VALIDATION.add(table.toString());
+                    CROSS_VALIDATION = table.toString();
                 }
             }
             catch (IOException e)

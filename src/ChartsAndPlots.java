@@ -1,9 +1,6 @@
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.DefaultDrawingSupplier;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.SeriesRenderingOrder;
-import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.plot.*;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.jfree.ui.RectangleInsets;
 
@@ -20,12 +17,13 @@ public class ChartsAndPlots
                 xysc,
                 PlotOrientation.VERTICAL,
                 legend,
-                true,
+                false,
                 false);
 
         // format chart
         chart.setBorderVisible(false);
         chart.setPadding(RectangleInsets.ZERO_INSETS);
+        chart.setAntiAlias(false);
 
         return chart;
     }

@@ -6,6 +6,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -92,6 +93,12 @@ public class VisualizationMenu extends JPanel
         c.gridwidth = 2;
         visPanel.add(separateVisButton(), c);
 
+        /**
+         * REMOVE LATER
+         */
+        c.gridy = 7;
+        visPanel.add(GLCLLevel2());
+
         // show visualization menu
         JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Visualization Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
     }
@@ -171,10 +178,14 @@ public class VisualizationMenu extends JPanel
                     DV.upperClass = chosen;
 
                     // lower class gets all others
+                    int size = 0;
                     for (int i = 0; i < DV.classNumber; i++)
                     {
                         if (i != chosen)
+                        {
                             DV.lowerClasses.set(i, true);
+                            size += DV.trainData.get(i).data.length;
+                        }
                         else
                             DV.lowerClasses.set(i, false);
                     }
@@ -182,14 +193,9 @@ public class VisualizationMenu extends JPanel
                     // create highlights
                     DV.highlights = new boolean[DV.classNumber][];
                     DV.highlights[0] = new boolean[DV.trainData.get(DV.upperClass).data.length];
-
-                    for (int i = 0; i < DV.classNumber; i++)
-                    {
-                        DV.highlights[i] = new boolean[DV.trainData.get(i).data.length];
-
-                        for (int j = 0; j < DV.trainData.get(i).data.length; j++)
-                            DV.highlights[i][j] = false;
-                    }
+                    DV.highlights[1] = new boolean[size];
+                    Arrays.fill(DV.highlights[0], false);
+                    Arrays.fill(DV.highlights[1], false);
 
                     // generate new cross validation
                     DV.crossValidationNotGenerated = true;
@@ -322,6 +328,7 @@ public class VisualizationMenu extends JPanel
                 };
 
                 table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+                table.getTableHeader().setReorderingAllowed(false);
 
                 for (int i = 0; i < DV.fieldNames.size(); i++)
                     tm.insertRow(i, new Object[] { i+1, DV.fieldNames.get(i) });
@@ -725,7 +732,7 @@ public class VisualizationMenu extends JPanel
      * @param low starting index
      * @param high ending index
      */
-    private void quickSortDescending(double[] data, int low, int high)
+    public static void quickSortDescending(double[] data, int low, int high)
     {
         // ensure indices are ordered correctly
         if (low < high)
@@ -808,7 +815,7 @@ public class VisualizationMenu extends JPanel
      * @param high ending index
      * @return pivot index
      */
-    private int partitionDescending(double[] data, int low, int high)
+    private static int partitionDescending(double[] data, int low, int high)
     {
         double pivot = data[low];
 
@@ -843,9 +850,12 @@ public class VisualizationMenu extends JPanel
         data[i] = data[j];
         data[j] = tmp1;
 
-        tmp1 = DV.angles[i];
-        DV.angles[i] = DV.angles[j];
-        DV.angles[j] = tmp1;
+        if (data != DV.angles)
+        {
+            tmp1 = DV.angles[i];
+            DV.angles[i] = DV.angles[j];
+            DV.angles[j] = tmp1;
+        }
 
         String tmp2 = DV.fieldNames.get(i);
         DV.fieldNames.set(i, DV.fieldNames.get(j));
@@ -1679,6 +1689,66 @@ public class VisualizationMenu extends JPanel
                     DataVisualization.drawGraphs();
             }
         });
+
         return separateVisBtn;
+    }
+
+
+    /**
+     * TEMPORARY CODE: WILL BE REMOVED
+     */
+
+    /**
+     * Creates button to creates GLC-L of Level 2
+     */
+    private JButton GLCLLevel2()
+    {
+        JButton GLCLLevel2Btn = new JButton("GLC-L Level 2");
+        GLCLLevel2Btn.setToolTipText("Combines specified attributes to create GLC-L Level 2");
+        GLCLLevel2Btn.setFont(GLCLLevel2Btn.getFont().deriveFont(12f));
+        GLCLLevel2Btn.addActionListener(e->
+        {
+            JPanel reorder = new JPanel();
+            reorder.setLayout(new GridBagLayout());
+            GridBagConstraints c = new GridBagConstraints();
+
+            c.gridx = 0;
+            c.gridy = 0;
+            c.gridwidth = 2;
+            c.fill = GridBagConstraints.BOTH;
+
+            reorder.add(new JLabel("Combines attributes by column."), c);
+
+            DefaultTableModel tm = new DefaultTableModel();
+
+            Integer[] head = new Integer[DV.fieldLength];
+            for (int i = 0; i < DV.fieldLength; i++)
+                head[i] = i+1;
+
+            tm.setColumnIdentifiers(head);
+            final JTable table = new JTable(tm)
+            {
+                public boolean isCellEditable(int row, int column)
+                {
+                    return false;
+                }
+            };
+
+            table.setRowSelectionAllowed(false);
+            table.setCellSelectionEnabled(true);
+            table.getTableHeader().setReorderingAllowed(false);
+
+            table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            tm.insertRow(0, DV.fieldNames.toArray());
+
+            JScrollPane manPane = new JScrollPane(table);
+
+            c.gridy = 1;
+            reorder.add(manPane, c);
+
+            JOptionPane.showMessageDialog(DV.mainFrame, reorder, "Combine Attributes", JOptionPane.PLAIN_MESSAGE);
+        });
+
+        return GLCLLevel2Btn;
     }
 }

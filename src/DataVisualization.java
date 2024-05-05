@@ -36,6 +36,10 @@ public class DataVisualization
     // warn user about scaling
     static boolean showPopup;
 
+    // graphs
+    static Graph upperGraph;
+    static Graph lowerGraph;
+
 
     /**
      * Updates coordinates for data
@@ -68,7 +72,7 @@ public class DataVisualization
             findGlobalBestThreshold(0);
 
         // if accuracy is less than half, the upper class is lower
-        if (DV.accuracy < 0.5)
+        if (DV.accuracy < 50)
         {
             DV.upperIsLower = true;
 
@@ -99,26 +103,7 @@ public class DataVisualization
                 updatePoints();
                 getThreshold();
                 optimizeAngles(false);
-                VisualizationMenu.quickSort(DV.angles, 0, DV.angles.length - 1);
-
-                // remove later
-                /*for (int i = 0; i < DV.angles.length; i++)
-                {
-                    if (DV.angles[i] > 90)
-                    {
-                        for (int j = 0; j < DV.trainData.size(); j++)
-                        {
-                            for (int k = 0; k < DV.trainData.get(j).coordinates.length; k++)
-                            {
-                                DV.trainData.get(j).coordinates[k][i][0] = DV.trainData.get(j).coordinates[k][i+2][0];
-                                DV.trainData.get(j).coordinates[k][i][1] = DV.trainData.get(j).coordinates[k][i+2][1];
-
-                                DV.trainData.get(j).coordinates[k][i+1][0] = DV.trainData.get(j).coordinates[k][i+2][0];
-                                DV.trainData.get(j).coordinates[k][i+1][1] = DV.trainData.get(j).coordinates[k][i+2][1];
-                            }
-                        }
-                    }
-                }*/
+                //VisualizationMenu.quickSortDescending(DV.angles, 0, DV.angles.length - 1);
             }
             else
             {
@@ -857,39 +842,38 @@ public class DataVisualization
         // scale graph according to largest value
         double graphScale = Math.max(getCoordinates(upperObjects), getCoordinates(lowerObjects));
 
-        // get maximum frequency for frequency graph
-        double maxFrequency = getMaxFrequency();
-
         // generate analytics
         Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
         analytics.execute();
 
         // generate graphs
-        AddGraph upperGraph = new AddGraph(upperObjects, 0, graphScale, maxFrequency);
+        upperGraph = new Graph(upperObjects, 0, graphScale);
         upperGraph.execute();
 
-        AddGraph lowerGraph = null;
+        lowerGraph = null;
         if (!lowerObjects.isEmpty())
         {
-            lowerGraph = new AddGraph(lowerObjects, 1, graphScale, maxFrequency);
+            lowerGraph = new Graph(lowerObjects, 1, graphScale);
             lowerGraph.execute();
         }
 
         // wait for threads to finish
         try
         {
-            analytics.get();
             upperGraph.get();
+
             if (DV.hasClasses && lowerGraph != null)
                 lowerGraph.get();
+
+            generateGraphs(graphScale);
+
+            analytics.get();
+            //cv.get();
         }
         catch (ExecutionException | InterruptedException e)
         {
             LOGGER.log(Level.SEVERE, e.toString(), e);
-            return;
         }
-
-        generateGraphs(graphScale);
     }
 
 
@@ -938,9 +922,7 @@ public class DataVisualization
 
         // revalidate graphs and confusion matrices
         DV.graphPanel.repaint();
-        DV.analyticsPanel.repaint();
         DV.graphPanel.revalidate();
-        DV.analyticsPanel.revalidate();
 
         if (DV.displayRemoteGraphs)
         {
@@ -1204,15 +1186,120 @@ public class DataVisualization
     }
 
 
+    public static void updateGraphs()
+    {
+        double graphScale;
+        if (DV.classNumber > 1)
+        {
+            graphScale = Math.max(getCoordinates(upperGraph.DATA_OBJECTS), getCoordinates(lowerGraph.DATA_OBJECTS));
+
+            upperGraph.setGraphScale(graphScale);
+            lowerGraph.setGraphScale(graphScale);
+
+            upperGraph.updateGraph();
+            lowerGraph.updateGraph();
+        }
+        else
+        {
+            graphScale = getCoordinates(upperGraph.DATA_OBJECTS);
+            upperGraph.setGraphScale(graphScale);
+            upperGraph.updateGraph();
+        }
+
+        // get analytics
+        getAnalytics();
+    }
+
+
+    private static void getAnalytics()
+    {
+        // generate analytics
+        Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+        analytics.execute();
+
+        // wait for generation
+        try
+        {
+            analytics.get();
+        }
+        catch (InterruptedException | ExecutionException ex)
+        {
+            LOGGER.log(Level.SEVERE, ex.toString(), ex);
+        }
+
+        // revalidate graphs and confusion matrices
+        DV.confusionMatrixPanel.repaint();
+        DV.confusionMatrixPanel.revalidate();
+
+        if (DV.displayRemoteAnalytics)
+        {
+            DV.remoteConfusionMatrixPanel.repaint();
+            DV.remoteConfusionMatrixPanel.revalidate();
+        }
+    }
+
+
     /**
      * Draw graph with specified parameters
      */
-    private static class AddGraph extends SwingWorker<Boolean, Void>
+    private static class Graph extends SwingWorker<Boolean, Void>
     {
         final ArrayList<DataObject> DATA_OBJECTS;
         final int UPPER_OR_LOWER;
-        final double GRAPH_SCALE;
-        final double MAX_FREQUENCY;
+        double GRAPH_SCALE;
+        final double buffer;
+        double lineHeight;
+
+        // create main renderer and dataset
+        final XYLineAndShapeRenderer lineRenderer;
+        final XYSeriesCollection graphLines;
+
+        final XYLineAndShapeRenderer highlightRenderer;
+        final XYSeriesCollection highlightLines;
+
+        // create SVM renderer and dataset
+        final XYLineAndShapeRenderer svmLineRenderer;
+        final XYSeriesCollection svmGraphLines;
+
+        // create renderer for domain, overlap, and threshold lines
+        final XYLineAndShapeRenderer domainRenderer;
+        final XYLineAndShapeRenderer overlapRenderer;
+        final XYLineAndShapeRenderer thresholdRenderer;
+        final XYSeriesCollection domain;
+        final XYSeriesCollection overlap;
+        final XYSeriesCollection threshold;
+        final XYSeries domainMaxLine;
+        final XYSeries domainMinLine;
+        final XYSeries overlapMaxLine;
+        final XYSeries overlapMinLine;
+        final XYSeries thresholdLine;
+
+        // renderer for endpoint, midpoint, and timeline
+        final XYLineAndShapeRenderer endpointRenderer;
+        final XYLineAndShapeRenderer svmEndpointRenderer;
+        final XYLineAndShapeRenderer midpointRenderer;
+        final XYLineAndShapeRenderer svmMidpointRenderer;
+        final XYLineAndShapeRenderer timeLineRenderer;
+        final XYLineAndShapeRenderer svmTimeLineRenderer;
+        final XYSeriesCollection endpoints;
+        final XYSeriesCollection svmEndpoints;
+        final XYSeriesCollection midpoints;
+        final XYSeriesCollection svmMidpoints;
+        final XYSeriesCollection timeLine;
+        final XYSeriesCollection svmTimeLine;
+        final XYSeries svmEndpointSeries;
+        final XYSeries midpointSeries;
+        final XYSeries svmMidpointSeries;
+        final XYSeries timeLineSeries;
+        final XYSeries svmTimeLineSeries;
+
+        // renderer for bars
+        final XYIntervalSeriesCollection bars;
+        final XYBarRenderer barRenderer;
+
+        // get chart and plot
+        JFreeChart chart;
+        XYPlot plot;
 
         /**
          * Initializes parameters
@@ -1220,50 +1307,416 @@ public class DataVisualization
          * @param upperOrLower draw up when upper (0) and down when lower (1)
          * @param graphScale how much to zoom out the graphs
          */
-        AddGraph(ArrayList<DataObject> dataObjects, int upperOrLower, double graphScale, double maxFrequency)
+        Graph(ArrayList<DataObject> dataObjects, int upperOrLower, double graphScale)
         {
             this.DATA_OBJECTS = dataObjects;
             this.UPPER_OR_LOWER = upperOrLower;
             this.GRAPH_SCALE = graphScale;
-            this.MAX_FREQUENCY = maxFrequency;
-        }
+            this.buffer = DV.fieldLength / 10.0;
+            setLineHeight();
 
-        @Override
-        protected Boolean doInBackground()
-        {
             // create main renderer and dataset
-            XYLineAndShapeRenderer lineRenderer = new XYLineAndShapeRenderer(true, false);
-            XYSeriesCollection graphLines = new XYSeriesCollection();
+            this.lineRenderer = new XYLineAndShapeRenderer(true, false);
+            this.graphLines = new XYSeriesCollection();
+
+            this.highlightRenderer = new XYLineAndShapeRenderer(true, false);
+            this.highlightLines = new XYSeriesCollection();
 
             // create SVM renderer and dataset
-            XYLineAndShapeRenderer svmLineRenderer = new XYLineAndShapeRenderer(true, false);
-            XYSeriesCollection svmSeriesCol = new XYSeriesCollection();
+            this.svmLineRenderer = new XYLineAndShapeRenderer(true, false);
+            this.svmGraphLines = new XYSeriesCollection();
 
             // create renderer for domain, overlap, and threshold lines
-            XYLineAndShapeRenderer domainRenderer = new XYLineAndShapeRenderer(true, false);
-            XYLineAndShapeRenderer overlapRenderer = new XYLineAndShapeRenderer(true, false);
-            XYLineAndShapeRenderer thresholdRenderer = new XYLineAndShapeRenderer(true, false);
-            XYSeriesCollection domain = new XYSeriesCollection();
-            XYSeriesCollection overlap = new XYSeriesCollection();
-            XYSeriesCollection threshold = new XYSeriesCollection();
-            XYSeries domainMaxLine = new XYSeries(-1, false, true);
-            XYSeries domainMinLine = new XYSeries(-2, false, true);
-            XYSeries overlapMaxLine = new XYSeries(-3, false, true);
-            XYSeries overlapMinLine = new XYSeries(-4, false, true);
-            XYSeries thresholdLine = new XYSeries(0, false, true);
+            this.domainRenderer = new XYLineAndShapeRenderer(true, false);
+            this.overlapRenderer = new XYLineAndShapeRenderer(true, false);
+            this.thresholdRenderer = new XYLineAndShapeRenderer(true, false);
+            this.domain = new XYSeriesCollection();
+            this.overlap = new XYSeriesCollection();
+            this.threshold = new XYSeriesCollection();
+            this.domainMaxLine = new XYSeries(-1, false, true);
+            this.domainMinLine = new XYSeries(-2, false, true);
+            this.overlapMaxLine = new XYSeries(-3, false, true);
+            this.overlapMinLine = new XYSeries(-4, false, true);
+            this.thresholdLine = new XYSeries(0, false, true);
 
+            // renderer for endpoint, midpoint, and timeline
+            this.endpointRenderer = new XYLineAndShapeRenderer(false, true);
+            this.svmEndpointRenderer = new XYLineAndShapeRenderer(false, true);
+            this.midpointRenderer = new XYLineAndShapeRenderer(false, true);
+            this.svmMidpointRenderer = new XYLineAndShapeRenderer(false, true);
+            this.timeLineRenderer = new XYLineAndShapeRenderer(false, true);
+            this.svmTimeLineRenderer = new XYLineAndShapeRenderer(false, true);
+            this.endpoints = new XYSeriesCollection();
+            this.svmEndpoints = new XYSeriesCollection();
+            this.midpoints = new XYSeriesCollection();
+            this.svmMidpoints = new XYSeriesCollection();
+            this.timeLine = new XYSeriesCollection();
+            this.svmTimeLine = new XYSeriesCollection();
+            this.svmEndpointSeries = new XYSeries(0, false, true);
+            this.midpointSeries = new XYSeries(0, false, true);
+            this.svmMidpointSeries = new XYSeries(0, false, true);
+            this.timeLineSeries = new XYSeries(0, false, true);
+            this.svmTimeLineSeries = new XYSeries(0, false, true);
+
+            // renderer for bars
+            this.bars = new XYIntervalSeriesCollection();
+            this.barRenderer = new XYBarRenderer();
+
+            // get chart and plot
+            this.chart = ChartsAndPlots.createChart(graphLines, false);
+            this.plot = ChartsAndPlots.createPlot(chart, UPPER_OR_LOWER);
+        }
+
+
+        protected void updateGraph()
+        {
+            // update lines
+            updateDomainLines();
+            updateOverlapLines();
+            updateThresholdLine();
+
+            chart.setNotify(false);
+
+            // set datasets and renderers to false to avoid plot updates
+            plot.setRenderer(1, null);
+            plot.setDataset(1, null);
+            plot.setRenderer(9, null);
+            plot.setDataset(9, null);
+
+            // clear old lines, midpoints, endpoints, and timeline points
+            graphLines.removeAllSeries();
+            midpointSeries.clear();
+            endpoints.removeAllSeries();
+            timeLineSeries.clear();
+
+            // populate main series
+            int lineCnt = -1;
+            int highCnt = -1;
+            int allCnt = -1;
+
+            long start = System.currentTimeMillis();
+            for (DataObject data : DATA_OBJECTS)
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
+
+                    // ensure datapoint is within domain
+                    // if drawing overlap, ensure datapoint is within overlap
+                    if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
+                            (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
+                    {
+                        int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
+
+                        // start line at (0, 0)
+                        XYSeries line;
+                        if (DV.highlights[UPPER_OR_LOWER][i])
+                            line = new XYSeries(++highCnt, false, true);
+                        else
+                            line = new XYSeries(++lineCnt, false, true);
+
+                        XYSeries endpointSeries = new XYSeries(++allCnt, false, true);
+
+                        if (DV.showFirstSeg)
+                            line.add(0, upOrDown * buffer, false);
+
+                        // add points to lines
+                        for (int j = 0; j < data.coordinates[i].length; j++)
+                        {
+                            line.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer), false);
+
+                            if (DV.showMidpoints && (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1]))
+                                midpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer), false);
+
+                            // add endpoint and timeline
+                            if (j == data.coordinates[i].length - 1)
+                            {
+                                endpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer), false);
+                                timeLineSeries.add(data.coordinates[i][j][0], 0, false);
+
+                                if (DV.highlights[UPPER_OR_LOWER][i])
+                                {
+                                    highlightLines.addSeries(line);
+                                    highlightRenderer.setSeriesPaint(highCnt, Color.ORANGE);
+                                }
+                                else
+                                {
+                                    graphLines.addSeries(line);
+                                    lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
+                                }
+
+                                endpoints.addSeries(endpointSeries);
+
+                                if (UPPER_OR_LOWER == 0 && DV.upperIsLower)
+                                {
+                                    // check if endpoint is correctly classified
+                                    if (endpoint <= DV.threshold)
+                                        endpointRenderer.setSeriesPaint(allCnt, DV.endpoints);
+                                    else
+                                        endpointRenderer.setSeriesPaint(allCnt, Color.RED);
+                                }
+                                else if (UPPER_OR_LOWER == 0)
+                                {
+                                    // check if endpoint is correctly classified
+                                    if (endpoint > DV.threshold)
+                                        endpointRenderer.setSeriesPaint(allCnt, DV.endpoints);
+                                    else
+                                        endpointRenderer.setSeriesPaint(allCnt, Color.RED);
+                                }
+                                else if(UPPER_OR_LOWER == 1 && DV.upperIsLower)
+                                {
+                                    // check if endpoint is correctly classified
+                                    if (endpoint > DV.threshold)
+                                        endpointRenderer.setSeriesPaint(allCnt, DV.endpoints);
+                                    else
+                                        endpointRenderer.setSeriesPaint(allCnt, Color.RED);
+                                }
+                                else
+                                {
+                                    // check if endpoint is correctly classified
+                                    if (endpoint <= DV.threshold)
+                                        endpointRenderer.setSeriesPaint(allCnt, DV.endpoints);
+                                    else
+                                        endpointRenderer.setSeriesPaint(allCnt, Color.RED);
+                                }
+
+                                endpointRenderer.setSeriesShape(allCnt, new Ellipse2D.Double(-1, -1, 2, 2));
+                            }
+                        }
+                    }
+                }
+            }
+
+            long end = System.currentTimeMillis();
+            System.out.println("Loop: " + (end-start));
+
+            // set datasets and renderers
+            plot.setRenderer(1, endpointRenderer);
+            plot.setDataset(1, endpoints);
+            plot.setRenderer(9, lineRenderer);
+            plot.setDataset(9, graphLines);
+
+            chart.setNotify(true);
+        }
+
+
+        protected void updateEndpoints()
+        {
+            chart.setNotify(false);
+
+            plot.setRenderer(1, null);
+            plot.setDataset(1, null);
+            endpoints.removeAllSeries();
+
+            // populate main series
+            int allCnt = -1;
+            for (DataObject data : DATA_OBJECTS)
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
+
+                    // ensure datapoint is within domain
+                    // if drawing overlap, ensure datapoint is within overlap
+                    if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
+                            (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
+                    {
+                        int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
+                        XYSeries endpointSeries = new XYSeries(++allCnt, false, true);
+
+                        // add endpoint
+                        int j = data.coordinates[i].length - 1;
+                        endpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
+                        endpoints.addSeries(endpointSeries);
+
+                        if (UPPER_OR_LOWER == 0 && DV.upperIsLower)
+                        {
+                            // check if endpoint is correctly classified
+                            if (endpoint <= DV.threshold)
+                                endpointRenderer.setSeriesPaint(allCnt, DV.endpoints);
+                            else
+                                endpointRenderer.setSeriesPaint(allCnt, Color.RED);
+                        }
+                        else if (UPPER_OR_LOWER == 0)
+                        {
+                            // check if endpoint is correctly classified
+                            if (endpoint > DV.threshold)
+                                endpointRenderer.setSeriesPaint(allCnt, DV.endpoints);
+                            else
+                                endpointRenderer.setSeriesPaint(allCnt, Color.RED);
+                        }
+                        else if(UPPER_OR_LOWER == 1 && DV.upperIsLower)
+                        {
+                            // check if endpoint is correctly classified
+                            if (endpoint > DV.threshold)
+                                endpointRenderer.setSeriesPaint(allCnt, DV.endpoints);
+                            else
+                                endpointRenderer.setSeriesPaint(allCnt, Color.RED);
+                        }
+                        else
+                        {
+                            // check if endpoint is correctly classified
+                            if (endpoint <= DV.threshold)
+                                endpointRenderer.setSeriesPaint(allCnt, DV.endpoints);
+                            else
+                                endpointRenderer.setSeriesPaint(allCnt, Color.RED);
+                        }
+
+                        endpointRenderer.setSeriesShape(allCnt, new Ellipse2D.Double(-1, -1, 2, 2));
+                    }
+                }
+            }
+
+            plot.setRenderer(1, endpointRenderer);
+            plot.setDataset(1, endpoints);
+
+            chart.setNotify(true);
+        }
+
+
+        protected void updateSVM()
+        {
+            chart.setNotify(false);
+
+            // clear old lines, midpoints, endpoints, and timeline points
+            svmGraphLines.removeAllSeries();
+            svmMidpointSeries.clear();
+            svmEndpoints.removeAllSeries();
+            svmTimeLineSeries.clear();
+
+            // update coordinates
+            getCoordinates(new ArrayList<>(List.of(DV.supportVectors)));
+
+            for (int i = 0, lineCnt = 0; i < DV.supportVectors.data.length; i++, lineCnt++)
+            {
+                int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
+
+                // start line at (0, 0)
+                XYSeries line = new XYSeries(lineCnt, false, true);
+
+                if (DV.showFirstSeg)
+                    line.add(0, upOrDown * buffer);
+
+                double endpoint = DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[i].length-1][0];
+
+                // ensure datapoint is within domain
+                if (!DV.domainActive || (endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]))
+                {
+                    for (int j = 0; j < DV.supportVectors.coordinates[i].length; j++)
+                    {
+                        line.add(DV.supportVectors.coordinates[i][j][0], upOrDown * (DV.supportVectors.coordinates[i][j][1] + buffer));
+
+                        if (DV.showMidpoints && (j > 0 && j < DV.supportVectors.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1]))
+                            svmMidpointSeries.add(DV.supportVectors.coordinates[i][j][0], upOrDown * (DV.supportVectors.coordinates[i][j][1]+ buffer));
+
+                        // add endpoint and timeline
+                        if (j == DV.supportVectors.coordinates[i].length - 1)
+                        {
+                            svmEndpointSeries.add(DV.supportVectors.coordinates[i][j][0], upOrDown * (DV.supportVectors.coordinates[i][j][1] + buffer));
+                            svmTimeLineSeries.add(DV.supportVectors.coordinates[i][j][0], 0);
+                        }
+                    }
+
+                    svmGraphLines.addSeries(line);
+                    svmLineRenderer.setSeriesPaint(lineCnt, DV.svmLines);
+                }
+            }
+
+            chart.setNotify(true);
+        }
+
+
+        protected void updateBars()
+        {
+            chart.setNotify(false);
+
+            bars.removeAllSeries();
+
+            // get maximum frequency for frequency graph
+            double maxFrequency = getMaxFrequency();
+
+            // get bar lengths
+            int[] barRanges = new int[400];
+            for (DataObject dataObj : DATA_OBJECTS)
+            {
+                // translate endpoint to slider ticks
+                // increment bar which endpoint lands
+                for (int i = 0; i < dataObj.data.length; i++)
+                {
+                    int tmpTick = (int) (Math.round((dataObj.coordinates[i][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200));
+                    barRanges[tmpTick]++;
+                }
+            }
+
+            // get interval and bounds
+            double interval = DV.fieldLength / 200.0;
+            double maxBound = -DV.fieldLength;
+            double minBound = -DV.fieldLength;
+
+            // add series to collection
+            for (int i = 0; i < 400; i++)
+            {
+                // get max bound
+                maxBound += interval;
+
+                XYIntervalSeries bar = new XYIntervalSeries(i, false, true);
+
+                // bar width = interval
+                // bar height = (total endpoints on bar) / (total endpoints)
+                // buffer = maximum bar height
+                if (UPPER_OR_LOWER == 1)
+                    bar.add(interval, minBound, maxBound, (-barRanges[i] / maxFrequency) * buffer, -buffer, 0);
+                else
+                    bar.add(interval, minBound, maxBound, (barRanges[i] / maxFrequency) * buffer, 0, buffer);
+
+                bars.addSeries(bar);
+                barRenderer.setSeriesPaint(i, DV.graphColors[UPPER_OR_LOWER]);
+
+                // set min bound to old max
+                minBound = maxBound;
+            }
+
+            chart.setNotify(true);
+        }
+
+
+        protected void setGraphScale(double graphScale)
+        {
+            GRAPH_SCALE = graphScale;
+            setLineHeight();
+        }
+
+
+        protected void setLineHeight()
+        {
             // get line height
-            final double lineHeight = UPPER_OR_LOWER == 1 ? GRAPH_SCALE * -DV.fieldLength : GRAPH_SCALE * DV.fieldLength;
+            lineHeight = UPPER_OR_LOWER == 1 ? GRAPH_SCALE * -DV.fieldLength : GRAPH_SCALE * DV.fieldLength;
+        }
 
-            // set domain lines
+
+        protected void updateDomainLines()
+        {
+            chart.setNotify(false);
+
+            domainMinLine.clear();
+            domainMaxLine.clear();
+
+            // set overlap line
             domainMinLine.add(DV.domainArea[0], 0);
             domainMinLine.add(DV.domainArea[0], lineHeight);
             domainMaxLine.add(DV.domainArea[1], 0);
             domainMaxLine.add(DV.domainArea[1], lineHeight);
 
-            // add domain series to collection
-            domain.addSeries(domainMaxLine);
-            domain.addSeries(domainMinLine);
+            chart.setNotify(true);
+        }
+
+
+        protected void updateOverlapLines()
+        {
+            chart.setNotify(false);
+
+            overlapMinLine.clear();
+            overlapMaxLine.clear();
 
             // set overlap lines
             overlapMinLine.add(DV.overlapArea[0], 0);
@@ -1271,249 +1724,25 @@ public class DataVisualization
             overlapMaxLine.add(DV.overlapArea[1], 0);
             overlapMaxLine.add(DV.overlapArea[1], lineHeight);
 
-            // add overlap series to collection
-            overlap.addSeries(overlapMaxLine);
-            overlap.addSeries(overlapMinLine);
+            chart.setNotify(true);
+        }
 
-            // get threshold line
+        protected void updateThresholdLine()
+        {
+            chart.setNotify(false);
+
+            thresholdLine.clear();
+
+            // set threshold line
             thresholdLine.add(DV.threshold, 0);
             thresholdLine.add(DV.threshold, lineHeight);
 
-            // add threshold series to collection
-            threshold.addSeries(thresholdLine);
+            chart.setNotify(true);
+        }
 
-            // renderer for endpoint, midpoint, and timeline
-            XYLineAndShapeRenderer endpointRenderer = new XYLineAndShapeRenderer(false, true);
-            XYLineAndShapeRenderer svmEndpointRenderer = new XYLineAndShapeRenderer(false, true);
-            XYLineAndShapeRenderer midpointRenderer = new XYLineAndShapeRenderer(false, true);
-            XYLineAndShapeRenderer svmMidpointRenderer = new XYLineAndShapeRenderer(false, true);
-            XYLineAndShapeRenderer timeLineRenderer = new XYLineAndShapeRenderer(false, true);
-            XYLineAndShapeRenderer svmTimeLineRenderer = new XYLineAndShapeRenderer(false, true);
-            XYSeriesCollection endpoints = new XYSeriesCollection();
-            XYSeriesCollection svmEndpoints = new XYSeriesCollection();
-            XYSeriesCollection midpoints = new XYSeriesCollection();
-            XYSeriesCollection svmMidpoints = new XYSeriesCollection();
-            XYSeriesCollection timeLine = new XYSeriesCollection();
-            XYSeriesCollection svmTimeLine = new XYSeriesCollection();
-            XYSeries svmEndpointSeries = new XYSeries(0, false, true);
-            XYSeries midpointSeries = new XYSeries(0, false, true);
-            XYSeries svmMidpointSeries = new XYSeries(0, false, true);
-            XYSeries timeLineSeries = new XYSeries(0, false, true);
-            XYSeries svmTimeLineSeries = new XYSeries(0, false, true);
-
-            double buffer = DV.fieldLength / 10.0;
-
-            // populate svm series
-            if (DV.drawOnlySVM || DV.drawSVM)
-            {
-                // update coordinates
-                getCoordinates(new ArrayList<>(List.of(DV.supportVectors)));
-
-                for (int i = 0, lineCnt = 0; i < DV.supportVectors.data.length; i++, lineCnt++)
-                {
-                    int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
-
-                    // start line at (0, 0)
-                    XYSeries line = new XYSeries(lineCnt, false, true);
-
-                    if (DV.showFirstSeg)
-                        line.add(0, upOrDown * buffer);
-
-                    double endpoint = DV.supportVectors.coordinates[i][DV.supportVectors.coordinates[i].length-1][0];
-
-                    // ensure datapoint is within domain
-                    if (!DV.domainActive || (endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]))
-                    {
-                        for (int j = 0; j < DV.supportVectors.coordinates[i].length; j++)
-                        {
-                            line.add(DV.supportVectors.coordinates[i][j][0], upOrDown * (DV.supportVectors.coordinates[i][j][1] + buffer));
-
-                            if (j > 0 && j < DV.supportVectors.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
-                                svmMidpointSeries.add(DV.supportVectors.coordinates[i][j][0], upOrDown * (DV.supportVectors.coordinates[i][j][1]+ buffer));
-
-                            // add endpoint and timeline
-                            if (j == DV.supportVectors.coordinates[i].length - 1)
-                            {
-                                svmEndpointSeries.add(DV.supportVectors.coordinates[i][j][0], upOrDown * (DV.supportVectors.coordinates[i][j][1] + buffer));
-                                svmTimeLineSeries.add(DV.supportVectors.coordinates[i][j][0], 0);
-                            }
-                        }
-
-                        svmSeriesCol.addSeries(line);
-                        svmLineRenderer.setSeriesPaint(lineCnt, DV.svmLines);
-                    }
-                }
-            }
-
-            if (!DV.drawOnlySVM)
-            {
-                // populate main series
-                int lineCnt = -1;
-
-                for (DataObject data : DATA_OBJECTS)
-                {
-                    for (int i = 0; i < data.data.length; i++)
-                    {
-                        double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
-
-                        // ensure datapoint is within domain
-                        // if drawing overlap, ensure datapoint is within overlap
-                        if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
-                                (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
-                        {
-                            int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
-
-                            // start line at (0, 0)
-                            XYSeries line = new XYSeries(++lineCnt, false, true);
-                            XYSeries endpointSeries = new XYSeries(lineCnt, false, true);
-
-                            if (DV.showFirstSeg)
-                                line.add(0, upOrDown * buffer);
-
-                            // add points to lines
-                            for (int j = 0; j < data.coordinates[i].length; j++)
-                            {
-                                line.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
-
-                                if (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
-                                    midpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
-
-                                // add endpoint and timeline
-                                if (j == data.coordinates[i].length - 1)
-                                {
-                                    endpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
-                                    timeLineSeries.add(data.coordinates[i][j][0], 0);
-
-                                    graphLines.addSeries(line);
-                                    endpoints.addSeries(endpointSeries);
-
-                                    if (DV.highlights[UPPER_OR_LOWER][i])
-                                        lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                    else
-                                        lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
-
-                                    if (UPPER_OR_LOWER == 0 && DV.upperIsLower)
-                                    {
-                                        // check if endpoint is correctly classified
-                                        if (endpoint < DV.threshold)
-                                            endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
-                                        else
-                                            endpointRenderer.setSeriesPaint(lineCnt, Color.RED);//DV.graphColors[1])
-                                    }
-                                    else if (UPPER_OR_LOWER == 0)
-                                    {
-                                        // check if endpoint is correctly classified
-                                        if (endpoint > DV.threshold)
-                                            endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
-                                        else
-                                            endpointRenderer.setSeriesPaint(lineCnt, Color.RED);//DV.graphColors[1])
-                                    }
-                                    else if(UPPER_OR_LOWER == 1 && DV.upperIsLower)
-                                    {
-                                        // check if endpoint is correctly classified
-                                        if (endpoint > DV.threshold)
-                                            endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
-                                        else
-                                            endpointRenderer.setSeriesPaint(lineCnt, Color.RED);//DV.graphColors[1]);
-                                    }
-                                    else
-                                    {
-                                        // check if endpoint is correctly classified
-                                        if (endpoint < DV.threshold)
-                                            endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
-                                        else
-                                            endpointRenderer.setSeriesPaint(lineCnt, Color.RED);//DV.graphColors[1])
-                                    }
-
-                                    endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // add data to series
-            //endpoints.addSeries(endpointSeries);
-            svmEndpoints.addSeries(svmEndpointSeries);
-            midpoints.addSeries(midpointSeries);
-            svmMidpoints.addSeries(svmMidpointSeries);
-            timeLine.addSeries(timeLineSeries);
-            svmTimeLine.addSeries(svmTimeLineSeries);
-
-            // get chart and plot
-            JFreeChart chart = ChartsAndPlots.createChart(graphLines, false);
-            XYPlot plot = ChartsAndPlots.createPlot(chart, UPPER_OR_LOWER);
-
-            // set domain and range of graph
-            double bound = GRAPH_SCALE * DV.fieldLength;
-
-            // set domain
-            ValueAxis domainView = plot.getDomainAxis();
-            domainView.setRange(-bound, bound);
-            NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
-            xAxis.setTickUnit(new NumberTickUnit(buffer));
-
-            // set range
-            ValueAxis rangeView = plot.getRangeAxis();
-            NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
-            yAxis.setTickUnit(new NumberTickUnit(buffer));
-
-            // set range up or down
-            if (UPPER_OR_LOWER == 1)
-                rangeView.setRange(-bound * (DV.mainPanel.getHeight() * 0.7) / (DV.graphPanel.getWidth() * 0.8), 0);
-            else
-                rangeView.setRange(0, bound * (DV.mainPanel.getHeight() * 0.7) / (DV.graphPanel.getWidth() * 0.8));
-
-            // renderer for bars
-            XYIntervalSeriesCollection bars = new XYIntervalSeriesCollection();
-            XYBarRenderer barRenderer = new XYBarRenderer();
-
-            // create bar chart
-            if (DV.showBars)
-            {
-                int[] barRanges = new int[400];
-
-                // get bar lengths
-                for (DataObject dataObj : DATA_OBJECTS)
-                {
-                    // translate endpoint to slider ticks
-                    // increment bar which endpoint lands
-                    for (int i = 0; i < dataObj.data.length; i++)
-                    {
-                        int tmpTick = (int) (Math.round((dataObj.coordinates[i][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200));
-                        barRanges[tmpTick]++;
-                    }
-                }
-
-                // get interval and bounds
-                double interval = DV.fieldLength / 200.0;
-                double maxBound = -DV.fieldLength;
-                double minBound = -DV.fieldLength;
-
-                // add series to collection
-                for (int i = 0; i < 400; i++)
-                {
-                    // get max bound
-                    maxBound += interval;
-
-                    XYIntervalSeries bar = new XYIntervalSeries(i, false, true);
-
-                    // bar width = interval
-                    // bar height = (total endpoints on bar) / (total endpoints)
-                    // buffer = maximum bar height
-                    if (UPPER_OR_LOWER == 1)
-                        bar.add(interval, minBound, maxBound, (-barRanges[i] / MAX_FREQUENCY) * buffer, -buffer, 0);
-                    else
-                        bar.add(interval, minBound, maxBound, (barRanges[i] / MAX_FREQUENCY) * buffer, 0, buffer);
-
-                    bars.addSeries(bar);
-                    barRenderer.setSeriesPaint(i, DV.graphColors[UPPER_OR_LOWER]);
-
-                    // set min bound to old max
-                    minBound = maxBound;
-                }
-            }
+        protected void setDatasetsAndRenderers()
+        {
+            chart.setNotify(false);
 
             // create basic strokes
             BasicStroke thresholdOverlapStroke = new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
@@ -1570,27 +1799,33 @@ public class DataVisualization
             svmLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
             svmLineRenderer.setAutoPopulateSeriesStroke(false);
             plot.setRenderer(7, svmLineRenderer);
-            plot.setDataset(7, svmSeriesCol);
+            plot.setDataset(7, svmGraphLines);
+
+            // set highlight line renderer and dataset
+            highlightRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+            highlightRenderer.setAutoPopulateSeriesStroke(false);
+            plot.setRenderer(8, highlightRenderer);
+            plot.setDataset(8, highlightLines);
 
             // set line renderer and dataset
             lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
             lineRenderer.setAutoPopulateSeriesStroke(false);
-            plot.setRenderer(8, lineRenderer);
-            plot.setDataset(8, graphLines);
+            plot.setRenderer(9, lineRenderer);
+            plot.setDataset(9, graphLines);
 
             // set bar or timeline renderer and dataset
             if (DV.showBars)
             {
                 barRenderer.setSeriesPaint(0, DV.graphColors[UPPER_OR_LOWER]);
                 barRenderer.setShadowVisible(false);
-                plot.setRenderer(9, barRenderer);
-                plot.setDataset(9, bars);
+                plot.setRenderer(10, barRenderer);
+                plot.setDataset(10, bars);
             }
             else
             {
                 svmTimeLineRenderer.setSeriesPaint(0, DV.svmLines);
-                plot.setRenderer(9, svmTimeLineRenderer);
-                plot.setDataset(9, svmTimeLine);
+                plot.setRenderer(10, svmTimeLineRenderer);
+                plot.setDataset(10, svmTimeLine);
 
                 if (UPPER_OR_LOWER == 1)
                     timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
@@ -1598,15 +1833,69 @@ public class DataVisualization
                     timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
 
                 timeLineRenderer.setSeriesPaint(0, DV.graphColors[UPPER_OR_LOWER]);
-                plot.setRenderer(10, timeLineRenderer);
-                plot.setDataset(10, timeLine);
+                plot.setRenderer(11, timeLineRenderer);
+                plot.setDataset(11, timeLine);
             }
 
-            // set chart size
-            int vertical_res = 1;
+            chart.setNotify(true);
+        }
 
-            if (DV.classNumber == 1)
-                vertical_res *= 2;
+
+        protected void setDomainAndRange()
+        {
+            // set domain and range of graph
+            double bound = GRAPH_SCALE * DV.fieldLength;
+
+            // set domain
+            ValueAxis domainView = plot.getDomainAxis();
+            domainView.setRange(-bound, bound);
+            NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+            xAxis.setTickUnit(new NumberTickUnit(buffer));
+
+            // set range
+            ValueAxis rangeView = plot.getRangeAxis();
+            NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+            yAxis.setTickUnit(new NumberTickUnit(buffer));
+
+            // set range up or down
+            if (UPPER_OR_LOWER == 1)
+                rangeView.setRange(-bound * (DV.mainPanel.getHeight() * 0.7) / (DV.graphPanel.getWidth() * 0.8), 0);
+            else
+                rangeView.setRange(0, bound * (DV.mainPanel.getHeight() * 0.7) / (DV.graphPanel.getWidth() * 0.8));
+        }
+
+
+        @Override
+        protected Boolean doInBackground()
+        {
+            // add series collection
+            domain.addSeries(domainMaxLine);
+            domain.addSeries(domainMinLine);
+            overlap.addSeries(overlapMaxLine);
+            overlap.addSeries(overlapMinLine);
+            threshold.addSeries(thresholdLine);
+
+            // add data to series
+            svmEndpoints.addSeries(svmEndpointSeries);
+            midpoints.addSeries(midpointSeries);
+            svmMidpoints.addSeries(svmMidpointSeries);
+            timeLine.addSeries(timeLineSeries);
+            svmTimeLine.addSeries(svmTimeLineSeries);
+
+            // populate svm series
+            if (DV.drawOnlySVM || DV.drawSVM)
+                updateSVM();
+
+            if (!DV.drawOnlySVM)
+                updateGraph();
+
+            // create bar chart
+            if (DV.showBars)
+                updateBars();
+
+            // set domain and range of graph
+            setDomainAndRange();
+            setDatasetsAndRenderers();
 
             // add domain listeners
             DV.domainSlider.addMouseMotionListener(new MouseMotionListener()
@@ -1618,112 +1907,8 @@ public class DataVisualization
                     DV.domainArea[0] = (slider.getValue() - 200) * DV.fieldLength / 200.0;
                     DV.domainArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
 
-                    // clear old domain lines
-                    domainMinLine.clear();
-                    domainMaxLine.clear();
-
-                    // clear old lines, midpoints, endpoints, and timeline points
-                    graphLines.removeAllSeries();
-                    midpointSeries.clear();
-                    endpoints.removeAllSeries();
-                    timeLineSeries.clear();
-
-                    // turn notify off
-                    chart.setNotify(false);
-
-                    // set overlap line
-                    domainMinLine.add(DV.domainArea[0], 0);
-                    domainMinLine.add(DV.domainArea[0], lineHeight);
-                    domainMaxLine.add(DV.domainArea[1], 0);
-                    domainMaxLine.add(DV.domainArea[1], lineHeight);
-
-                    // number of lines
-                    int lineCnt = -1;
-
-                    for (DataObject data : DATA_OBJECTS)
-                    {
-                        for (int i = 0; i < data.data.length; i++)
-                        {
-                            double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
-
-                            // ensure datapoint is within domain
-                            // if drawing overlap, ensure datapoint is within overlap
-                            if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
-                                    (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
-                            {
-                                int upOrDown = UPPER_OR_LOWER == 1 ? -1 : 1;
-
-                                // start line at (0, 0)
-                                XYSeries line = new XYSeries(++lineCnt, false, true);
-                                XYSeries endpointSeries = new XYSeries(lineCnt, false, true);
-
-                                if (DV.showFirstSeg)
-                                    line.add(0, upOrDown * buffer);
-
-                                // add points to lines
-                                for (int j = 0; j < data.coordinates[i].length; j++)
-                                {
-                                    line.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
-
-                                    if (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1])
-                                        midpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
-
-                                    // add endpoint and timeline
-                                    if (j == data.coordinates[i].length - 1)
-                                    {
-                                        endpointSeries.add(data.coordinates[i][j][0], upOrDown * (data.coordinates[i][j][1] + buffer));
-                                        timeLineSeries.add(data.coordinates[i][j][0], 0);
-
-                                        graphLines.addSeries(line);
-                                        endpoints.addSeries(endpointSeries);
-
-                                        if (DV.highlights[UPPER_OR_LOWER][i])
-                                            lineRenderer.setSeriesPaint(lineCnt, Color.ORANGE);
-                                        else
-                                            lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
-
-                                        if (UPPER_OR_LOWER == 0 && DV.upperIsLower)
-                                        {
-                                            // check if endpoint is correctly classified
-                                            if (endpoint < DV.threshold)
-                                                endpointRenderer.setSeriesPaint(i, DV.endpoints);
-                                            else
-                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
-                                        }
-                                        else if (UPPER_OR_LOWER == 0)
-                                        {
-                                            // check if endpoint is correctly classified
-                                            if (endpoint > DV.threshold)
-                                                endpointRenderer.setSeriesPaint(i, DV.endpoints);
-                                            else
-                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
-                                        }
-                                        else if(UPPER_OR_LOWER == 1 && DV.upperIsLower)
-                                        {
-                                            // check if endpoint is correctly classified
-                                            if (endpoint > DV.threshold)
-                                                endpointRenderer.setSeriesPaint(i, DV.endpoints);
-                                            else
-                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1]);
-                                        }
-                                        else
-                                        {
-                                            // check if endpoint is correctly classified
-                                            if (endpoint < DV.threshold)
-                                                endpointRenderer.setSeriesPaint(i, DV.endpoints);
-                                            else
-                                                endpointRenderer.setSeriesPaint(i, Color.RED);//DV.graphColors[1])
-                                        }
-
-                                        endpointRenderer.setSeriesShape(i, new Ellipse2D.Double(-1, -1, 2, 2));
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     // update graph
-                    chart.setNotify(true);
+                    updateGraph();
 
                     // generate analytics
                     Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
@@ -1738,10 +1923,6 @@ public class DataVisualization
                     {
                         LOGGER.log(Level.SEVERE, ex.toString(), ex);
                     }
-
-                    // revalidate graphs and confusion matrices
-                    DV.analyticsPanel.repaint();
-                    DV.analyticsPanel.revalidate();
                 }
 
                 @Override
@@ -1793,39 +1974,13 @@ public class DataVisualization
                     overlapRenderer.setSeriesStroke(0, activeStroke);
                     overlapRenderer.setSeriesStroke(1, activeStroke);
 
-                    // clear old lines
-                    overlapMinLine.clear();
-                    overlapMaxLine.clear();
-
-                    // turn notify off
-                    chart.setNotify(false);
-
-                    // set overlap line
-                    overlapMinLine.add(DV.overlapArea[0], 0);
-                    overlapMinLine.add(DV.overlapArea[0], lineHeight);
-                    overlapMaxLine.add(DV.overlapArea[1], 0);
-                    overlapMaxLine.add(DV.overlapArea[1], lineHeight);
-
-                    // update graph
-                    chart.setNotify(true);
+                    // set graph
+                    updateOverlapLines();
+                    updateEndpoints();
 
                     // generate analytics
-                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-                    analytics.execute();
-
-                    // wait for generation
-                    try
-                    {
-                        analytics.get();
-                    }
-                    catch (InterruptedException | ExecutionException ex)
-                    {
-                        LOGGER.log(Level.SEVERE, ex.toString(), ex);
-                    }
-
-                    // revalidate graphs and confusion matrices
-                    DV.analyticsPanel.repaint();
-                    DV.analyticsPanel.revalidate();
+                    if (DV.withoutOverlapChecked || DV.worstCaseChecked)
+                        getAnalytics();
                 }
 
                 @Override
@@ -1876,36 +2031,12 @@ public class DataVisualization
                     BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
                     thresholdRenderer.setSeriesStroke(0, activeStroke);
 
-                    // clear old line
-                    thresholdLine.clear();
-
-                    // turn notify off
-                    chart.setNotify(false);
-
                     // set threshold line
-                    thresholdLine.add(DV.threshold, 0);
-                    thresholdLine.add(DV.threshold, lineHeight);
-
-                    // update graph
-                    chart.setNotify(true);
+                    updateThresholdLine();
+                    updateEndpoints();
 
                     // generate analytics
-                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
-                    analytics.execute();
-
-                    // wait for generation
-                    try
-                    {
-                        analytics.get();
-                    }
-                    catch (InterruptedException | ExecutionException ex)
-                    {
-                        LOGGER.log(Level.SEVERE, ex.toString(), ex);
-                    }
-
-                    // revalidate graphs and confusion matrices
-                    DV.analyticsPanel.repaint();
-                    DV.analyticsPanel.revalidate();
+                    getAnalytics();
                 }
 
                 @Override
@@ -1953,7 +2084,7 @@ public class DataVisualization
                     // create the graph panel and add it to the main panel
                     ChartPanel chartPanel2 = new ChartPanel((JFreeChart) chart.clone());
                     chartPanel2.setMouseWheelEnabled(true);
-                    chartPanel2.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1] * vertical_res));
+                    chartPanel2.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1] * (DV.classNumber == 1 ? 2 : 1)));
 
                     // show datapoint when clicked
                     chartPanel2.addChartMouseListener(new ChartMouseListener()
@@ -1988,7 +2119,7 @@ public class DataVisualization
                     LOGGER.log(Level.SEVERE, e.toString(), e);
                 }
             }
-           
+
             return true;
         }
     }

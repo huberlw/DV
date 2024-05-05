@@ -132,14 +132,14 @@ public class AnalyticsMenu extends JPanel
         JCheckBox crossValCheckBox = createCheckBox(
                 "Cross Validation",
                 "Toggle user k-fold cross validation table",
-                DV.userValidationChecked);
+                DV.crossValidationChecked);
         crossValCheckBox.addActionListener(e ->
         {
             // reverse check and regenerate analytics
             DV.crossValidationChecked = !DV.crossValidationChecked;
             DV.crossValidationNotGenerated = true;
             DV.crossValidationPanel.removeAll();
-            generateAnalytics();
+            Analytics.generateCrossValidation();
         });
 
         constraints.gridx = 0;
@@ -189,6 +189,7 @@ public class AnalyticsMenu extends JPanel
                 {
                     // generate analytics
                     generateAnalytics();
+                    Analytics.generateCrossValidation();
                     createRemoteAnalyticPane();
                 }
             }
@@ -282,19 +283,19 @@ public class AnalyticsMenu extends JPanel
                     else
                     {
                         // invalid fold input
-                        JOptionPane.showMessageDialog(
-                                DV.mainFrame,
-                                "Error: input is invalid.\n" +
-                                        "Please enter a whole number greater than 0.",
+                        DV.warningPopup(
                                 "Error",
-                                JOptionPane.ERROR_MESSAGE);
+                                "Error: input is invalid. Please enter a whole number greater than 0."
+                        );
 
                         choice = -2;
                     }
                 }
                 catch (NumberFormatException nfe)
                 {
-                    JOptionPane.showMessageDialog(DV.mainFrame, "Error: please enter a whole numerical value.", "Error", JOptionPane.ERROR_MESSAGE);
+                    DV.warningPopup(
+                            "Error",
+                            "Error: please enter a whole numerical value.");
                     choice = -2;
                 }
             }

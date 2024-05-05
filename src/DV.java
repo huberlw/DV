@@ -79,6 +79,7 @@ public class DV extends JFrame
     // endpoint colors
     static Color endpoints = Color.BLACK;
     static Color svmEndpoints = new Color(205, 127, 50);
+    static boolean showMidpoints = false;
 
     // show bars instead of endpoints for graphs
     // the height of a bar is equal to the number of points in its location
@@ -105,6 +106,7 @@ public class DV extends JFrame
 
     // choose plot type: true == glc, false == dsc
     static boolean glc_or_dsc = true;
+    static boolean glcl_level_2 = false;
 
     // whether to show the first line segment or not
     static boolean showFirstSeg = true;
@@ -151,7 +153,7 @@ public class DV extends JFrame
     static boolean userValidationChecked = true;
     static boolean userValidationImported = false;
     static boolean svmAnalyticsChecked = false;
-    static boolean crossValidationChecked = true;
+    static boolean crossValidationChecked = false;
     static boolean crossValidationNotGenerated = true;
 
     // number of folds for k-fold cross validation
@@ -657,7 +659,7 @@ public class DV extends JFrame
         // optimize visualization
         JButton optimizeBtn = new JButton("Optimize Visualization");
         optimizeBtn.setToolTipText("Attempts to optimize angles and threshold");
-        optimizeBtn.addActionListener(e -> DataVisualization.optimizeSetup());//DataVisualization.optimizeAngles(true));
+        optimizeBtn.addActionListener(e -> DataVisualization.optimizeAngles(true));
         toolBar.add(optimizeBtn);
         toolBar.addSeparator();
 

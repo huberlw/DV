@@ -26,4 +26,5 @@
 16. Check if angle normalization works
 17. Test popout vis panel
 18. review analytics again
-19. Update Highlight option
+19. Update Highlight option (colors too)
+20. Add option to change midpoint color + turn on/off
