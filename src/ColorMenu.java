@@ -22,7 +22,7 @@ public class ColorMenu extends JPanel
         colors.setLayout(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
 
-        JButton[] colorOptions = new JButton[9];
+        JButton[] colorOptions = new JButton[11];
 
 
         // set domain line color
@@ -105,31 +105,53 @@ public class ColorMenu extends JPanel
         colors.add(colorOptions[6], constraints);
 
 
-        // set lower graph color
+        // set midpoint color
         colorOptions[7] = colorChangeButton(
-                "SVM Color",
-                "Sets color of support vectors when drawn.",
-                DV.svmLines);
+                "Midpoint Color",
+                "Sets color of midpoints for upper and lower graphs",
+                DV.midpoints);
         colorOptions[7].addMouseListener(highlightButton(colorOptions, colorOption, 7));
 
         constraints.gridy = 7;
         colors.add(colorOptions[7], constraints);
 
 
-        // set lower graph color
+        // set highlight color
         colorOptions[8] = colorChangeButton(
-                "SVM Endpoint Color",
-                "Sets color of support vectors endpoints when drawn.",
-                DV.svmEndpoints);
+                "Highlight Color",
+                "Sets color of highlighted points for the upper and lower graphs",
+                DV.highlightColor);
         colorOptions[8].addMouseListener(highlightButton(colorOptions, colorOption, 8));
 
         constraints.gridy = 8;
         colors.add(colorOptions[8], constraints);
 
 
+        // set lower graph color
+        colorOptions[9] = colorChangeButton(
+                "SVM Color",
+                "Sets color of support vectors when drawn.",
+                DV.svmLines);
+        colorOptions[9].addMouseListener(highlightButton(colorOptions, colorOption, 9));
+
+        constraints.gridy = 9;
+        colors.add(colorOptions[9], constraints);
+
+
+        // set lower graph color
+        colorOptions[10] = colorChangeButton(
+                "SVM Endpoint Color",
+                "Sets color of support vectors endpoints when drawn.",
+                DV.svmEndpoints);
+        colorOptions[10].addMouseListener(highlightButton(colorOptions, colorOption, 10));
+
+        constraints.gridy = 10;
+        colors.add(colorOptions[10], constraints);
+
+
         constraints.gridx = 1;
         constraints.gridy = 0;
-        constraints.gridheight = 10;
+        constraints.gridheight = 12;
         constraints.fill = GridBagConstraints.VERTICAL;
         JColorChooser colorChooser = new JColorChooser();
         colors.add(colorChooser, constraints);
@@ -269,13 +291,16 @@ public class ColorMenu extends JPanel
             case 4 -> DV.graphColors[0] = newColor;
             case 5 -> DV.graphColors[1] = newColor;
             case 6 -> DV.endpoints = newColor;
-            case 7 -> DV.svmLines = newColor;
-            case 8 -> DV.svmEndpoints = newColor;
+            case 7 -> DV.midpoints = newColor;
+            case 8 -> DV.highlightColor = newColor;
+            case 9 -> DV.svmLines = newColor;
+            case 10 -> DV.svmEndpoints = newColor;
         }
 
         // redraw graphs
         if (DV.trainData != null)
             DataVisualization.drawGraphs();
+
     }
 
 

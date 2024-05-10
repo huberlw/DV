@@ -61,7 +61,7 @@ public class DataSetup
             // get fieldNames and fieldLength
             DV.fieldNames = getFieldNames(stringData);
             DV.fieldLength = DV.fieldNames.size();
-            DV.standardFieldNames = DV.fieldNames;
+            DV.standardFieldNames = new ArrayList<>(DV.fieldNames);
             DV.standardFieldLength = DV.fieldLength;
 
             // initialize original attribute order
@@ -106,7 +106,7 @@ public class DataSetup
 
                     // transform classes into data objects
                     DV.trainData = createDataObjects(splitByClass);
-                    DV.normalizedData = createDataObjects(splitByClass);
+                    DV.normalizedData = deepCopyDataObjects(DV.trainData);
                     DV.originalData = createDataObjects(originalByClass);
 
                     DV.highlights = new boolean[DV.classNumber][];
@@ -784,7 +784,7 @@ public class DataSetup
             }
         }
 
-        if (numericalData.size() > 0)
+        if (!numericalData.isEmpty())
         {
             // convert numericalData to double[][]
             double[][] outputData = new double[numericalData.size()][];
@@ -1152,6 +1152,20 @@ public class DataSetup
             setValues = true;
 
         return null;
+    }
+
+
+    public static ArrayList<DataObject> deepCopyDataObjects(ArrayList<DataObject> original)
+    {
+        ArrayList<DataObject> copy = new ArrayList<>();
+        for (DataObject dataObject : original)
+        {
+            double[][] dataCopy = new double[dataObject.data.length][];
+            for (int i = 0; i < dataObject.data.length; i++)
+                dataCopy[i] = Arrays.copyOf(dataObject.data[i], dataObject.data[i].length);
+            copy.add(new DataObject(dataObject.className, dataCopy));
+        }
+        return copy;
     }
 
 

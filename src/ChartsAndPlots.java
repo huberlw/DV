@@ -23,7 +23,7 @@ public class ChartsAndPlots
         // format chart
         chart.setBorderVisible(false);
         chart.setPadding(RectangleInsets.ZERO_INSETS);
-        chart.setAntiAlias(false);
+        chart.setAntiAlias(true);
 
         return chart;
     }

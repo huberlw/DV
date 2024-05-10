@@ -311,6 +311,8 @@ public class AnalyticsMenu extends JPanel
         // create separate analytic window
         JOptionPane optionPane = new JOptionPane(DV.remoteAnalyticsPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
         JDialog dialog = optionPane.createDialog(DV.mainFrame, "Remote Analytics");
+        dialog.setSize(Resolutions.dvWindow[0] / 2, Resolutions.dvWindow[1] / 2);
+        dialog.setResizable(true);
         dialog.setModal(false);
         dialog.setVisible(true);
         dialog.addWindowListener(new WindowAdapter()

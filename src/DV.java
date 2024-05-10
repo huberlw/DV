@@ -78,8 +78,12 @@ public class DV extends JFrame
 
     // endpoint colors
     static Color endpoints = Color.BLACK;
+    static Color midpoints = Color.BLACK;
     static Color svmEndpoints = new Color(205, 127, 50);
     static boolean showMidpoints = false;
+
+    // highlight color
+    static Color highlightColor = Color.ORANGE;
 
     // show bars instead of endpoints for graphs
     // the height of a bar is equal to the number of points in its location

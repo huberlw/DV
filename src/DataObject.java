@@ -37,19 +37,12 @@ public class DataObject
         // save the highest x/y value
         double highest = Double.MIN_VALUE;
 
-        int active = 0;
-        for (int i = 0; i < DV.activeAttributes.size(); i++)
-        {
-            if (DV.activeAttributes.get(i))
-                active++;
-        }
-
         // generate coordinates for every datapoint
         for (int i = 0; i < data.length; i++)
         {
             try
             {
-                coordinates[i] = generateCoordinatesGLC(data[i], angles, active);
+                coordinates[i] = generateCoordinatesGLC(data[i], angles);
             }
             catch(Exception e)
             {
@@ -88,32 +81,25 @@ public class DataObject
      * Generates coordinates for a datapoint
      * @param dataPoint datapoint in DataObject
      * @param angles weights for each value
-     * @param active number of active attributes
      * @return coordinates for datapoint
      */
-    private double[][] generateCoordinatesGLC(double[] dataPoint, double[] angles, int active)
+    private double[][] generateCoordinatesGLC(double[] dataPoint, double[] angles)
     {
         // output points
-        double[][] xyPoints = new double[active][2];
+        double[][] xyPoints = new double[dataPoint.length][2];
 
         // get xyPoints
         // skip to first active attribute
         int i = 0;
-        while (!DV.activeAttributes.get(i)) i++;
         xyPoints[0] = getXYPointGLC(dataPoint[i], angles[i]);
-        i++;
 
-        for (int j = 1; i < dataPoint.length; i++)
+        for (i = 1; i < dataPoint.length; i++)
         {
-            if (DV.activeAttributes.get(i))
-            {
-                xyPoints[j] = getXYPointGLC(dataPoint[i], angles[i]);
+                xyPoints[i] = getXYPointGLC(dataPoint[i], angles[i]);
 
                 // add previous points to current points
-                xyPoints[j][0] += xyPoints[j-1][0];
-                xyPoints[j][1] += xyPoints[j-1][1];
-                j++;
-            }
+                xyPoints[i][0] += xyPoints[i-1][0];
+                xyPoints[i][1] += xyPoints[i-1][1];
         }
 
         return xyPoints;

@@ -62,10 +62,10 @@ public class VisualizationMenu extends JPanel
         c.gridy = 3;
         visPanel.add(setNDFunctionButton(), c);
 
-        // visualize overlap area
+        // open analytics in another window
         c.gridx = 1;
         c.gridy = 3;
-        visPanel.add(visOverlapBox(), c);
+        visPanel.add(separateVisButton(), c);
 
         // visualize only support vectors
         c.gridx = 0;
@@ -87,17 +87,15 @@ public class VisualizationMenu extends JPanel
         c.gridy = 5;
         visPanel.add(drawFirstLineBox(), c);
 
-        // open analytics in another window
+        // draw midpoints of GLC-L visualization
         c.gridx = 0;
         c.gridy = 6;
-        c.gridwidth = 2;
-        visPanel.add(separateVisButton(), c);
+        visPanel.add(drawMidpointsBox(), c);
 
-        /**
-         * REMOVE LATER
-         */
-        c.gridy = 7;
-        visPanel.add(GLCLLevel2());
+        // visualize overlap area
+        c.gridx = 1;
+        c.gridy = 6;
+        visPanel.add(visOverlapBox(), c);
 
         // show visualization menu
         JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Visualization Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
@@ -198,6 +196,7 @@ public class VisualizationMenu extends JPanel
                     Arrays.fill(DV.highlights[1], false);
 
                     // generate new cross validation
+                    DV.crossValidationChecked = false;
                     DV.crossValidationNotGenerated = true;
 
                     // optimize setup then draw graphs
@@ -952,11 +951,11 @@ public class VisualizationMenu extends JPanel
                 removal.setLayout(new BoxLayout(removal, BoxLayout.PAGE_AXIS));
                 removal.add(new JLabel("Checked attributes will be displayed."));
 
-                JCheckBox[] attributes = new JCheckBox[DV.fieldNames.size()];
+                JCheckBox[] attributes = new JCheckBox[DV.standardFieldNames.size()];
 
-                for (String field : DV.fieldNames)
+                for (String field : DV.standardFieldNames)
                 {
-                    final int index = DV.fieldNames.indexOf(field);
+                    final int index = DV.standardFieldNames.indexOf(field);
 
                     attributes[index] = new JCheckBox(field, DV.activeAttributes.get(index));
                     attributes[index].addActionListener(ee ->
@@ -972,9 +971,7 @@ public class VisualizationMenu extends JPanel
                         }
 
                         if (active > 0)
-                        {
-                            DV.fieldLength--;
-                        }
+                            DV.fieldLength = active;
                         else
                         {
                             attributes[index].setSelected(true);
@@ -982,18 +979,16 @@ public class VisualizationMenu extends JPanel
                             return;
                         }
 
-                        //
-                        for (int i = 0; i < DV.trainData.size(); i++)
+                        for (int i = 0; i < DV.normalizedData.size(); i++)
                         {
-                            for (int j = 0; j < DV.trainData.get(i).data.length; j++)
+                            for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
                             {
                                 double[] tmp = new double[DV.fieldLength];
-
-                                for (int k = 0, cnt = 0; k < DV.trainData.get(i).data[j].length; k++)
+                                for (int k = 0, cnt = 0; k < DV.normalizedData.get(i).data[j].length; k++)
                                 {
-                                    if (k != index)
+                                    if (DV.activeAttributes.get(k))
                                     {
-                                        tmp[cnt] = DV.trainData.get(i).data[j][k];
+                                        tmp[cnt] = DV.normalizedData.get(i).data[j][k];
                                         cnt++;
                                     }
                                 }
@@ -1003,21 +998,19 @@ public class VisualizationMenu extends JPanel
                         }
 
                         double[] new_angles = new double[DV.fieldLength];
-
-                        for (int k = 0, cnt = 0; k < DV.angles.length; k++)
+                        ArrayList<String> new_names = new ArrayList<>();
+                        for (int k = 0, cnt = 0; k < DV.standardAngles.length; k++)
                         {
-                            if (k != index)
+                            if (DV.activeAttributes.get(k))
                             {
-                                new_angles[cnt] = DV.angles[k];
+                                new_angles[cnt] = DV.standardAngles[k];
+                                new_names.add(DV.standardFieldNames.get(k));
                                 cnt++;
-                            }
-                            else
-                            {
-                                DV.fieldNames.remove(index);
                             }
                         }
 
                         DV.angles = new_angles;
+                        DV.fieldNames = new_names;
 
                         DataVisualization.optimizeSetup();
                         DataVisualization.drawGraphs();
@@ -1026,80 +1019,11 @@ public class VisualizationMenu extends JPanel
                     removal.add(attributes[index]);
                 }
 
-                removal.add(DTRemoveAttribute(attributes));
                 JOptionPane.showMessageDialog(DV.mainFrame, removal, "Remove Attributes", JOptionPane.PLAIN_MESSAGE);
             }
         });
 
         return removeBtn;
-    }
-
-
-    /**
-     * Creates button to remove attributes from visualization based on a Decision Tree (DT)
-     * @param attributes attributes to remove
-     * @return button
-     */
-    private static JButton DTRemoveAttribute(JCheckBox[] attributes)
-    {
-        JButton dtRemove = new JButton("Decision Tree");
-        dtRemove.setToolTipText("Remove attributes with low importance in a decision tree");
-        dtRemove.addActionListener(dte ->
-        {
-            // get decision tree order
-            double[] dt_weight = new double[DV.fieldLength];
-
-            // create dt (python) process
-            ProcessBuilder tree = new ProcessBuilder("cmd", "/c",
-                    "source\\Python\\DecisionTree\\DecisionTree.exe",
-                    "source\\Python\\DV_data.csv");
-
-            try
-            {
-                // create file for python process
-                CSV.createCSVDataObject(DV.trainData, "source\\Python\\DV_data.csv");
-
-                // run python (LDA) process
-                Process process = tree.start();
-
-                // read python outputs
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                String output;
-
-                int cnt = 0;
-
-                // get attribute order
-                while ((output = reader.readLine()) != null)
-                    dt_weight[cnt++] = Double.parseDouble(output);
-
-                // delete created file
-                File fileToDelete = new File("source\\Python\\DV_data.csv");
-                Files.deleteIfExists(fileToDelete.toPath());
-            }
-            catch (IOException er)
-            {
-                JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Decision Tree", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-
-            for (int i = 0; i < dt_weight.length; i++)
-            {
-                if (dt_weight[i] == 0)
-                {
-                    attributes[i].setSelected(false);
-                    DV.activeAttributes.set(i, false);
-                }
-                else
-                {
-                    attributes[i].setSelected(true);
-                    DV.activeAttributes.set(i, true);
-                }
-            }
-
-            DataVisualization.findGlobalBestThreshold(0);
-            DataVisualization.drawGraphs();
-        });
-
-        return dtRemove;
     }
 
 
@@ -1657,6 +1581,26 @@ public class VisualizationMenu extends JPanel
 
 
     /**
+     * Select whether to visualize midpoints in a GLC-L visualization or not
+     * @return check box
+     */
+    private JCheckBox drawMidpointsBox()
+    {
+        JCheckBox darwMidpointsBox = new JCheckBox("Midpoints", DV.showFirstSeg);
+        darwMidpointsBox.setToolTipText("Whether to draw midpoints when two angles are equal in a graph or not.");
+        darwMidpointsBox.setFont(darwMidpointsBox.getFont().deriveFont(12f));
+        darwMidpointsBox.addActionListener(fle ->
+        {
+            DV.showMidpoints = darwMidpointsBox.isSelected();
+            if (DV.trainData != null)
+                DataVisualization.drawGraphs();
+        });
+
+        return darwMidpointsBox;
+    }
+
+
+    /**
      * Creates button to visualize graphs in a different window
      * @return button
      */
@@ -1673,6 +1617,8 @@ public class VisualizationMenu extends JPanel
 
                 JOptionPane optionPane = new JOptionPane(DV.remoteGraphPanel, JOptionPane.PLAIN_MESSAGE, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
                 JDialog dialog = optionPane.createDialog(DV.mainFrame, "Visualization");
+                dialog.setSize(Resolutions.dvWindow[0] / 2, Resolutions.dvWindow[1] / 2);
+                dialog.setResizable(true);
                 dialog.setModal(false);
                 dialog.setVisible(true);
                 dialog.addWindowListener(new WindowAdapter()
@@ -1691,64 +1637,5 @@ public class VisualizationMenu extends JPanel
         });
 
         return separateVisBtn;
-    }
-
-
-    /**
-     * TEMPORARY CODE: WILL BE REMOVED
-     */
-
-    /**
-     * Creates button to creates GLC-L of Level 2
-     */
-    private JButton GLCLLevel2()
-    {
-        JButton GLCLLevel2Btn = new JButton("GLC-L Level 2");
-        GLCLLevel2Btn.setToolTipText("Combines specified attributes to create GLC-L Level 2");
-        GLCLLevel2Btn.setFont(GLCLLevel2Btn.getFont().deriveFont(12f));
-        GLCLLevel2Btn.addActionListener(e->
-        {
-            JPanel reorder = new JPanel();
-            reorder.setLayout(new GridBagLayout());
-            GridBagConstraints c = new GridBagConstraints();
-
-            c.gridx = 0;
-            c.gridy = 0;
-            c.gridwidth = 2;
-            c.fill = GridBagConstraints.BOTH;
-
-            reorder.add(new JLabel("Combines attributes by column."), c);
-
-            DefaultTableModel tm = new DefaultTableModel();
-
-            Integer[] head = new Integer[DV.fieldLength];
-            for (int i = 0; i < DV.fieldLength; i++)
-                head[i] = i+1;
-
-            tm.setColumnIdentifiers(head);
-            final JTable table = new JTable(tm)
-            {
-                public boolean isCellEditable(int row, int column)
-                {
-                    return false;
-                }
-            };
-
-            table.setRowSelectionAllowed(false);
-            table.setCellSelectionEnabled(true);
-            table.getTableHeader().setReorderingAllowed(false);
-
-            table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-            tm.insertRow(0, DV.fieldNames.toArray());
-
-            JScrollPane manPane = new JScrollPane(table);
-
-            c.gridy = 1;
-            reorder.add(manPane, c);
-
-            JOptionPane.showMessageDialog(DV.mainFrame, reorder, "Combine Attributes", JOptionPane.PLAIN_MESSAGE);
-        });
-
-        return GLCLLevel2Btn;
     }
 }
