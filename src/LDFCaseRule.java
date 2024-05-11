@@ -12,7 +12,7 @@ import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.ui.RectangleInsets;
+import org.jfree.chart.ui.RectangleInsets;
 
 import javax.swing.*;
 import java.awt.*;
@@ -515,18 +515,18 @@ public class LDFCaseRule
         plot.setRenderer(5, originalTimelineRenderer);
         plot.setDataset(5, originalTimeline);
 
-        originalLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        originalLineRenderer.setSeriesStroke(0, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         originalLineRenderer.setAutoPopulateSeriesStroke(false);
         plot.setRenderer(6, originalLineRenderer);
         plot.setDataset(6, originalLine);
 
-        lowerWeightedLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        lowerWeightedLineRenderer.setSeriesStroke(0, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         lowerWeightedLineRenderer.setSeriesPaint(0, Color.RED);
         lowerWeightedLineRenderer.setAutoPopulateSeriesStroke(false);
         plot.setRenderer(7, lowerWeightedLineRenderer);
         plot.setDataset(7, lowerWeightedLine);
 
-        upperWeightedLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        upperWeightedLineRenderer.setSeriesStroke(0, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         upperWeightedLineRenderer.setSeriesPaint(0, Color.BLUE);
         upperWeightedLineRenderer.setAutoPopulateSeriesStroke(false);
         plot.setRenderer(8, upperWeightedLineRenderer);
@@ -721,15 +721,16 @@ public class LDFCaseRule
 
         pcLowerLimitRenderer.setSeriesShape(0, new Rectangle2D.Double(-12.5, -5, 25, 10));
         pcLowerLimitRenderer.setSeriesPaint(0, Color.RED);
-        pcLowerLimitRenderer.setBaseItemLabelGenerator(ScaleLabelGenerator());
-        pcLowerLimitRenderer.setBaseItemLabelsVisible(true);
+        pcLowerLimitRenderer.setSeriesItemLabelGenerator(0, ScaleLabelGenerator());
+        pcLowerLimitRenderer.setSeriesItemLabelGenerator(0, ScaleLabelGenerator());
+        pcLowerLimitRenderer.setSeriesItemLabelsVisible(0, true);
         pcPlot.setRenderer(0, pcLowerLimitRenderer);
         pcPlot.setDataset(0, pcLowerLimits);
 
         pcUpperLimitRenderer.setSeriesShape(0, new Rectangle2D.Double(-12.5, -5, 25, 10));
         pcUpperLimitRenderer.setSeriesPaint(0, Color.BLUE);
-        pcUpperLimitRenderer.setBaseItemLabelGenerator(ScaleLabelGenerator());
-        pcUpperLimitRenderer.setBaseItemLabelsVisible(true);
+        pcUpperLimitRenderer.setSeriesItemLabelGenerator(0, ScaleLabelGenerator());
+        pcUpperLimitRenderer.setSeriesItemLabelsVisible(0, true);
         pcPlot.setRenderer(1, pcUpperLimitRenderer);
         pcPlot.setDataset(1, pcUpperLimits);
 
@@ -739,30 +740,30 @@ public class LDFCaseRule
 
         pcLowerWeightedEndpointRenderer.setSeriesShape(0, new Rectangle2D.Double(-2.5, -2.5, 5, 5));
         pcLowerWeightedEndpointRenderer.setSeriesPaint(0, Color.RED);
-        pcLowerWeightedEndpointRenderer.setBaseItemLabelGenerator(ScaleLabelGenerator());
-        pcLowerWeightedEndpointRenderer.setBaseItemLabelsVisible(true);
+        pcLowerWeightedEndpointRenderer.setSeriesItemLabelGenerator(0, ScaleLabelGenerator());
+        pcLowerWeightedEndpointRenderer.setSeriesItemLabelsVisible(0, true);
         pcPlot.setRenderer(3, pcLowerWeightedEndpointRenderer);
         pcPlot.setDataset(3, pcLowerWeightedEndpoint);
 
         pcUpperWeightedEndpointRenderer.setSeriesShape(0, new Rectangle2D.Double(-2.5, -2.5, 5, 5));
         pcUpperWeightedEndpointRenderer.setSeriesPaint(0, Color.BLUE);
-        pcUpperWeightedEndpointRenderer.setBaseItemLabelGenerator(ScaleLabelGenerator());
-        pcUpperWeightedEndpointRenderer.setBaseItemLabelsVisible(true);
+        pcUpperWeightedEndpointRenderer.setSeriesItemLabelGenerator(0, ScaleLabelGenerator());
+        pcUpperWeightedEndpointRenderer.setSeriesItemLabelsVisible(0, true);
         pcPlot.setRenderer(4, pcUpperWeightedEndpointRenderer);
         pcPlot.setDataset(4, pcUpperWeightedEndpoint);
 
-        pcOriginalLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcOriginalLineRenderer.setSeriesStroke(0, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         pcOriginalLineRenderer.setAutoPopulateSeriesStroke(false);
         pcPlot.setRenderer(5, pcOriginalLineRenderer);
         pcPlot.setDataset(5, pcOriginalLine);
 
-        pcLowerWeightedLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcLowerWeightedLineRenderer.setSeriesStroke(0, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         pcLowerWeightedLineRenderer.setSeriesPaint(0, Color.RED);
         pcLowerWeightedLineRenderer.setAutoPopulateSeriesStroke(false);
         pcPlot.setRenderer(6, pcLowerWeightedLineRenderer);
         pcPlot.setDataset(6, pcLowerWeightedLine);
 
-        pcUpperWeightedLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+        pcUpperWeightedLineRenderer.setSeriesStroke(0, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         pcUpperWeightedLineRenderer.setSeriesPaint(0, Color.BLUE);
         pcUpperWeightedLineRenderer.setAutoPopulateSeriesStroke(false);
         pcPlot.setRenderer(7, pcUpperWeightedLineRenderer);

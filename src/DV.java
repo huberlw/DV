@@ -277,7 +277,7 @@ public class DV extends JFrame
         gpc.fill = GridBagConstraints.BOTH;
 
         // add blank graph
-        graphPanel.add(blankGraph(), gpc);
+        graphPanel.add(ChartsAndPlots.blankGraph(), gpc);
 
         c.gridx = 0;
         c.gridy = 0;
@@ -729,37 +729,6 @@ public class DV extends JFrame
 
 
     /**
-     * Creates blank graph
-     */
-    private ChartPanel blankGraph()
-    {
-        // create blank graph
-        XYSeriesCollection data = new XYSeriesCollection();
-        JFreeChart chart = ChartFactory.createXYLineChart("", "", "", data);
-        XYPlot plot = (XYPlot) chart.getPlot();
-        plot.setDrawingSupplier(new DefaultDrawingSupplier(
-                new Paint[] { Color.RED },
-                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
-                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
-        plot.getRangeAxis().setVisible(false);
-        plot.getDomainAxis().setVisible(false);
-        plot.setRangeGridlinesVisible(false);
-        plot.setDomainPannable(true);
-        plot.setRangePannable(true);
-        plot.setBackgroundPaint(background);
-        plot.setDomainGridlinePaint(Color.GRAY);
-        chart.removeLegend();
-        chart.setBorderVisible(false);
-        ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setMouseWheelEnabled(true);
-
-        return chartPanel;
-    }
-
-
-    /**
      * Asks user questions about data then creates project
      */
     public void createNewProject()
@@ -911,7 +880,7 @@ public class DV extends JFrame
                             "Error: could not open file");
 
                     // add blank graph
-                    graphPanel.add(blankGraph());
+                    graphPanel.add(ChartsAndPlots.blankGraph());
                 }
             }
             else if (results != JFileChooser.CANCEL_OPTION)
@@ -921,7 +890,7 @@ public class DV extends JFrame
                         "Error: could not open file");
 
                 // add blank graph
-                graphPanel.add(blankGraph());
+                graphPanel.add(ChartsAndPlots.blankGraph());
             }
 
             // repaint and revalidate DV
@@ -936,7 +905,7 @@ public class DV extends JFrame
                     "Error: could not open file");
 
             // add blank graph if data was bad
-            graphPanel.add(blankGraph());
+            graphPanel.add(ChartsAndPlots.blankGraph());
 
             // repaint and revalidate DV
             repaint();
@@ -990,7 +959,7 @@ public class DV extends JFrame
                                 "Error: could not open file");
 
                         // add blank graph
-                        graphPanel.add(blankGraph());
+                        graphPanel.add(ChartsAndPlots.blankGraph());
                     }
                 }
                 else if (results != JFileChooser.CANCEL_OPTION)
@@ -1000,7 +969,7 @@ public class DV extends JFrame
                             "Error: could not open file");
 
                     // add blank graph
-                    graphPanel.add(blankGraph());
+                    graphPanel.add(ChartsAndPlots.blankGraph());
                 }
             }
             else
@@ -1010,7 +979,7 @@ public class DV extends JFrame
                         "Error: could not import data");
 
                 // add blank graph
-                graphPanel.add(blankGraph());
+                graphPanel.add(ChartsAndPlots.blankGraph());
             }
 
             // repaint and revalidate graph
@@ -1024,7 +993,7 @@ public class DV extends JFrame
                     "Error: could not open file");
 
             // add blank graph
-            graphPanel.add(blankGraph());
+            graphPanel.add(ChartsAndPlots.blankGraph());
             DV.graphPanel.repaint();
             DV.graphPanel.revalidate();
         }
@@ -1085,7 +1054,7 @@ public class DV extends JFrame
                         "Error: could not open file");
 
                 // add blank graph
-                graphPanel.add(blankGraph());
+                graphPanel.add(ChartsAndPlots.blankGraph());
                 DV.graphPanel.repaint();
                 DV.crossValidationPanel.repaint();
                 DV.graphPanel.revalidate();
@@ -1099,7 +1068,7 @@ public class DV extends JFrame
                     "Error: could not open file");
 
             // add blank graph
-            graphPanel.add(blankGraph());
+            graphPanel.add(ChartsAndPlots.blankGraph());
             DV.graphPanel.repaint();
             DV.crossValidationPanel.repaint();
             DV.graphPanel.revalidate();

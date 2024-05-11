@@ -9,7 +9,7 @@ import org.jfree.chart.plot.*;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.*;
-import org.jfree.ui.RectangleInsets;
+import org.jfree.chart.ui.RectangleInsets;
 
 import javax.swing.*;
 import java.awt.*;
@@ -1322,6 +1322,15 @@ public class DataVisualization
         final XYIntervalSeriesCollection bars;
         final XYBarRenderer barRenderer;
 
+        // stroke and shapes
+        final BasicStroke graphLineStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+        final BasicStroke domainStroke = new BasicStroke(2f);
+        final BasicStroke domainActiveStroke = new BasicStroke(4f);
+        final BasicStroke thresholdOverlapStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
+        final BasicStroke thresholdOverlapActiveStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
+        final Ellipse2D.Double endpointShape = new Ellipse2D.Double(-1, -1, 2, 2);
+        final Ellipse2D.Double midpointShape = new Ellipse2D.Double(-0.5, -0.5, 1, 1);
+
         // get chart and plot
         JFreeChart chart;
         XYPlot plot;
@@ -1493,15 +1502,20 @@ public class DataVisualization
                                 {
                                     highlightLines.addSeries(line);
                                     highlightLineRenderer.setSeriesPaint(highCnt, DV.highlightColor);
+                                    highlightLineRenderer.setSeriesStroke(highCnt, graphLineStroke);
+
                                     highlightEndpoints.addSeries(endpointSeries);
                                     highlightEndpointRenderer.setSeriesPaint(highCnt, DV.highlightColor);
-                                    highlightEndpointRenderer.setSeriesShape(highCnt, new Ellipse2D.Double(-1, -1, 2, 2));
+                                    highlightEndpointRenderer.setSeriesShape(highCnt, endpointShape);
                                 }
                                 else
                                 {
                                     graphLines.addSeries(line);
                                     lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[UPPER_OR_LOWER]);
+                                    lineRenderer.setSeriesStroke(lineCnt, graphLineStroke);
+
                                     endpoints.addSeries(endpointSeries);
+                                    endpointRenderer.setSeriesShape(lineCnt, endpointShape);
 
                                     if (UPPER_OR_LOWER == 0 && DV.upperIsLower)
                                     {
@@ -1535,8 +1549,6 @@ public class DataVisualization
                                         else
                                             endpointRenderer.setSeriesPaint(lineCnt, Color.RED);
                                     }
-
-                                    endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                                 }
                             }
                         }
@@ -1588,7 +1600,7 @@ public class DataVisualization
                         {
                             highlightEndpoints.addSeries(endpointSeries);
                             highlightEndpointRenderer.setSeriesPaint(highCnt, DV.highlightColor);
-                            highlightEndpointRenderer.setSeriesShape(highCnt, new Ellipse2D.Double(-1, -1, 2, 2));
+                            highlightEndpointRenderer.setSeriesShape(highCnt, endpointShape);
                         }
                         else
                         {
@@ -1627,7 +1639,7 @@ public class DataVisualization
                                     endpointRenderer.setSeriesPaint(lineCnt, Color.RED);
                             }
 
-                            endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
+                            endpointRenderer.setSeriesShape(lineCnt, endpointShape);
                         }
                     }
                 }
@@ -1809,12 +1821,8 @@ public class DataVisualization
         {
             chart.setNotify(false);
 
-            // create basic strokes
-            BasicStroke thresholdOverlapStroke = new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
-            BasicStroke domainStroke = new BasicStroke(1f);
-
             // set svm endpoint renderer and dataset
-            svmEndpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-1, -1, 2, 2));
+            svmEndpointRenderer.setSeriesShape(0, endpointShape);
             svmEndpointRenderer.setSeriesPaint(0, DV.svmEndpoints);
             plot.setRenderer(0, svmEndpointRenderer);
             plot.setDataset(0, svmEndpoints);
@@ -1828,13 +1836,13 @@ public class DataVisualization
             plot.setDataset(2, endpoints);
 
             // set mvm midpoint renderer and dataset
-            svmMidpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-0.5, -0.5, 1, 1));
+            svmMidpointRenderer.setSeriesShape(0, endpointShape);
             svmMidpointRenderer.setSeriesPaint(0, DV.svmEndpoints);
             plot.setRenderer(3, svmMidpointRenderer);
             plot.setDataset(3, svmMidpoints);
 
             // set midpoint renderer and dataset
-            midpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-0.5, -0.5, 1, 1));
+            midpointRenderer.setSeriesShape(0, midpointShape);
             midpointRenderer.setSeriesPaint(0, DV.midpoints);
             plot.setRenderer(4, midpointRenderer);
             plot.setDataset(4, midpoints);
@@ -1865,19 +1873,16 @@ public class DataVisualization
             }
 
             // set svm line renderer and dataset
-            svmLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
             svmLineRenderer.setAutoPopulateSeriesStroke(false);
             plot.setRenderer(8, svmLineRenderer);
             plot.setDataset(8, svmGraphLines);
 
             // set highlight line renderer and dataset
-            highlightLineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
             highlightLineRenderer.setAutoPopulateSeriesStroke(false);
             plot.setRenderer(9, highlightLineRenderer);
             plot.setDataset(9, highlightLines);
 
             // set line renderer and dataset
-            lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
             lineRenderer.setAutoPopulateSeriesStroke(false);
             plot.setRenderer(10, lineRenderer);
             plot.setDataset(10, graphLines);
@@ -2007,18 +2012,16 @@ public class DataVisualization
                 public void mousePressed(MouseEvent e)
                 {
                     // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f);
-                    domainRenderer.setSeriesStroke(0, activeStroke);
-                    domainRenderer.setSeriesStroke(1, activeStroke);
+                    domainRenderer.setSeriesStroke(0, domainActiveStroke);
+                    domainRenderer.setSeriesStroke(1, domainActiveStroke);
                 }
 
                 @Override
                 public void mouseReleased(MouseEvent e)
                 {
                     // draw lines as inactive (normal)
-                    BasicStroke inactiveStroke = new BasicStroke(2f);
-                    domainRenderer.setSeriesStroke(0, inactiveStroke);
-                    domainRenderer.setSeriesStroke(1, inactiveStroke);
+                    domainRenderer.setSeriesStroke(0, domainStroke);
+                    domainRenderer.setSeriesStroke(1, domainStroke);
                 }
 
                 @Override
@@ -2039,9 +2042,8 @@ public class DataVisualization
                     DV.overlapArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
 
                     // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
-                    overlapRenderer.setSeriesStroke(0, activeStroke);
-                    overlapRenderer.setSeriesStroke(1, activeStroke);
+                    overlapRenderer.setSeriesStroke(0, thresholdOverlapActiveStroke);
+                    overlapRenderer.setSeriesStroke(1, thresholdOverlapActiveStroke);
 
                     // set graph
                     updateOverlapLines();
@@ -2065,18 +2067,16 @@ public class DataVisualization
                 public void mousePressed(MouseEvent e)
                 {
                     // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
-                    overlapRenderer.setSeriesStroke(0, activeStroke);
-                    overlapRenderer.setSeriesStroke(1, activeStroke);
+                    overlapRenderer.setSeriesStroke(0, thresholdOverlapActiveStroke);
+                    overlapRenderer.setSeriesStroke(1, thresholdOverlapActiveStroke);
                 }
 
                 @Override
                 public void mouseReleased(MouseEvent e)
                 {
                     // draw lines as inactive (normal)
-                    BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
-                    overlapRenderer.setSeriesStroke(0, inactiveStroke);
-                    overlapRenderer.setSeriesStroke(1, inactiveStroke);
+                    overlapRenderer.setSeriesStroke(0, thresholdOverlapStroke);
+                    overlapRenderer.setSeriesStroke(1, thresholdOverlapStroke);
                 }
 
                 @Override
@@ -2097,8 +2097,7 @@ public class DataVisualization
                     DV.threshold = (slider.getValue() - 200) * DV.fieldLength / 200.0;
 
                     // draw line as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
-                    thresholdRenderer.setSeriesStroke(0, activeStroke);
+                    thresholdRenderer.setSeriesStroke(0, thresholdOverlapActiveStroke);
 
                     // set threshold line
                     updateThresholdLine();
@@ -2121,16 +2120,14 @@ public class DataVisualization
                 public void mousePressed(MouseEvent e)
                 {
                     // draw lines as active (thicker)
-                    BasicStroke activeStroke = new BasicStroke(4f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{12f, 6f}, 0.0f);
-                    thresholdRenderer.setSeriesStroke(0, activeStroke);
+                    thresholdRenderer.setSeriesStroke(0, thresholdOverlapActiveStroke);
                 }
 
                 @Override
                 public void mouseReleased(MouseEvent e)
                 {
                     // draw lines as inactive (normal)
-                    BasicStroke inactiveStroke = new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[] {12f, 6f}, 0.0f);
-                    thresholdRenderer.setSeriesStroke(0, inactiveStroke);
+                    thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
                 }
 
                 @Override

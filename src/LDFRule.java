@@ -8,7 +8,7 @@ import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.ui.RectangleEdge;
+import org.jfree.chart.ui.RectangleEdge;
 
 import javax.swing.*;
 import java.awt.*;
@@ -527,6 +527,7 @@ public class LDFRule
 
                                 endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                                 timeLineRenderer.setSeriesShape(lineCnt, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
+                                lineRenderer.setSeriesStroke(lineCnt, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
                             }
                         }
                     }
@@ -562,8 +563,6 @@ public class LDFRule
         // set strip renderer and dataset
         plot.setRenderer(0, stripRenderer);
         plot.setDataset(0, strips);
-        stripRenderer.setBaseItemLabelsVisible(true);
-        stripRenderer.setBaseItemLabelGenerator(stripLabelGenerator());
 
         // set endpoint renderer and dataset
         plot.setRenderer(1, endpointRenderer);
@@ -582,7 +581,6 @@ public class LDFRule
         plot.setDataset(3, threshold);
 
         // set line renderer and dataset
-        lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         lineRenderer.setAutoPopulateSeriesStroke(false);
         plot.setRenderer(4, lineRenderer);
         plot.setDataset(4, graphLines);
@@ -678,6 +676,7 @@ public class LDFRule
 
                             endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                             timeLineRenderer.setSeriesShape(lineCnt, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
+                            lineRenderer.setSeriesStroke(lineCnt, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
                         }
                     }
                 }
@@ -712,8 +711,6 @@ public class LDFRule
         // set strip renderer and dataset
         plot.setRenderer(0, stripRenderer);
         plot.setDataset(0, strips);
-        stripRenderer.setBaseItemLabelsVisible(true);
-        stripRenderer.setBaseItemLabelGenerator(stripLabelGenerator());
 
         // set endpoint renderer and dataset
         plot.setRenderer(1, endpointRenderer);
@@ -732,7 +729,6 @@ public class LDFRule
         plot.setDataset(3, threshold);
 
         // set line renderer and dataset
-        lineRenderer.setBaseStroke(new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
         lineRenderer.setAutoPopulateSeriesStroke(false);
         plot.setRenderer(4, lineRenderer);
         plot.setDataset(4, graphLines);
@@ -804,6 +800,8 @@ public class LDFRule
                         strips.addSeries(strip);
                         stripRenderer.setSeriesPaint(rIndex, new Color(255, 0, 0, 100));
                         stripRenderer.setSeriesStroke(rIndex, new BasicStroke(4f));
+                        stripRenderer.setSeriesItemLabelsVisible(rIndex, true);
+                        stripRenderer.setSeriesItemLabelGenerator(rIndex, stripLabelGenerator());
                     }
                     else
                     {

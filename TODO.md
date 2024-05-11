@@ -14,5 +14,4 @@
 7. Review: HBVisualization
 11. abstract LDFRule drawings functions
 14. check all accuracy / classification functions for threshold consistency
-17. Test popout vis panel
 18. review analytics again

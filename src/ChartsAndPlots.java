@@ -1,8 +1,9 @@
 import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.*;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.ui.RectangleInsets;
+import org.jfree.chart.ui.RectangleInsets;
 
 import java.awt.*;
 
@@ -53,5 +54,36 @@ public class ChartsAndPlots
         plot.setSeriesRenderingOrder(SeriesRenderingOrder.REVERSE);
 
         return plot;
+    }
+
+
+    /**
+     * Creates blank graph
+     */
+    public static ChartPanel blankGraph()
+    {
+        // create blank graph
+        XYSeriesCollection data = new XYSeriesCollection();
+        JFreeChart chart = ChartFactory.createXYLineChart("", "", "", data);
+        XYPlot plot = (XYPlot) chart.getPlot();
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { Color.RED },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(false);
+        plot.getDomainAxis().setVisible(false);
+        plot.setRangeGridlinesVisible(false);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+        chart.removeLegend();
+        chart.setBorderVisible(false);
+        ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setMouseWheelEnabled(true);
+
+        return chartPanel;
     }
 }
