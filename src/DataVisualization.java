@@ -103,7 +103,7 @@ public class DataVisualization
                 updatePoints();
                 getThreshold();
                 optimizeAngles(false);
-                VisualizationMenu.quickSortDescending(DV.angles, 0, DV.angles.length - 1);
+                //VisualizationMenu.quickSortDescending(DV.angles, 0, DV.angles.length - 1);
             }
             else
             {
