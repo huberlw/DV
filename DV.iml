@@ -2,7 +2,7 @@
 <module type="JAVA_MODULE" version="4">
   <component name="FacetManager">
     <facet type="Python" name="Python">
-      <configuration sdkName="" />
+      <configuration sdkName="Python 3.12 (DV)" />
     </facet>
   </component>
   <component name="NewModuleRootManager" inherit-compiler-output="true">
@@ -15,5 +15,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="jfree.jfreechart" level="project" />
+    <orderEntry type="library" name="Python 3.12 (DV) interpreter library" level="application" />
+    <orderEntry type="library" name="jcuda" level="project" />
   </component>
 </module>

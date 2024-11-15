@@ -6,10 +6,9 @@ public class Distance
      * @param y n-d point
      * @return euclidean distance between x and y
      */
-    private double euclidean_distance(double[] x, double[] y)
+    public static double euclidean_distance(double[] x, double[] y)
     {
         double dist = 0;
-
         for (int i = 0; i < x.length; i++)
         {
             double coef = Math.cos(Math.toRadians(DV.angles[i]));
@@ -26,14 +25,11 @@ public class Distance
      * @param y n-d point
      * @return interpretable distance between x and y
      */
-    private double[] lossless_distance(double[] x, double[] y)
+    public static double[] lossless_distance(double[] x, double[] y)
     {
         double[] dist = new double[x.length];
-
         for (int i = 0; i < x.length; i++)
-        {
             dist[i] = Math.abs(x[i] - y[i]);
-        }
 
         return dist;
     }

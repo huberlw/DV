@@ -9,7 +9,6 @@ public class DataSetup
 {
     // classes for data
     static ArrayList<String> allClasses;
-    static ArrayList<String> validationClasses;
 
     // min/max for each feature
     static double[] maxValues;
@@ -32,130 +31,166 @@ public class DataSetup
     {
         // data string[][] representation of dataFile (csv)
         String[][] stringData = getStringFromCSV(dataFile);
-
         if (stringData != null)
         {
-            // get classes and class number then removes classes from dataset
-            if (DV.hasClasses)
-            {
-                allClasses = getClasses(stringData);
-                stringData = purgeClasses(stringData);
-            }
-            else
-            {
-                DV.classNumber = 1;
-                DV.uniqueClasses = new ArrayList<>(List.of("N/A"));
-            }
-
-            // remove ID
-            if (DV.hasID)
-                stringData = purgeID(stringData);
-
-            // set class visualization -> all classes except the first go on the lower graph
-            DV.upperClass = 0;
-            DV.lowerClasses = new ArrayList<>(List.of(false));
-
-            for (int i = 1; i < DV.classNumber; i++)
-                DV.lowerClasses.add(true);
-
-            // get fieldNames and fieldLength
-            DV.fieldNames = getFieldNames(stringData);
-            DV.fieldLength = DV.fieldNames.size();
-            DV.standardFieldNames = new ArrayList<>(DV.fieldNames);
-            DV.standardFieldLength = DV.fieldLength;
-
-            // initialize original attribute order
-            DV.originalAttributeOrder = new ArrayList<>();
-
-            for (int i = 0; i < DV.fieldLength; i++)
-                DV.originalAttributeOrder.add(i);
-
-            // initializes angles to 45 degrees
-            DV.angles = new double[DV.fieldLength];
-            DV.prevAngles = new double[DV.fieldLength];
-            DV.standardAngles = new double[DV.fieldLength];
-            DV.activeAttributes = new ArrayList<>();
-
-            for (int i = 0; i < DV.fieldLength; i++)
-            {
-                DV.angles[i] = 45;
-                DV.prevAngles[i] = 45;
-                DV.activeAttributes.add(true);
-            }
+            // prepare data, classes, and attributes
+            stringData = formatData(stringData);
+            setupClassesAndAttributes(stringData);
 
             // get numerical data from string data
             double[][] numericalData = stringToNumerical(stringData);
-
-            // get normalized numerical data if not null
             if (numericalData != null)
-            {
-                // save original data
-                double[][] originalNumericalData = new double[numericalData.length][];
-
-                for (int i = 0; i < numericalData.length; i++)
-                    originalNumericalData[i] = Arrays.copyOf(numericalData[i], DV.fieldLength);
-
-                // normalize data
-                double[][] normalizedNumericalData = normalizeData(numericalData);
-
-                if (DV.hasClasses)
-                {
-                    // separate by class
-                    ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, allClasses);
-                    ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
-
-                    // transform classes into data objects
-                    DV.trainData = createDataObjects(splitByClass);
-                    DV.normalizedData = deepCopyDataObjects(DV.trainData);
-                    DV.originalData = createDataObjects(originalByClass);
-
-                    DV.highlights = new boolean[DV.classNumber][];
-
-                    for (int i = 0; i < DV.classNumber; i++)
-                    {
-                        DV.highlights[i] = new boolean[DV.trainData.get(i).data.length];
-
-                        for (int j = 0; j < DV.trainData.get(i).data.length; j++)
-                            DV.highlights[i][j] = false;
-                    }
-
-                    //createSplit();
-                }
-                else
-                {
-                    DV.trainData = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
-                    DV.normalizedData = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
-                    DV.originalData = createDataObjects(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])));
-
-                    DV.highlights = new boolean[DV.classNumber][];
-
-                    for (int i = 0; i < DV.classNumber; i++)
-                    {
-                        DV.highlights[i] = new boolean[DV.trainData.get(i).data.length];
-
-                        for (int j = 0; j < DV.trainData.get(i).data.length; j++)
-                            DV.highlights[i][j] = false;
-                    }
-
-                    //createSplit();
-                }
-
-                DV.max = Arrays.copyOf(maxValues, maxValues.length);
-                DV.min = Arrays.copyOf(minValues, minValues.length);
-
-                if (DV.zScoreMinMax)
-                {
-                    DV.mean = Arrays.copyOf(mean, mean.length);
-                    DV.sd = Arrays.copyOf(sd, sd.length);
-                }
-
-                return true;
-            }
+                return setupData(numericalData);
             else
                 return false;
         }
         else
             return false;
+    }
+
+
+    /**
+     * Sets up DV with data from datafile
+     * @return whether setupWithData was successful
+     */
+    public static boolean setupWithData(String[][] stringData)
+    {
+        // prepare data, classes, and attributes
+        stringData = formatData(stringData);
+        setupClassesAndAttributes(stringData);
+
+        // get numerical data from string data
+        double[][] numericalData = stringToNumerical(stringData);
+        if (numericalData != null)
+            return setupData(numericalData);
+        else
+            return false;
+    }
+
+
+    /**
+     * Purges classes and ID from stringData
+     * @param stringData String[][] representation of input data
+     * @return String[][] representation of input data without classes and ID
+     */
+    private static String[][] formatData(String[][] stringData)
+    {
+        // get classes and class number then removes classes from dataset
+        if (DV.hasClasses)
+        {
+            allClasses = getClasses(stringData);
+            stringData = purgeClasses(stringData);
+        }
+        else
+        {
+            DV.classNumber = 1;
+            DV.uniqueClasses = new ArrayList<>(List.of("N/A"));
+        }
+
+        // remove ID
+        if (DV.hasID)
+            stringData = purgeID(stringData);
+
+        return stringData;
+    }
+
+
+    /**
+     * Instantiates classes, attributes, and angles for DV
+     * @param stringData String[][] representation of input data
+     */
+    private static void setupClassesAndAttributes(String[][] stringData)
+    {
+        if (!DV.classification)
+            DV.classNumber = 1;
+
+        // set class visualization -> all classes except the first go on the lower graph
+        DV.upperClass = 0;
+        DV.lowerClasses = new ArrayList<>(List.of(false));
+        for (int i = 1; i < DV.classNumber; i++)
+            DV.lowerClasses.add(true);
+
+        // get fieldNames and fieldLength
+        DV.fieldNames = getFieldNames(stringData);
+        DV.fieldLength = DV.fieldNames.size();
+        DV.standardFieldNames = new ArrayList<>(DV.fieldNames);
+        DV.standardFieldLength = DV.fieldLength;
+
+        // initialize original attribute order
+        DV.originalAttributeOrder = new ArrayList<>();
+        for (int i = 0; i < DV.fieldLength; i++)
+            DV.originalAttributeOrder.add(i);
+
+        // initializes angles to 45 degrees
+        DV.angles = new double[DV.fieldLength];
+        DV.prevAngles = new double[DV.fieldLength];
+        DV.standardAngles = new double[DV.fieldLength];
+        DV.activeAttributes = new ArrayList<>();
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            DV.angles[i] = 45;
+            DV.prevAngles[i] = 45;
+            DV.activeAttributes.add(true);
+        }
+    }
+
+
+    /**
+     * Creates DataObjects from numerical data
+     * @param numericalData numerical data
+     * @return DataObjects
+     */
+    private static boolean setupData(double[][] numericalData)
+    {
+        // save original data
+        double[][] originalNumericalData = new double[numericalData.length][];
+        for (int i = 0; i < numericalData.length; i++)
+            originalNumericalData[i] = Arrays.copyOf(numericalData[i], DV.fieldLength);
+
+        // normalize data
+        double[][] normalizedNumericalData = normalizeData(numericalData);
+
+        if (DV.hasClasses)
+        {
+            ArrayList<double[][]> normalizedByClass;
+            ArrayList<double[][]> originalByClass;
+
+            if (DV.classification)
+            {
+                // separate by class
+                normalizedByClass = separateByClass(normalizedNumericalData, allClasses);
+                originalByClass = separateByClass(originalNumericalData, allClasses);
+            }
+            else
+            {
+                normalizedByClass = new ArrayList<>();
+                normalizedByClass.add(normalizedNumericalData);
+                originalByClass = new ArrayList<>();
+                originalByClass.add(originalNumericalData);
+            }
+
+            // transform classes into data objects
+            DV.trainData = createDataObjects(normalizedByClass);
+            DV.originalData = createDataObjects(originalByClass);
+        }
+        else
+        {
+            DV.trainData = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])));
+            DV.originalData = createDataObjects(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])));
+        }
+
+        // points to be highlighted
+        DV.highlights = new boolean[DV.classNumber][];
+        for (int i = 0; i < DV.classNumber; i++)
+        {
+            DV.highlights[i] = new boolean[DV.trainData.get(i).data.length];
+            for (int j = 0; j < DV.trainData.get(i).data.length; j++)
+                DV.highlights[i][j] = false;
+        }
+
+        createTrainTestSplit();
+
+        return true;
     }
 
 
@@ -166,44 +201,42 @@ public class DataSetup
      */
     public static boolean setupValidationData(File valFile)
     {
-        // data string[][] representation of import file
-        String[][] stringData = getStringFromCSV(valFile);
-
-        // check for proper format
-        boolean correctSize = checkFormat(stringData);
-
-        if (correctSize)
+        if (DV.hasClasses)
         {
-            if (stringData != null)
+            // data string[][] representation of import file
+            String[][] stringData = getStringFromCSV(valFile);
+            ArrayList<String> validationClasses;
+
+            // check for proper format
+            if (checkFormat(stringData))
             {
-                // check classes and update class number
-                if (DV.hasClasses)
+                if (stringData != null)
                 {
-                    if (checkAllClasses(stringData))
+                    // check classes and update class number
+                    validationClasses = checkAllClasses(stringData);
+                    if (!validationClasses.isEmpty())
                         stringData = purgeClasses(stringData);
                     else
                         return false;
-                }
 
-                // remove ID
-                if (DV.hasID)
-                    stringData = purgeID(stringData);
+                    // remove ID
+                    if (DV.hasID)
+                        stringData = purgeID(stringData);
 
-                // get numerical data from string data
-                double[][] numericalData = stringToNumerical(stringData);
+                    // get numerical data from string data
+                    double[][] numericalData = stringToNumerical(stringData);
+                    if (numericalData != null)
+                    {
+                        // normalize data
+                        // transform classes into data objects
+                        double[][] normalizedNumericalData = normalizeSecondaryData(numericalData);
+                        ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, validationClasses);
+                        DV.testData = createDataObjects(splitByClass);
 
-                if (numericalData != null)
-                {
-                    // normalize data
-                    double[][] normalizedNumericalData = normalizeData(numericalData);
-
-                    // split data by class
-                    ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, validationClasses);
-
-                    // transform classes into data objects
-                    DV.validationData = createDataObjects(splitByClass);
-
-                    return true;
+                        return true;
+                    }
+                    else
+                        return false;
                 }
                 else
                     return false;
@@ -213,6 +246,23 @@ public class DataSetup
         }
         else
             return false;
+    }
+
+
+    /**
+     * Checks if the format of the input data
+     * matches that of previous data.
+     * @param stringData String[][] representation of input data
+     * @return whether the format was valid or not
+     */
+    private static boolean checkFormat(String[][] stringData)
+    {
+        // get number of columns for data
+        int cols = DV.fieldLength;
+        if (DV.hasID) cols++;
+        if (DV.hasClasses) cols++;
+
+        return stringData[0].length == cols;
     }
 
 
@@ -227,58 +277,20 @@ public class DataSetup
         String[][] stringData = getStringFromCSV(importFile);
 
         // check for proper format
-        boolean correctSize = checkFormat(stringData);
-
-        if (correctSize)
+        if (checkFormat(stringData))
         {
             if (stringData != null)
             {
-                // check classes and update class number
-                if (DV.hasClasses)
+                for (int i = 0; i < DV.dataFiles.size(); i++)
                 {
-                    allClasses = getClasses(stringData);
-                    stringData = purgeClasses(stringData);
-                }
-
-                // remove ID
-                if (DV.hasID)
-                    stringData = purgeID(stringData);
-
-                // get numerical data from string data
-                double[][] numericalData = stringToNumerical(stringData);
-
-                if (numericalData != null)
-                {
-                    // save original data
-                    double[][] originalNumericalData = new double[numericalData.length][];
-
-                    for (int i = 0; i < numericalData.length; i++)
-                        originalNumericalData[i] = Arrays.copyOf(numericalData[i], DV.fieldLength);
-
-                    // normalize data
-                    double[][] normalizedNumericalData = normalizeData(numericalData);
-
-                    if (DV.hasClasses)
-                    {
-                        // separate by class
-                        ArrayList<double[][]> splitByClass = separateByClass(normalizedNumericalData, allClasses);
-                        ArrayList<double[][]> originalByClass = separateByClass(originalNumericalData, allClasses);
-
-                        // add new data
-                        DV.trainData = addImportedData(splitByClass, false);
-                        DV.originalData = addImportedData(originalByClass, true);
-                    }
+                    String[][] otherData = getStringFromCSV(DV.dataFiles.get(i));
+                    if (otherData != null)
+                        stringData = combine2DArrays(stringData, otherData);
                     else
-                    {
-                        // add new data
-                        DV.trainData = addImportedData(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0])), false);
-                        DV.originalData = addImportedData(new ArrayList<>(Arrays.asList(originalNumericalData, new double[0][0])), true);
-                    }
-
-                    return true;
+                        return false;
                 }
-                else
-                    return false;
+
+                return setupWithData(stringData);
             }
             else
                 return false;
@@ -297,7 +309,6 @@ public class DataSetup
     {
         // data string[][] representation of dataFile (csv)
         String[][] stringData = getStringFromCSV(svFile);
-
         if (stringData != null)
         {
             // get numerical data from string data
@@ -308,7 +319,6 @@ public class DataSetup
             {
                 // normalize data
                 double[][] normalizedNumericalData = normalizeData(numericalData);
-
                 DV.supportVectors = createDataObjects(new ArrayList<>(Arrays.asList(normalizedNumericalData, new double[0][0]))).get(0);
 
                 return true;
@@ -513,19 +523,53 @@ public class DataSetup
 
 
     /**
-     * Checks if the format of the input data
-     * matches that of previous data.
-     * @param stringData String[][] representation of input data
-     * @return whether the format was valid or not
+     * Loads hyperblocks from file
+     * @param hbFile .csv file holding hyperblock data
+     * @return whether setupHyperblockData was successful
      */
-    private static boolean checkFormat(String[][] stringData)
+    public static ArrayList<HyperBlock> setupHyperblockData(File hbFile)
     {
-        // get number of columns for data
-        int cols = DV.fieldLength;
-        if (DV.hasID) cols++;
-        if (DV.hasClasses) cols++;
+        // data string[][] representation of import file
+        String[][] stringData = getStringFromCSV(hbFile);
+        // check for proper format;
+        if (stringData != null && stringData[1].length == 2 * DV.fieldLength + 1)
+        {
+            // check classes and update class number
+            if (DV.hasClasses)
+            {
+                ArrayList<String> hb_classes = checkAllClasses(stringData);
+                if (hb_classes.isEmpty())
+                {
+                    ArrayList<HyperBlock> hyper_blocks = new ArrayList<>();
 
-        return stringData[0].length == cols;
+                    // get numerical data from string data
+                    stringData = purgeClasses(stringData);
+                    double[][] numericalData = stringToNumerical(stringData);
+
+                    if (numericalData != null)
+                    {
+                        // create hyperblocks
+                        for (int i = 0; i < numericalData.length; i++)
+                        {
+                            double[] maximums = new double[DV.fieldLength];
+                            double[] minimums = new double[DV.fieldLength];
+
+                            for (int j = 0; j < DV.fieldLength; j++)
+                            {
+                                minimums[j] = numericalData[i][j];
+                                maximums[j] = numericalData[i][j + DV.fieldLength];
+                            }
+
+                            hyper_blocks.add(new HyperBlock(maximums, minimums, Integer.parseInt(hb_classes.get(i))));
+                        }
+
+                        return hyper_blocks;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
 
@@ -537,8 +581,8 @@ public class DataSetup
     private static ArrayList<String> getClasses(String[][] stringData)
     {
         // LinkedHashSet preserves order and does not allow duplicates
-        LinkedHashSet<String> unique;
         // ArrayList to store the class of each datapoint
+        LinkedHashSet<String> unique;
         ArrayList<String> classes = new ArrayList<>();
 
         // add already known classes if importing data
@@ -568,36 +612,34 @@ public class DataSetup
      * @param stringData String[][] representation of input data
      * @return whether classes were valid
      */
-    private static boolean checkAllClasses(String[][] stringData)
+    private static ArrayList<String> checkAllClasses(String[][] stringData)
     {
-        boolean sameClasses = true;
-
         // check all classes
+        boolean valid = true;
         for (int i = 1; i < stringData.length; i++)
         {
-            for (int j = 0; j < DV.uniqueClasses.size(); j++)
+            if (valid)
             {
-                // ensure classes are the same
-                if (stringData[i][stringData[j].length - 1].equals(DV.uniqueClasses.get(j)))
-                    break;
-                else if (j == DV.uniqueClasses.size() - 1)
-                    sameClasses = false;
+                for (int j = 0; j < DV.uniqueClasses.size(); j++)
+                {
+                    // ensure classes are the same
+                    if (stringData[i][stringData[i].length - 1].equals(DV.uniqueClasses.get(j)))
+                        break;
+                    else if (j == DV.uniqueClasses.size() - 1)
+                        valid = false;
+                }
             }
         }
 
-        if (sameClasses)
+        // store validation classes
+        // add all classes to unique and allClasses
+        ArrayList<String> validationClasses = new ArrayList<>();
+        if (valid)
         {
-            // store validation classes
-            validationClasses = new ArrayList<>();
-
-            // add all classes to unique and allClasses
             for (int i = 1; i < stringData.length; i++)
                 validationClasses.add(stringData[i][stringData[0].length - 1]);
-
-            return true;
         }
-        else
-            return false;
+            return validationClasses;
     }
 
 
@@ -648,9 +690,8 @@ public class DataSetup
      */
     private static String[][] purgeID(String[][] stringData)
     {
-        String[][] noID = new String[stringData.length][stringData[0].length - 1];
-
         // copies every value except the last column
+        String[][] noID = new String[stringData.length][stringData[0].length - 1];
         for (int i = 0; i < stringData.length; i++)
         {
             if (stringData[0].length - 1 >= 0)
@@ -668,13 +709,25 @@ public class DataSetup
      */
     private static String[][] purgeClasses(String[][] stringData)
     {
-        String[][] noClasses = new String[stringData.length][stringData[0].length - 1];
-
         // copies every value except the last column
+        String[][] noClasses = new String[stringData.length][stringData[0].length - 1];
         for (int i = 0; i < stringData.length; i++)
         {
             if (stringData[0].length - 1 >= 0)
                 System.arraycopy(stringData[i], 0, noClasses[i], 0, stringData[i].length - 1);
+        }
+
+        // normalize regression target values
+        if (!DV.classification)
+        {
+            double[][] numericalData = new double[stringData.length-1][1];
+
+            for (int i = 0; i < stringData.length-1; i++)
+                numericalData[i][0] = Double.parseDouble(stringData[i+1][stringData[i+1].length-1]);
+
+            double[][] normalizedData = normalizeData(numericalData);
+            for (double[] normalizedDatum : normalizedData)
+                DV.reg_true_values.add(normalizedDatum[0]);
         }
 
         return noClasses;
@@ -701,14 +754,12 @@ public class DataSetup
     {
         // ArrayList to store numerical data
         ArrayList<ArrayList<Double>> numericalData = new ArrayList<>();
-
         for (int i = 0; i < stringData.length - 1; i++)
             numericalData.add(new ArrayList<>());
 
         // true if asked to keep invalid data
-        boolean askedToKeep = false;
-
         // number of invalid data
+        boolean askedToKeep = false;
         int invalids = 0;
 
         // first row is for field names: skip
@@ -727,55 +778,16 @@ public class DataSetup
                     if (!askedToKeep)
                     {
                         // inform user about invalid data
-                        String message;
-
-                        if(DV.hasID)
-                        {
-                            message = String.format("Invalid data found in column %d row %d.\n" +
-                                    "Would you like to remove all rows with invalid data or cancel visualization?", j+2, i+2);
-                        }
-                        else
-                        {
-                            message = String.format("Invalid data found in column %d row %d.\n" +
-                                    "Would you like to remove all rows with invalid data or cancel visualization?", j+1, i+2);
-                        }
-
-                        Object[] buttons = {"Remove invalids", "Cancel Visualization"};
-
-                        int n = JOptionPane.showOptionDialog(DV.mainFrame,
-                                message,
-                                "Invalid Data Found",
-                                JOptionPane.YES_NO_OPTION,
-                                JOptionPane.ERROR_MESSAGE,
-                                null,
-                                buttons,
-                                null);
-
                         // return if canceled
-                        if(n == 1) return null;
+                        if(stringToNumericalHelper1(i, j) == 1)
+                            return null;
 
                         // don't ask again
                         askedToKeep = true;
                     }
 
                     if (DV.hasClasses)
-                    {
-                        // remove invalid from allClasses
-                        String invalidData = allClasses.get(i - invalids);
-                        allClasses.remove(i - invalids);
-
-                        // check if class still exists
-                        for (int k = 0; k < allClasses.size(); k++)
-                        {
-                            if (invalidData.equals(allClasses.get(k)))
-                                break;
-                            else if (k == allClasses.size() - 1)
-                            {
-                                DV.uniqueClasses.remove(invalidData);
-                                DV.classNumber--;
-                            }
-                        }
-                    }
+                        stringToNumericalHelper2(i, invalids);
 
                     // remove invalid ArrayList from numerical data
                     numericalData.remove(i - invalids++);
@@ -800,6 +812,64 @@ public class DataSetup
 
 
     /**
+     * Helper function for stringToNumerical
+     * @param i row
+     * @param j column
+     * @return user choice
+     */
+    private static int stringToNumericalHelper1(int i, int j)
+    {
+        String message;
+        if(DV.hasID)
+        {
+            message = String.format("Invalid data found in column %d row %d.\n" +
+                    "Would you like to remove all rows with invalid data or cancel visualization?", j+2, i+2);
+        }
+        else
+        {
+            message = String.format("Invalid data found in column %d row %d.\n" +
+                    "Would you like to remove all rows with invalid data or cancel visualization?", j+1, i+2);
+        }
+
+        Object[] buttons = {"Remove invalids", "Cancel Visualization"};
+
+        return JOptionPane.showOptionDialog(DV.mainFrame,
+                message,
+                "Invalid Data Found",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.ERROR_MESSAGE,
+                null,
+                buttons,
+                null);
+    }
+
+
+    /**
+     * Helper function for stringToNumerical
+     * @param i row
+     * @param invalids number of invalids
+     */
+    private static void stringToNumericalHelper2(int i, int invalids)
+    {
+        // remove invalid from allClasses
+        String invalidData = allClasses.get(i - invalids);
+        allClasses.remove(i - invalids);
+
+        // check if class still exists
+        for (int k = 0; k < allClasses.size(); k++)
+        {
+            if (invalidData.equals(allClasses.get(k)))
+                break;
+            else if (k == allClasses.size() - 1)
+            {
+                DV.uniqueClasses.remove(invalidData);
+                DV.classNumber--;
+            }
+        }
+    }
+
+
+    /**
      * Normalized input data with Min-Max
      * or z-Score Min-Max normalization
      * @param data input data
@@ -813,84 +883,21 @@ public class DataSetup
 
         // do z-Score Min-Max or Min-Max normalization
         if (DV.zScoreMinMax)
+            zScore(data);
+
+        // get min and max values
+        for (int i = 0; i < data[0].length; i++)
         {
-            // mean and standard deviation per column
-            mean = new double[data[0].length];
-            sd = new double[data[0].length];
-
-            // get mean for each column
-            for (int i = 0; i < data[0].length; i++)
+            // set max and min
+            maxValues[i] = data[0][i];
+            minValues[i] = data[0][i];
+            for (int j = 1; j < data.length; j++)
             {
-                for (double[] dataPoint : data)
-                    mean[i] += dataPoint[i];
-
-                mean[i] /= data.length;
-            }
-
-            // get standard deviation for each column
-            for (int i = 0; i < data[0].length; i++)
-            {
-                for (double[] dataPoint : data)
-                    sd[i] += Math.pow(dataPoint[i] - mean[i], 2);
-
-                sd[i] = Math.sqrt(sd[i] / data.length);
-
-                if (sd[i] < 0.001)
-                {
-                    String message = String.format("""
-                            Standard deviation in column %d is less than 0.001.
-                            Please manually enter a minimum and maximum. The standard deviation will get(max - min) / 2.
-                            Else, the standard deviation will get 0.001.""", i+1);
-
-                    // ask user for manual min max entry
-                    double[] manualMinMax = manualMinMaxEntry(message);
-
-                    // use manual min max or default to 0.001 if null
-                    if (manualMinMax != null)
-                        sd[i] = (manualMinMax[1] / manualMinMax[0]) / 2;
-                    else
-                        sd[i] = 0.001;
-                }
-            }
-
-            // get min and max values
-            for (int i = 0; i < data[0].length; i++)
-            {
-                // perform z-Score then set max and min
-                data[0][i] = (data[0][i] - mean[i]) / sd[i];
-                maxValues[i] = data[0][i];
-                minValues[i] = data[0][i];
-
-                for (int j = 1; j < data.length; j++)
-                {
-                    // z-Score of value
-                    data[j][i] = (data[j][i] - mean[i]) / sd[i];
-
-                    // check for better max or min
-                    if (data[j][i] > maxValues[i])
-                        maxValues[i] = data[j][i];
-                    else if (data[j][i] < minValues[i])
-                        minValues[i] = data[j][i];
-                }
-            }
-        }
-        else
-        {
-            // get min and max values
-            for (int i = 0; i < data[0].length; i++)
-            {
-                // set max and min
-                maxValues[i] = data[0][i];
-                minValues[i] = data[0][i];
-
-                for (int j = 1; j < data.length; j++)
-                {
-                    // check for better max or min
-                    if (data[j][i] > maxValues[i])
-                        maxValues[i] = data[j][i];
-                    else if (data[j][i] < minValues[i])
-                        minValues[i] = data[j][i];
-                }
+                // check for better max or min
+                if (data[j][i] > maxValues[i])
+                    maxValues[i] = data[j][i];
+                else if (data[j][i] < minValues[i])
+                    minValues[i] = data[j][i];
             }
         }
 
@@ -936,6 +943,115 @@ public class DataSetup
 
 
     /**
+     * Perform z-Score normalization on input data
+     * @param data input data
+     */
+    private static void zScore(double[][] data)
+    {
+        // mean and standard deviation per column
+        mean = new double[data[0].length];
+        sd = new double[data[0].length];
+
+        // get mean for each column
+        for (int i = 0; i < data[0].length; i++)
+        {
+            for (double[] dataPoint : data)
+                mean[i] += dataPoint[i];
+
+            mean[i] /= data.length;
+        }
+
+        // get standard deviation for each column
+        for (int i = 0; i < data[0].length; i++)
+        {
+            for (double[] dataPoint : data)
+                sd[i] += Math.pow(dataPoint[i] - mean[i], 2);
+
+            sd[i] = Math.sqrt(sd[i] / data.length);
+
+            if (sd[i] < 0.001)
+            {
+                String message = String.format("""
+                            Standard deviation in column %d is less than 0.001.
+                            Please manually enter a minimum and maximum. The standard deviation will get(max - min) / 2.
+                            Else, the standard deviation will get 0.001.""", i+1);
+
+                // ask user for manual min max entry
+                double[] manualMinMax = manualMinMaxEntry(message);
+
+                // use manual min max or default to 0.001 if null
+                if (manualMinMax != null)
+                    sd[i] = (manualMinMax[1] / manualMinMax[0]) / 2;
+                else
+                    sd[i] = 0.001;
+            }
+        }
+
+        // get min and max values
+        for (int i = 0; i < data[0].length; i++)
+        {
+            // perform z-Score
+            for (int j = 0; j < data.length; j++)
+                data[j][i] = (data[j][i] - mean[i]) / sd[i];
+        }
+    }
+
+
+    /**
+     * Normalized input data with Min-Max
+     * or z-Score Min-Max normalization
+     * Uses z-Score and Min-Max values from the normalizeData Function
+     * @param data input data
+     * @return normalized input data
+     */
+    private static double[][] normalizeSecondaryData(double[][] data)
+    {
+        // normalize all data
+        // get data lengths
+        int newDataLength = data.length;
+        int allDataLength = newDataLength;
+        for (int i = 0; i < DV.trainData.size(); i++)
+            allDataLength += DV.trainData.get(i).data.length;
+
+        // get all data
+        int cnt = 0;
+        double[][] allData = new double[allDataLength][DV.fieldLength];
+        for (int i = 0; i < DV.originalData.size(); i++)
+        {
+            System.arraycopy(DV.originalData.get(i).data, 0, allData, cnt, DV.originalData.get(i).data.length);
+            cnt += DV.originalData.get(i).data.length;
+        }
+
+        System.arraycopy(data, 0, allData, cnt, newDataLength);
+
+        // normalize all data
+        double[][] allNormalizedData = normalizeData(allData);
+
+        // separate new data
+        double[][] newData = new double[newDataLength][DV.fieldLength];
+        for (int i = 0; i < newDataLength; i++)
+        {
+            System.arraycopy(allNormalizedData[cnt], 0, newData[i], 0, DV.fieldLength);
+            cnt++;
+        }
+
+        // separate old data
+        cnt = 0;
+        for (int i = 0; i < DV.trainData.size(); i++)
+        {
+            double[][] oldData = new double[DV.trainData.get(i).data.length][DV.fieldLength];
+            for (int j = 0; j < DV.trainData.get(i).data.length; j++)
+                System.arraycopy(allNormalizedData[j + cnt], 0, oldData[j], 0, DV.fieldLength);
+
+            DV.trainData.set(i, new DataObject(DV.trainData.get(i).className, oldData));
+            cnt += DV.trainData.get(i).data.length;
+        }
+
+        return newData;
+    }
+
+
+    /**
      * Separates data by class
      * @param data data to be separated
      * @param classes classes of every datapoint
@@ -944,9 +1060,8 @@ public class DataSetup
     private static ArrayList<double[][]> separateByClass(double[][] data, ArrayList<String> classes)
     {
         // output ArrayList
-        ArrayList<double[][]> separatedClasses = new ArrayList<>();
-
         // holds arraylists holding data-points for each class
+        ArrayList<double[][]> separatedClasses = new ArrayList<>();
         ArrayList<ArrayList<double[]>> divider = new ArrayList<>();
 
         for (int i = 0; i < DV.classNumber; i++)
@@ -996,76 +1111,6 @@ public class DataSetup
 
 
     /**
-     * Creates DataObjects with imported data
-     * @param data imported data
-     * @param original whether the data is normalized or not
-     * @return ArrayList of DataObjects
-     */
-    private static ArrayList<DataObject> addImportedData(ArrayList<double[][]> data, boolean original)
-    {
-        ArrayList<DataObject> dataObjects = new ArrayList<>();
-
-        if (original)
-        {
-            for (int i = 0; i < DV.classNumber; i++)
-            {
-                // create DataObject with previous points
-                if (data.get(i).length > 0 && i < DV.originalData.size())
-                {
-                    // get all datapoints
-                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(DV.originalData.get(i).data));
-                    tmpData.addAll(Arrays.asList(data.get(i)));
-
-                    // create object
-                    dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
-                }
-                else if (data.get(i).length > 0)
-                {
-                    // get all datapoints
-                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(data.get(i)));
-
-                    // create object
-                    dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
-                }
-                else
-                    dataObjects.add(DV.originalData.get(i));
-            }
-        }
-        else
-        {
-            for (int i = 0; i < DV.classNumber; i++)
-            {
-                // create DataObject with previous points
-                if (data.get(i).length > 0 && i < DV.trainData.size())
-                {
-                    // get all datapoints
-                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(DV.trainData.get(i).data));
-                    tmpData.addAll(Arrays.asList(data.get(i)));
-
-                    // create object
-                    dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
-                }
-                else if (data.get(i).length > 0)
-                {
-                    // get all datapoints
-                    ArrayList<double[]> tmpData = new ArrayList<>(Arrays.asList(data.get(i)));
-
-                    // create object
-                    dataObjects.add(new DataObject(DV.uniqueClasses.get(i), tmpData.toArray(new double[tmpData.size()][])));
-
-                    // add new lower class
-                    DV.lowerClasses.add(true);
-                }
-                else
-                    dataObjects.add(DV.trainData.get(i));
-            }
-        }
-
-        return dataObjects;
-    }
-
-
-    /**
      * Gets user entry for min and max values
      * @param message Message to display to users
      * @return min and max values
@@ -1074,7 +1119,6 @@ public class DataSetup
     {
         // ask user for manual entry or default column to 0.5
         Object[] options = { "Manual Entry", "Default Column to 0.5", "Default all similar Columns to 0.5" };
-
         int choice = JOptionPane.showOptionDialog(
                 DV.mainFrame,
                 message,
@@ -1087,67 +1131,7 @@ public class DataSetup
 
         // choice == manual entry
         if (choice == 0)
-        {
-            // popup asking for min and max input
-            JPanel minMaxPanel = new JPanel(new BorderLayout());
-            minMaxPanel.add(new JLabel("Enter a Minimum and Maximum value or cancel to default to 0.5."), BorderLayout.NORTH);
-
-            // text panel
-            JPanel textPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-
-            // maximum text field
-            JTextField maxField = new JTextField();
-            maxField.setPreferredSize(new Dimension(30, 30));
-            textPanel.add(new JLabel("Maximum"));
-            textPanel.add(maxField);
-
-            // minimum text field
-            JTextField minField = new JTextField();
-            minField.setPreferredSize(new Dimension(30, 30));
-            textPanel.add(new JLabel("Minimum"));
-            textPanel.add(minField);
-
-            // add text panel
-            minMaxPanel.add(textPanel, BorderLayout.SOUTH);
-
-            // loop until min and max are valid or user quits
-            while (true)
-            {
-                choice = JOptionPane.showConfirmDialog(DV.mainFrame, minMaxPanel, "Enter Minimum and Maximum", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-                if (choice == 0)
-                {
-                    try
-                    {
-                        // get text field values
-                        double max = Double.parseDouble(maxField.getText());
-                        double min = Double.parseDouble(minField.getText());
-
-                        if (min < max)
-                        {
-                            // return min and max
-                            return new double[] { min, max };
-                        }
-                        else
-                        {
-                            // min is greater than or equal to max
-                            DV.warningPopup(
-                                    "Error",
-                                    "Error: minimum is greater than or equal to maximum.\n" +
-                                            "Please ensure the minimum is less than the maximum.");
-                        }
-                    }
-                    catch (NumberFormatException nfe)
-                    {
-                        DV.warningPopup("Error", "Error: please enter numerical values.");
-                    }
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
+            return manualMinMaxEntryHelper1();
         else if (choice == 2)
             setValues = true;
 
@@ -1155,33 +1139,98 @@ public class DataSetup
     }
 
 
-    public static ArrayList<DataObject> deepCopyDataObjects(ArrayList<DataObject> original)
+    /**
+     * Helper function for manualMinMaxEntry
+     * @return min and max values
+     */
+    private static double[] manualMinMaxEntryHelper1()
     {
-        ArrayList<DataObject> copy = new ArrayList<>();
-        for (DataObject dataObject : original)
+        // popup asking for min and max input
+        JPanel minMaxPanel = new JPanel(new BorderLayout());
+        minMaxPanel.add(new JLabel("Enter a Minimum and Maximum value or cancel to default to 0.5."), BorderLayout.NORTH);
+
+        // text panel
+        JPanel textPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+
+        // maximum text field
+        JTextField maxField = new JTextField();
+        maxField.setPreferredSize(new Dimension(30, 30));
+        textPanel.add(new JLabel("Maximum"));
+        textPanel.add(maxField);
+
+        // minimum text field
+        JTextField minField = new JTextField();
+        minField.setPreferredSize(new Dimension(30, 30));
+        textPanel.add(new JLabel("Minimum"));
+        textPanel.add(minField);
+
+        // add text panel
+        minMaxPanel.add(textPanel, BorderLayout.SOUTH);
+
+        // loop until min and max are valid or user quits
+        while (true)
         {
-            double[][] dataCopy = new double[dataObject.data.length][];
-            for (int i = 0; i < dataObject.data.length; i++)
-                dataCopy[i] = Arrays.copyOf(dataObject.data[i], dataObject.data[i].length);
-            copy.add(new DataObject(dataObject.className, dataCopy));
+            int choice = JOptionPane.showConfirmDialog(DV.mainFrame, minMaxPanel, "Enter Minimum and Maximum", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (choice == 0)
+            {
+                double[] minMax = manualMinMaxEntryHelper2(minField.getText(), maxField.getText());
+                if (minMax.length > 0)
+                    return minMax;
+            }
+            else
+                return null;
         }
-        return copy;
+    }
+
+
+    /**
+     * Helper function for manualMinMaxEntry
+     * @param minField inputted minimum value
+     * @param maxField inputted maximum value
+     * @return min and max values
+     */
+    private static double[] manualMinMaxEntryHelper2(String minField, String maxField)
+    {
+        try
+        {
+            // get text field values
+            double max = Double.parseDouble(maxField);
+            double min = Double.parseDouble(minField);
+
+            if (min < max)
+            {
+                // return min and max
+                return new double[] { min, max };
+            }
+            else
+            {
+                // min is greater than or equal to max
+                DV.warningPopup(
+                        "Error",
+                        "Error: minimum is greater than or equal to maximum.\n" +
+                                "Please ensure the minimum is less than the maximum.");
+            }
+        }
+        catch (NumberFormatException nfe)
+        {
+            DV.warningPopup("Error", "Error: please enter numerical values.");
+        }
+
+        return new double[0];
     }
 
 
     /**
      * Gets train test split from data
      */
-    private static void createSplit()
+    private static void createTrainTestSplit()
     {
-        // instantiate testing and training data
-        DV.trainData = new ArrayList<>();
+        // instantiate testing data
         DV.testData = new ArrayList<>();
-
         for (int i = 0; i < DV.classNumber; i++)
         {
             // randomize order
-            //DV.data.get(i).data = fisher_yates_shuffle(DV.data.get(i).data);
+            DV.trainData.get(i).data = fisher_yates_shuffle(DV.trainData.get(i).data);
 
             // get size of training data
             int trainSize = (int) Math.floor(DV.trainData.get(i).data.length * DV.trainSplit);
@@ -1200,7 +1249,7 @@ public class DataSetup
                 System.arraycopy(DV.trainData.get(i).data[j], 0, testing[j - trainSize], 0, DV.fieldLength);
 
             // store training and testing data
-            DV.trainData.add(new DataObject(DV.uniqueClasses.get(i), training));
+            DV.trainData.set(i, new DataObject(DV.uniqueClasses.get(i), training));
             DV.testData.add(new DataObject(DV.uniqueClasses.get(i), testing));
         }
     }
@@ -1214,7 +1263,6 @@ public class DataSetup
     private static double[][] fisher_yates_shuffle(double[][] data)
     {
         Random rand = new Random();
-
         for (int i = data.length - 1; i > 0; i--)
         {
             // generate random index
@@ -1228,5 +1276,30 @@ public class DataSetup
 
         // return shuffled array
         return data;
+    }
+
+
+    /**
+     * Combines two 2D arrays
+     * @param array1 first array
+     * @param array2 second array
+     * @return combined array
+     */
+    public static String[][] combine2DArrays(String[][] array1, String[][] array2)
+    {
+        int totalRows = array1.length + array2.length;
+        int columns = array1[0].length; // Assuming both arrays have the same number of columns
+
+        String[][] combinedArray = new String[totalRows][columns];
+
+        // Copy elements from the first array
+        for (int i = 0; i < array1.length; i++)
+            System.arraycopy(array1[i], 0, combinedArray[i], 0, columns);
+
+        // Copy elements from the second array
+        for (int i = 0; i < array2.length; i++)
+            System.arraycopy(array2[i], 0, combinedArray[array1.length + i], 0, columns);
+
+        return combinedArray;
     }
 }

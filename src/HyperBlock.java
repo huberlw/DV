@@ -26,14 +26,43 @@ public class HyperBlock
      * Constructor for HyperBlock
      * @param hyper_block datapoints to go in hyperblock
      */
+    HyperBlock(ArrayList<ArrayList<double[]>> hyper_block, int classNum)
+    {
+        this.hyper_block = hyper_block;
+
+        this.maximums = new ArrayList<>();
+        this.minimums = new ArrayList<>();
+        this.classNum = classNum;
+
+        findBounds();
+    }
+
+
+    /**
+     * Constructor for HyperBlock
+     * @param hyper_block datapoints to go in hyperblock
+     */
     HyperBlock(ArrayList<ArrayList<double[]>> hyper_block)
     {
         this.hyper_block = hyper_block;
 
-        maximums = new ArrayList<>();
-        minimums = new ArrayList<>();
+        this.maximums = new ArrayList<>();
+        this.minimums = new ArrayList<>();
 
         findBounds();
+    }
+
+
+    /**
+     * Constructor for HyperBlock
+     * @param max maximum bound for hyperblock
+     * @param min minimum bound for hyperblock
+     */
+    HyperBlock(double[] max, double[] min, int classNum)
+    {
+        setBounds(max, min);
+        findData();
+        this.classNum = classNum;
     }
 
 
@@ -70,17 +99,14 @@ public class HyperBlock
     private void findData()
     {
         ArrayList<ArrayList<double[]>> dps = new ArrayList<>();
-
+        ArrayList<double[]> classPnts = new ArrayList<>();
         for (int i = 0; i < DV.trainData.size(); i++)
         {
-            dps.add(new ArrayList<>());
-
             for (int j = 0; j < DV.trainData.get(i).data.length; j++)
             {
                 for (int q = 0; q < maximums.size(); q++)
                 {
                     boolean inside = true;
-
                     for (int k = 0; k < DV.fieldLength; k++)
                     {
                         if (DV.trainData.get(i).data[j][k] > maximums.get(q)[k] || DV.trainData.get(i).data[j][k] < minimums.get(q)[k])
@@ -91,11 +117,12 @@ public class HyperBlock
                     }
 
                     if (inside)
-                        dps.get(i).add(DV.trainData.get(i).data[j]);
+                        classPnts.add(DV.trainData.get(i).data[j]);
                 }
             }
         }
 
+        dps.add(classPnts);
         hyper_block = dps;
     }
 

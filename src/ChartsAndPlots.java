@@ -57,6 +57,33 @@ public class ChartsAndPlots
     }
 
 
+    public static XYPlot createHBPlot(JFreeChart chart, Color color)
+    {
+        // get plot
+        XYPlot plot = (XYPlot) chart.getPlot();
+
+        // format plot
+        plot.setDrawingSupplier(new DefaultDrawingSupplier(
+                new Paint[] { color },
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_PAINT_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_OUTLINE_STROKE_SEQUENCE,
+                DefaultDrawingSupplier.DEFAULT_SHAPE_SEQUENCE));
+        plot.getRangeAxis().setVisible(true);
+        plot.getDomainAxis().setVisible(true);
+        plot.setOutlinePaint(null);
+        plot.setOutlineVisible(false);
+        plot.setInsets(RectangleInsets.ZERO_INSETS);
+        plot.setDomainPannable(true);
+        plot.setRangePannable(true);
+        plot.setBackgroundPaint(DV.background);
+        plot.setDomainGridlinePaint(Color.GRAY);
+        plot.setSeriesRenderingOrder(SeriesRenderingOrder.REVERSE);
+
+        return plot;
+    }
+
+
     /**
      * Creates blank graph
      */

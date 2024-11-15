@@ -4,12 +4,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import Sliders.ThresholdSliderUI;
 import Sliders.RangeSlider;
 import Sliders.RangeSliderUI;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.DefaultDrawingSupplier;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.xy.XYSeriesCollection;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -85,6 +79,9 @@ public class DV extends JFrame
     // highlight color
     static Color highlightColor = Color.ORANGE;
 
+    // hyperblock color
+    static Color hyperblockColor = Color.ORANGE;
+
     // show bars instead of endpoints for graphs
     // the height of a bar is equal to the number of points in its location
     static boolean showBars = false;
@@ -108,9 +105,23 @@ public class DV extends JFrame
     static int upperClass = 0;
     static ArrayList<Boolean> lowerClasses = new ArrayList<>(List.of(false));
 
-    // choose plot type: true == glc, false == dsc
-    static boolean glc_or_dsc = true;
-    static boolean glcl_level_2 = false;
+    // choose problem type
+    static boolean classification = true;
+
+    /***
+     * CHANGE LATER
+     */
+
+    static ArrayList<Double> reg_predictions = new ArrayList<>();
+    static ArrayList<Double> reg_true_values = new ArrayList<>();
+    static double reg_largest_coef;
+    static double reg_RMSE;
+    static double reg_avg_val;
+
+
+    /***
+     * CHANGE LATER
+     */
 
     // whether to show the first line segment or not
     static boolean showFirstSeg = true;
@@ -181,19 +192,12 @@ public class DV extends JFrame
     static double[] prevAngles;
     static double[] standardAngles;
 
-    // min, max, mean, and sd for each column of data
-    static double[] max;
-    static double[] min;
-    static double[] mean;
-    static double[] sd;
-
     // normalized and original data
     static double trainSplit = 1;
     static double testSplit = 0;
     static ArrayList<DataObject> trainData;
     static ArrayList<DataObject> testData;
     static ArrayList<ArrayList<double[]>> misclassifiedData;
-    static ArrayList<DataObject> normalizedData;
     static ArrayList<DataObject> originalData;
     static DataObject supportVectors;
 
@@ -217,6 +221,9 @@ public class DV extends JFrame
     /************************************************
      * FOR PROJECT
      ***********************************************/
+    // all data files used in project
+    static ArrayList<File> dataFiles;
+
     // name of project (if saved)
     static String projectSaveName;
 
@@ -641,7 +648,7 @@ public class DV extends JFrame
         // create hyperblocks for all data
         JButton hpBtn = new JButton("Hyperblocks");
         hpBtn.setToolTipText("Generate hyperblocks for all data");
-        //hpBtn.addActionListener(e -> new HyperBlockVisualization());
+        hpBtn.addActionListener(e -> new HyperBlockGeneration());
         toolBar.add(hpBtn);
         toolBar.addSeparator();
 
@@ -689,7 +696,10 @@ public class DV extends JFrame
             if (trainData != null)
             {
                 showBars = !showBars;
-                DataVisualization.drawGraphs();
+                if (classification)
+                    DataVisualization.drawGraphs();
+                else
+                    DataVisualization.drawRegGraph();
             }
         });
         toolBar.add(barLineBtn);
@@ -735,109 +745,18 @@ public class DV extends JFrame
     {
         try
         {
-            JPanel checkBoxPanel = new JPanel();
-            checkBoxPanel.setLayout(new BoxLayout(checkBoxPanel, BoxLayout.Y_AXIS));
-            checkBoxPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            // create panel for user input
+            final JCheckBox regOrClass = new JCheckBox("Is this a classification problem or a regression problem? (True: Classification, False: Regression)", true);
+            final JCheckBox idCol = new JCheckBox("Does this project use the first column to designate ID?");
+            final JCheckBox classCol = new JCheckBox("Does this project use the last column to designate classes?", true);
+            final JCheckBox zScoreNorm = new JCheckBox("z-Score Min-Max Normalization");
 
-            JLabel message = new JLabel("Specify the dataset format for this project.");
-            message.setFont(message.getFont().deriveFont(14f));
-            checkBoxPanel.add(message);
-            checkBoxPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-
-            JCheckBox idCol = new JCheckBox("Does this project use the first column to designate ID?");
-            idCol.setFont(idCol.getFont().deriveFont(12f));
-            idCol.setAlignmentX(Component.LEFT_ALIGNMENT);
-            JCheckBox classCol = new JCheckBox("Does this project use the last column to designate classes?", true);
-            classCol.setAlignmentX(Component.LEFT_ALIGNMENT);
-            classCol.setFont(classCol.getFont().deriveFont(12f));
-
-            JPanel normPanel = new JPanel();
-            normPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            ButtonGroup normBtnGroup = new ButtonGroup();
-            JCheckBox zScoreNorm = new JCheckBox("z-Score Min-Max Normalization", true);
-            JCheckBox minMaxNorm = new JCheckBox("Min-Max Normalization");
-            zScoreNorm.setFont(zScoreNorm.getFont().deriveFont(12f));
-            minMaxNorm.setFont(minMaxNorm.getFont().deriveFont(12f));
-            zScoreNorm.setAlignmentX(Component.LEFT_ALIGNMENT);
-            minMaxNorm.setAlignmentX(Component.LEFT_ALIGNMENT);
-            normBtnGroup.add(zScoreNorm);
-            normBtnGroup.add(minMaxNorm);
-
-            JButton normHelp = new JButton("Help");
-            normHelp.setFont(normHelp.getFont().deriveFont(12f));
-            normHelp.setAlignmentX(Component.LEFT_ALIGNMENT);
-            normHelp.setToolTipText("Information on normalization styles");
-            normHelp.addActionListener(e -> normalizationInfoPopup());
-
-            normPanel.add(zScoreNorm);
-            normPanel.add(minMaxNorm);
-            normPanel.add(normHelp);
-
-            JPanel splitPanel = new JPanel();
-            splitPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-            JLabel trainSplit = new JLabel("Train Split");
-            JTextField trainText = new JTextField(6);
-            trainText.setToolTipText("Percent of data used for training");
-            trainText.setFont(trainText.getFont().deriveFont(12f));
-            trainText.setText(Double.toString(DV.trainSplit));
-
-            JPanel training = new JPanel();
-            training.add(trainSplit);
-            training.add(trainText);
-
-            JLabel testSplit = new JLabel("Test Split");
-            JTextField testText = new JTextField(6);
-            testText.setToolTipText("Percent of data used for testing");
-            testText.setFont(testText.getFont().deriveFont(12f));
-            testText.setText(Double.toString(DV.testSplit));
-
-            trainText.addActionListener(e ->
-            {
-                double percent = Double.parseDouble(trainText.getText());
-
-                if (0 < percent && percent <= 1)
-                {
-                    DV.trainSplit = percent;
-                    DV.testSplit = 1 - percent;
-
-                    testText.setText(Double.toString(DV.testSplit));
-                }
-                else
-                    trainText.setText("INVALID");
-            });
-
-            testText.addActionListener(e ->
-            {
-                double percent = Double.parseDouble(testText.getText());
-
-                if (0 <= percent && percent < 1)
-                {
-                    DV.testSplit = percent;
-                    DV.trainSplit = 1 - percent;
-
-                    trainText.setText(Double.toString(DV.trainSplit));
-                }
-                else
-                    testText.setText("INVALID");
-            });
-
-            JPanel testing = new JPanel();
-            testing.add(testSplit);
-            testing.add(testText);
-
-            splitPanel.add(training);
-            splitPanel.add(testing);
-
-            checkBoxPanel.add(idCol);
-            checkBoxPanel.add(classCol);
-            checkBoxPanel.add(normPanel);
-            checkBoxPanel.add(splitPanel);
-
+            JPanel checkBoxPanel = createNewProjectHelper(regOrClass, idCol, classCol, zScoreNorm);
             int choice = JOptionPane.showConfirmDialog(DV.mainFrame, checkBoxPanel, "Dataset Information", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-
+            
             if (choice == 0)
             {
+                classification = regOrClass.isSelected();
                 hasID = idCol.isSelected();
                 hasClasses = classCol.isSelected();
                 zScoreMinMax = zScoreNorm.isSelected();
@@ -855,23 +774,33 @@ public class DV extends JFrame
 
             // open file dialog
             int results = fileDialog.showOpenDialog(mainFrame);
-
             if (results == JFileChooser.APPROVE_OPTION)
             {
                 File dataFile = fileDialog.getSelectedFile();
 
                 // reset program
-                resetProgram(true);
-
                 // parse data from file into classes
+                resetProgram(true);
                 boolean success = DataSetup.setupWithData(dataFile);
 
                 // create graphs
                 if (success)
                 {
-                    // optimize data setup with Linear Discriminant Analysis
-                    DataVisualization.optimizeSetup();
-                    DataVisualization.drawGraphs();
+                    // save original file
+                    dataFiles.add(dataFile);
+
+                    if (classification)
+                    {
+                        // optimize data setup with Linear Discriminant Analysis
+                        DataVisualization.optimizeSetup();
+                        DataVisualization.drawGraphs();
+                    }
+                    else
+                    {
+                        // optimize data setup with Linear Regression Analysis
+                        DataVisualization.optimizeRegSetup();
+                        DataVisualization.drawRegGraph();
+                    }
                 }
                 else
                 {
@@ -911,6 +840,129 @@ public class DV extends JFrame
             repaint();
             revalidate();
         }
+    }
+
+
+    /**
+     * Helper for creating new project
+     * Creates user input panel
+     * @return JPanel for user input
+     */
+    private JPanel createNewProjectHelper(JCheckBox regOrClass, JCheckBox idCol, JCheckBox classCol, JCheckBox zScoreNorm)
+    {
+        JPanel checkBoxPanel = new JPanel();
+        checkBoxPanel.setLayout(new BoxLayout(checkBoxPanel, BoxLayout.Y_AXIS));
+        checkBoxPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel message = new JLabel("Specify the dataset format for this project.");
+        message.setFont(message.getFont().deriveFont(14f));
+        checkBoxPanel.add(message);
+        checkBoxPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        regOrClass.setFont(regOrClass.getFont().deriveFont(12f));
+        regOrClass.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        idCol.setFont(idCol.getFont().deriveFont(12f));
+        idCol.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        classCol.setAlignmentX(Component.LEFT_ALIGNMENT);
+        classCol.setFont(classCol.getFont().deriveFont(12f));
+        regOrClass.addItemListener(e ->
+        {
+            classCol.setSelected(true);
+            classCol.setEnabled(regOrClass.isSelected());
+        });
+
+        JPanel normPanel = new JPanel();
+        normPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        ButtonGroup normBtnGroup = new ButtonGroup();
+        JCheckBox minMaxNorm = new JCheckBox("Min-Max Normalization", true);
+        zScoreNorm.setFont(zScoreNorm.getFont().deriveFont(12f));
+        minMaxNorm.setFont(minMaxNorm.getFont().deriveFont(12f));
+        zScoreNorm.setAlignmentX(Component.LEFT_ALIGNMENT);
+        minMaxNorm.setAlignmentX(Component.LEFT_ALIGNMENT);
+        normBtnGroup.add(minMaxNorm);
+        normBtnGroup.add(zScoreNorm);
+
+        JButton normHelp = new JButton("Help");
+        normHelp.setFont(normHelp.getFont().deriveFont(12f));
+        normHelp.setAlignmentX(Component.LEFT_ALIGNMENT);
+        normHelp.setToolTipText("Information on normalization styles");
+        normHelp.addActionListener(e -> normalizationInfoPopup());
+
+        normPanel.add(zScoreNorm);
+        normPanel.add(minMaxNorm);
+        normPanel.add(normHelp);
+
+        JPanel splitPanel = new JPanel();
+        splitPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel splitLabel = new JLabel("Data split ratio of training and testing data.");
+        splitLabel.setFont(splitLabel.getFont().deriveFont(14f));
+
+        JLabel trainSplit = new JLabel("Train Split");
+        JTextField trainText = new JTextField(6);
+        trainText.setToolTipText("Percent of data used for training");
+        trainText.setFont(trainText.getFont().deriveFont(12f));
+        trainText.setText(Double.toString(DV.trainSplit));
+
+        JPanel training = new JPanel();
+        training.add(trainSplit);
+        training.add(trainText);
+
+        JLabel testSplit = new JLabel("Test Split");
+        JTextField testText = new JTextField(6);
+        testText.setToolTipText("Percent of data used for testing");
+        testText.setFont(testText.getFont().deriveFont(12f));
+        testText.setText(Double.toString(DV.testSplit));
+
+        trainText.addActionListener(e ->
+        {
+            double percent = Double.parseDouble(trainText.getText());
+
+            if (0 < percent && percent <= 1)
+            {
+                DV.trainSplit = percent;
+                DV.testSplit = 1 - percent;
+
+                testText.setText(Double.toString(DV.testSplit));
+            }
+            else
+                trainText.setText("INVALID");
+        });
+
+        testText.addActionListener(e ->
+        {
+            double percent = Double.parseDouble(testText.getText());
+
+            if (0 <= percent && percent < 1)
+            {
+                DV.testSplit = percent;
+                DV.trainSplit = 1 - percent;
+
+                trainText.setText(Double.toString(DV.trainSplit));
+            }
+            else
+                testText.setText("INVALID");
+        });
+
+        JPanel testing = new JPanel();
+        testing.add(testSplit);
+        testing.add(testText);
+
+        splitPanel.add(splitLabel);
+        splitPanel.add(training);
+        splitPanel.add(testing);
+
+        checkBoxPanel.add(regOrClass);
+        checkBoxPanel.add(idCol);
+        checkBoxPanel.add(classCol);
+        checkBoxPanel.add(normPanel);
+        checkBoxPanel.add(splitLabel);
+        checkBoxPanel.add(splitPanel);
+        
+        return checkBoxPanel;
     }
 
 
@@ -1038,7 +1090,7 @@ public class DV extends JFrame
                 angleSliderPanel.setLayout(new GridLayout(DV.fieldLength, 0));
 
                 for (int i = 0; i < fieldLength; i++)
-                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+                    AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
 
                 // create graphs
                 DataVisualization.drawGraphs();
@@ -1671,7 +1723,6 @@ public class DV extends JFrame
     }
 
 
-
     /**
      * Creates warning popup
      */
@@ -1691,6 +1742,9 @@ public class DV extends JFrame
      */
     private void resetProgram(boolean remove_classes)
     {
+        // reset data files
+        DV.dataFiles = new ArrayList<>();
+
         // reset upper and lower class order
         DV.upperIsLower = true;
 
@@ -1716,5 +1770,23 @@ public class DV extends JFrame
 
         // reset popup
         DataVisualization.showPopup = true;
+    }
+
+
+    /**
+     * Gets data classes
+     * @return data classes
+     */
+    public static String get_classes()
+    {
+        StringBuilder classes = new StringBuilder();
+        for (int i = 0; i < DV.trainData.size(); i++)
+        {
+            classes.append("Class ").append(i).append(": ").append(DV.trainData.get(i).className);
+            if (i != DV.trainData.size() - 1)
+                classes.append(", ");
+        }
+
+        return classes.toString();
     }
 }

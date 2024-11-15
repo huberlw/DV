@@ -22,7 +22,7 @@ public class ColorMenu extends JPanel
         colors.setLayout(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
 
-        JButton[] colorOptions = new JButton[11];
+        JButton[] colorOptions = new JButton[12];
 
 
         // set domain line color
@@ -149,16 +149,27 @@ public class ColorMenu extends JPanel
         colors.add(colorOptions[10], constraints);
 
 
+        // set hyperblock envelope color
+        colorOptions[11] = colorChangeButton(
+                "Hyperblock Color",
+                "Sets color of hyperblocks when drawn.",
+                DV.hyperblockColor);
+        colorOptions[11].addMouseListener(highlightButton(colorOptions, colorOption, 11));
+
+        constraints.gridy = 11;
+        colors.add(colorOptions[11], constraints);
+
+
         constraints.gridx = 1;
         constraints.gridy = 0;
-        constraints.gridheight = 12;
+        constraints.gridheight = 13;
         constraints.fill = GridBagConstraints.VERTICAL;
         JColorChooser colorChooser = new JColorChooser();
         colors.add(colorChooser, constraints);
 
 
         constraints.gridx = 1;
-        constraints.gridy = 10;
+        constraints.gridy = 13;
         constraints.gridheight = 1;
         constraints.gridwidth = 1;
         constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -171,7 +182,6 @@ public class ColorMenu extends JPanel
         if (choice == 0)
         {
             Color newColor = colorChooser.getColor();
-
             if (newColor != null)
             {
                 int component = colorOption.get();
@@ -295,10 +305,11 @@ public class ColorMenu extends JPanel
             case 8 -> DV.highlightColor = newColor;
             case 9 -> DV.svmLines = newColor;
             case 10 -> DV.svmEndpoints = newColor;
+            case 11 -> DV.hyperblockColor = newColor;
         }
 
         // redraw graphs
-        if (DV.trainData != null)
+        if (DV.trainData != null && component != 11)
             DataVisualization.drawGraphs();
 
     }

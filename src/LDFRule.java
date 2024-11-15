@@ -162,8 +162,9 @@ public class LDFRule
                     boolean inDomain = false;
                     boolean inRange = false;
 
+                    // add buffer to y value
                     double x = DV.trainData.get(j).coordinates[k][DV.fieldLength-1][0];
-                    double y = DV.trainData.get(j).coordinates[k][DV.fieldLength-1][1];
+                    double y = DV.trainData.get(j).coordinates[k][DV.fieldLength-1][1] + DV.fieldLength / 10.0;
 
                     if (ruleStrips.get(i)[0][0] < ruleStrips.get(i)[1][0])
                     {
@@ -298,8 +299,8 @@ public class LDFRule
                     sb.append(upperClass);
                 else if (rangeLow > DV.threshold && rangeHigh > DV.threshold)
                     sb.append(lowerClasses);
-                else
-                    sb.append("ERROR: strip overlaps threshold");
+                //else
+                    //sb.append("ERROR: strip overlaps threshold");
             }
             else
             {
@@ -335,6 +336,7 @@ public class LDFRule
             String accuracy = getAccuracyLabel(classification, i);
 
             sb.append("<b>Strip ").append(i).append(":</b> ").append(accuracy).append("%");
+            sb.append(" low = ").append(ruleStripClassification.get(i)[0]).append(" up = ").append(ruleStripClassification.get(i)[1]);
 
             if (i != ruleStrips.size() - 1)
                 sb.append("<br/>");
@@ -354,12 +356,25 @@ public class LDFRule
     private String getAccuracyLabel(int cls, int i)
     {
         String accuracy;
-        if (cls == 0)
+        /*if (cls == 0)
             accuracy = String.format("%.2f", (ruleStripClassification.get(i)[0] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100);
         else if (cls == 1)
             accuracy = String.format("%.2f", (ruleStripClassification.get(i)[1] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100);
         else
-            accuracy = "ERROR: strip overlaps threshold";
+        {*/
+            if (((ruleStripClassification.get(i)[0] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100) >
+                    ((ruleStripClassification.get(i)[1] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100))
+            {
+                accuracy = String.format("%.2f", (ruleStripClassification.get(i)[0] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100);
+            }
+            else
+            {
+                accuracy = String.format("%.2f", (ruleStripClassification.get(i)[1] / (ruleStripClassification.get(i)[0] + ruleStripClassification.get(i)[1])) * 100);
+            }
+
+            //accuracy = "ERROR: strip overlaps threshold";
+       // }
+
 
         return accuracy;
     }
@@ -519,7 +534,6 @@ public class LDFRule
                                 endpoints.addSeries(endpointSeries);
                                 timeLine.addSeries(timeLineSeries);
 
-
                                 // set series paint
                                 endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
                                 lineRenderer.setSeriesPaint(lineCnt, DV.graphColors[d]);
@@ -528,6 +542,57 @@ public class LDFRule
                                 endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-1, -1, 2, 2));
                                 timeLineRenderer.setSeriesShape(lineCnt, new Rectangle2D.Double(-0.25, -3, 0.5, 3));
                                 lineRenderer.setSeriesStroke(lineCnt, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+
+
+                                if (d == 0 && DV.upperIsLower)
+                                {
+                                    // check if endpoint is correctly classified
+                                    if (endpoint <= DV.threshold)
+                                        endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
+                                    else
+                                    {
+                                        endpointRenderer.setSeriesPaint(lineCnt, Color.RED);
+                                        endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                        lineRenderer.setSeriesStroke(lineCnt, new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+                                    }
+
+                                }
+                                else if (d == 0)
+                                {
+                                    // check if endpoint is correctly classified
+                                    if (endpoint > DV.threshold)
+                                        endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
+                                    else
+                                    {
+                                        endpointRenderer.setSeriesPaint(lineCnt, Color.RED);
+                                        endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                        lineRenderer.setSeriesStroke(lineCnt, new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+                                    }
+                                }
+                                else if(d == 1 && DV.upperIsLower)
+                                {
+                                    // check if endpoint is correctly classified
+                                    if (endpoint > DV.threshold)
+                                        endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
+                                    else
+                                    {
+                                        endpointRenderer.setSeriesPaint(lineCnt, Color.RED);
+                                        endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                        lineRenderer.setSeriesStroke(lineCnt, new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+                                    }
+                                }
+                                else
+                                {
+                                    // check if endpoint is correctly classified
+                                    if (endpoint <= DV.threshold)
+                                        endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
+                                    else
+                                    {
+                                        endpointRenderer.setSeriesPaint(lineCnt, Color.RED);
+                                        endpointRenderer.setSeriesShape(lineCnt, new Ellipse2D.Double(-2, -2, 4, 4));
+                                        lineRenderer.setSeriesStroke(lineCnt, new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+                                    }
+                                }
                             }
                         }
                     }
@@ -569,10 +634,10 @@ public class LDFRule
         plot.setDataset(1, endpoints);
 
         // set midpoint renderer and dataset
-        midpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-0.5, -0.5, 1, 1));
+        /*midpointRenderer.setSeriesShape(0, new Ellipse2D.Double(-0.5, -0.5, 1, 1));
         midpointRenderer.setSeriesPaint(0, DV.endpoints);
         plot.setRenderer(2, midpointRenderer);
-        plot.setDataset(2, midpoints);
+        plot.setDataset(2, midpoints);*/
 
         // set threshold renderer and dataset
         thresholdRenderer.setSeriesStroke(0, thresholdOverlapStroke);
@@ -781,8 +846,6 @@ public class LDFRule
 
                     double newX = xAxis.java2DToValue(curX, dataArea, RectangleEdge.BOTTOM);
                     double newY = yAxis.java2DToValue(curY, dataArea, RectangleEdge.LEFT);
-
-                    System.out.println("Coordinates: " + newX + " " + newY);
 
                     if (!start)
                     {

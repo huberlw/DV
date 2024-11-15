@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,6 +17,7 @@ public class Analytics
 
     // class names for each number
     static String classNames;
+    static int totalPoints;
 
     // holds overlapping datapoints
     static ArrayList<double[]> upper;
@@ -46,28 +47,12 @@ public class Analytics
             // only do analytics if multiclass
             if (DV.classNumber > 1)
             {
-                StringBuilder classes = new StringBuilder();
-
-                for (int i = 0; i < DV.trainData.size(); i++)
-                {
-                    classes.append("Class ").append(i).append(": ").append(DV.trainData.get(i).className);
-
-                    if (i != DV.trainData.size() - 1)
-                        classes.append(", ");
-                }
-
-                classNames = classes.toString();
-
-                // remove old confusion matrices
-                CONFUSION_MATRIX.clear();
-
                 // get current classes being visualized
+                classNames = DV.get_classes();
                 getCurClasses();
 
-                // get all misclassified data
-                getMisclassifiedCases();
-
                 // remove old analytics
+                CONFUSION_MATRIX.clear();
                 DV.confusionMatrixPanel.removeAll();
 
                 // display analytics in separate window
@@ -77,87 +62,103 @@ public class Analytics
                     DV.remoteConfusionMatrixPanel.removeAll();
                 }
 
-                // add confusion matrices from previous splits
-                AddOldConfusionMatrices oldCM = new AddOldConfusionMatrices();
-
-                if (DV.prevAllDataChecked)
-                    oldCM.execute();
-
-                // create all data confusion matrix
-                GetAllDataConfusionMatrix allCM = new GetAllDataConfusionMatrix();
-
-                if (DV.allDataChecked)
-                    allCM.execute();
-
-                // create data without overlap confusion matrix
-                GetDataWithoutOverlapConfusionMatrix withoutCM = new GetDataWithoutOverlapConfusionMatrix();
-
-                if (DV.withoutOverlapChecked || DV.worstCaseChecked)
-                    withoutCM.execute();
-
-                // create overlap confusion matrix
-                GetOverlapConfusionMatrix overlapCM = new GetOverlapConfusionMatrix();
-
-                if (DV.overlapChecked || DV.worstCaseChecked)
-                    overlapCM.execute();
-
-                // create worst case confusion matrix
-                GetWorstCaseConfusionMatrix worstCM = new GetWorstCaseConfusionMatrix();
-
-                try
-                {
-                    if (DV.worstCaseChecked && withoutCM.get() && overlapCM.get())
-                        worstCM.execute();
-                }
-                catch (ExecutionException | InterruptedException e)
-                {
-                    LOGGER.log(Level.SEVERE, e.toString(), e);
+                // generate analytics
+                if (execute_analytics())
+                    display_analytics();
+                else
                     return false;
-                }
 
-                // create user validation confusion matrix
-                GetUserValidationConfusionMatrix userCM = new GetUserValidationConfusionMatrix();
-
-                if (DV.userValidationImported && DV.userValidationChecked)
-                    userCM.execute();
-
-                // create svm confusion matrix
-                GetSVMAnalytics svmA = new GetSVMAnalytics();
-
-                if (DV.svmAnalyticsChecked && DV.supportVectors != null)
-                    svmA.execute();
-
-                // wait for threads to finish
-                try
-                {
-                    if (DV.prevAllDataChecked) oldCM.get();
-                    if (DV.allDataChecked) allCM.get();
-                    if (DV.withoutOverlapChecked) withoutCM.get();
-                    if (DV.overlapChecked) overlapCM.get();
-                    if (DV.worstCaseChecked) worstCM.get();
-                    if (DV.userValidationImported && DV.userValidationChecked) userCM.get();
-                    if (DV.svmAnalyticsChecked && DV.supportVectors != null) svmA.get();
-                }
-                catch (ExecutionException | InterruptedException e)
-                {
-                    LOGGER.log(Level.SEVERE, e.toString(), e);
-                    return false;
-                }
-
-                // add confusion matrices in order
-                for (int i = 0; i < DV.prevAllDataCM.size() + 6; i++)
-                {
-                    if (CONFUSION_MATRIX.containsKey(i))
-                    {
-                        DV.confusionMatrixPanel.add(CONFUSION_MATRIX.get(i));
-
-                        if (DV.displayRemoteAnalytics)
-                            DV.remoteConfusionMatrixPanel.add(REMOTE_CONFUSION_MATRIX.get(i));
-                    }
-                }
             }
 
             return true;
+        }
+    }
+
+
+    /**
+     * Executes all analytics
+     * @return success of analytics
+     */
+    private static boolean execute_analytics()
+    {
+        // add confusion matrices from previous splits
+        AddOldConfusionMatrices oldCM = new AddOldConfusionMatrices();
+        if (DV.prevAllDataChecked)
+            oldCM.execute();
+
+        // create all data confusion matrix
+        GetAllDataConfusionMatrix allCM = new GetAllDataConfusionMatrix();
+        if (DV.allDataChecked)
+            allCM.execute();
+
+        // create data without overlap confusion matrix
+        GetDataWithoutOverlapConfusionMatrix withoutCM = new GetDataWithoutOverlapConfusionMatrix();
+        if (DV.withoutOverlapChecked || DV.worstCaseChecked)
+            withoutCM.execute();
+
+        // create overlap confusion matrix
+        GetOverlapConfusionMatrix overlapCM = new GetOverlapConfusionMatrix();
+        if (DV.overlapChecked || DV.worstCaseChecked)
+            overlapCM.execute();
+
+        // create worst case confusion matrix
+        GetWorstCaseConfusionMatrix worstCM = new GetWorstCaseConfusionMatrix();
+        try
+        {
+            if (DV.worstCaseChecked && withoutCM.get() && overlapCM.get())
+                worstCM.execute();
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            LOGGER.log(Level.SEVERE, e.toString(), e);
+            return false;
+        }
+
+        // create user validation confusion matrix
+        GetUserValidationConfusionMatrix userCM = new GetUserValidationConfusionMatrix();
+        if (DV.userValidationImported && DV.userValidationChecked)
+            userCM.execute();
+
+        // create svm confusion matrix
+        GetSVMAnalytics svmA = new GetSVMAnalytics();
+        if (DV.svmAnalyticsChecked && DV.supportVectors != null)
+            svmA.execute();
+
+        // wait for threads to finish
+        try
+        {
+            if (DV.prevAllDataChecked) oldCM.get();
+            if (DV.allDataChecked) allCM.get();
+            if (DV.withoutOverlapChecked) withoutCM.get();
+            if (DV.overlapChecked) overlapCM.get();
+            if (DV.worstCaseChecked) worstCM.get();
+            if (DV.userValidationImported && DV.userValidationChecked) userCM.get();
+            if (DV.svmAnalyticsChecked && DV.supportVectors != null) svmA.get();
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            LOGGER.log(Level.SEVERE, e.toString(), e);
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /**
+     * Displays analytics
+     */
+    private static void display_analytics()
+    {
+        // add confusion matrices in order
+        for (int i = 0; i < DV.prevAllDataCM.size() + 6; i++)
+        {
+            if (CONFUSION_MATRIX.containsKey(i))
+            {
+                DV.confusionMatrixPanel.add(CONFUSION_MATRIX.get(i));
+                if (DV.displayRemoteAnalytics)
+                    DV.remoteConfusionMatrixPanel.add(REMOTE_CONFUSION_MATRIX.get(i));
+            }
         }
     }
 
@@ -228,31 +229,7 @@ public class Analytics
         {
             // set all previous confusion matrices (for 3+ classes)
             for (int i = 0; i < DV.prevAllDataCM.size(); i++)
-            {
-                JTextArea confusionMatrix = new JTextArea(DV.prevAllDataCM.get(i));
-                confusionMatrix.setToolTipText(classNames);
-                confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
-                confusionMatrix.setEditable(false);
-
-                synchronized (CONFUSION_MATRIX)
-                {
-                    CONFUSION_MATRIX.put(i, confusionMatrix);
-                }
-
-                // add to separate analytics window
-                if (DV.displayRemoteAnalytics)
-                {
-                    JTextArea confusionMatrix2 = new JTextArea(DV.prevAllDataCM.get(i));
-                    confusionMatrix2.setToolTipText(classNames);
-                    confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
-                    confusionMatrix2.setEditable(false);
-
-                    synchronized (REMOTE_CONFUSION_MATRIX)
-                    {
-                        REMOTE_CONFUSION_MATRIX.put(i, confusionMatrix2);
-                    }
-                }
-            }
+                addConfusionMatrix(DV.prevAllDataCM.get(i), i);
 
             return true;
         }
@@ -269,32 +246,20 @@ public class Analytics
         protected Boolean doInBackground()
         {
             // get point distribution
+            // if more than 50% of data is misclassified then switch threshold
             int[][] pntDist = getPointDistribution(DV.trainData, DV.threshold);
+            if ((double) (pntDist[0][0] + pntDist[1][1]) / (pntDist[0][0] + pntDist[0][1] + pntDist[1][0] + pntDist[1][1]) <= 0.5)
+            {
+                DV.upperIsLower = !DV.upperIsLower;
+                pntDist = getPointDistribution(DV.trainData, DV.threshold);
+            }
 
             // stores number of correctly classified datapoints
             DV.allDataClassifications = new int[]{ 0, 0 };
             DV.allDataClassifications[0] = pntDist[0][0] + pntDist[1][1];
             DV.allDataClassifications[1] = pntDist[0][0] + pntDist[0][1] + pntDist[1][0] + pntDist[1][1];
 
-            if ((double) DV.allDataClassifications[0] / DV.allDataClassifications[1] <= 0.5)
-            {
-                DV.upperIsLower = !DV.upperIsLower;
-
-                pntDist = getPointDistribution(DV.trainData, DV.threshold);
-
-                // stores number of correctly classified datapoints
-                DV.allDataClassifications = new int[]{ 0, 0 };
-                DV.allDataClassifications[0] = pntDist[0][0] + pntDist[1][1];
-                DV.allDataClassifications[1] = pntDist[0][0] + pntDist[0][1] + pntDist[1][0] + pntDist[1][1];
-            }
-
-            // all points in dataset
-            int totalPoints = 0;
-            for (DataObject data : DV.trainData)
-                totalPoints += data.data.length;
-
             // create confusion matrix
-            //StringBuilder cm = new StringBuilder("All Data Analytics\nReal\tPredictions\nClass\t");
             StringBuilder cm = confusionMatrixBuilder("All Data Analytics",
                     pntDist,
                     100.0 * DV.allDataClassifications[0] / DV.allDataClassifications[1],
@@ -302,45 +267,11 @@ public class Analytics
 
             // add overall accuracy if applicable
             if (!DV.prevAllDataClassifications.isEmpty())
-            {
-                int correct = DV.allDataClassifications[0];
-                int used = DV.allDataClassifications[1];
-
-                for (int i = 0; i < DV.prevAllDataClassifications.size(); i++)
-                {
-                    correct += DV.prevAllDataClassifications.get(i)[0];
-                    used += DV.prevAllDataClassifications.get(i)[1];
-                }
-
-                cm.append(String.format("\nOverall Accuracy: %.2f%%", 100.0 * correct  / used));
-            }
+                appendOverallAccuracy(cm);
 
             // set current all data confusion matrix string
             DV.allDataCM = cm.toString();
-
-            // set all data confusion matrix
-            JTextArea confusionMatrix = new JTextArea(DV.allDataCM);
-            confusionMatrix.setToolTipText(classNames);
-            confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
-            confusionMatrix.setEditable(false);
-            synchronized (CONFUSION_MATRIX)
-            {
-                CONFUSION_MATRIX.put(DV.prevAllDataCM.size(), confusionMatrix);
-            }
-
-            // add to separate analytics window
-            if (DV.displayRemoteAnalytics)
-            {
-                // set data without overlap confusion matrix
-                JTextArea confusionMatrix2 = new JTextArea(cm.toString());
-                confusionMatrix2.setToolTipText(classNames);
-                confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
-                confusionMatrix2.setEditable(false);
-                synchronized (REMOTE_CONFUSION_MATRIX)
-                {
-                    REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size(), confusionMatrix2);
-                }
-            }
+            addConfusionMatrix(DV.allDataCM, DV.prevAllDataCM.size());
 
             return true;
         }
@@ -356,6 +287,7 @@ public class Analytics
         @Override
         protected Boolean doInBackground()
         {
+            // get data without overlap threshold and angles for data without overlap OR worst case
             // store overlapping datapoints in upper and lower graphs
             ArrayList<double[]> upper = new ArrayList<>();
             ArrayList<double[]> lower = new ArrayList<>();
@@ -363,13 +295,10 @@ public class Analytics
 
             // total datapoints within subset of utilized data
             int totalPointsUsed = upper.size() + lower.size();
-            int totalPoints = 0;
-            for (DataObject data : DV.trainData)
-                totalPoints += data.data.length;
-
-            String fileName = "source\\Python\\DWO_CM.csv";
+            double dataUsed = 100.0 * totalPointsUsed / totalPoints;
 
             // create file for python process
+            String fileName = "source\\Python\\DWO_CM.csv";
             CSV.createCSV(new ArrayList<>(List.of(upper, lower)), fileName);
 
             // get confusion matrix with LDA
@@ -378,74 +307,9 @@ public class Analytics
             if (DV.withoutOverlapChecked)
             {
                 // create confusion matrix
-                StringBuilder cm = new StringBuilder("Data Without Overlap Analytics\nReal\tPredictions\nClass\t");
-
-                if (cmValues != null && !cmValues.isEmpty())
-                {
-                    // append predicted classes
-                    for (int i = 0; i < 2; i++)
-                        cm.append(curClasses.get(i)).append("\t");
-
-                    for (int i = 0, index = -1; i < 2; i++)
-                    {
-                        // append class label
-                        cm.append("\n").append(curClasses.get(i)).append("\t");
-
-                        // append classifications
-                        cm.append(cmValues.get(++index)).append("\t").append(cmValues.get(++index)).append("\t");
-                    }
-
-                    // append accuracy
-                    cm.append("\n").append(cmValues.get(cmValues.size() - 1));
-
-                    // append percentage of total points used
-                    cm.append(String.format("\nData Used: %.2f%%", 100.0 * totalPointsUsed / totalPoints));
-                }
-                else
-                {
-                    // append predicted classes
-                    for (int i = 0; i < 2; i++)
-                        cm.append(curClasses.get(i)).append("\t");
-
-                    for (int i = 0; i < 2; i++)
-                    {
-                        // append class label
-                        cm.append("\n").append(curClasses.get(i)).append("\t");
-
-                        // append classifications
-                        cm.append(0).append("\t").append(0).append("\t");
-                    }
-
-                    // append accuracy
-                    cm.append("\nAccuracy: NaN%");
-
-                    // append percentage of total points used
-                    cm.append("\nData Used: 0%");
-                }
-
                 // set data without overlap confusion matrix
-                JTextArea confusionMatrix = new JTextArea(cm.toString());
-                confusionMatrix.setToolTipText(classNames);
-                confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
-                confusionMatrix.setEditable(false);
-                synchronized (CONFUSION_MATRIX)
-                {
-                    CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 1, confusionMatrix);
-                }
-
-                // add to separate analytics window
-                if (DV.displayRemoteAnalytics)
-                {
-                    // set data without overlap confusion matrix
-                    JTextArea confusionMatrix2 = new JTextArea(cm.toString());
-                    confusionMatrix2.setToolTipText(classNames);
-                    confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
-                    confusionMatrix2.setEditable(false);
-                    synchronized (REMOTE_CONFUSION_MATRIX)
-                    {
-                        REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 1, confusionMatrix2);
-                    }
-                }
+                StringBuilder cm = confusionMatrixBuilder("Data Without Overlap Analytics", cmValues, dataUsed);
+                addConfusionMatrix(cm.toString(), DV.prevAllDataCM.size() + 1);
             }
 
             return true;
@@ -467,13 +331,8 @@ public class Analytics
             lower = new ArrayList<>();
             getUpperAndLowerOverlapping(upper, lower);
 
-            // total datapoints within subset of utilized data
-            int totalPointsUsed = upper.size() + lower.size();
-            int totalPoints = 0;
-            for (DataObject data : DV.trainData)
-                totalPoints += data.data.length;
-
             // get percentage of overlap points used
+            int totalPointsUsed = upper.size() + lower.size();
             double dataUsed = 100.0 * totalPointsUsed / totalPoints;
 
             if (DV.overlapChecked)
@@ -484,32 +343,10 @@ public class Analytics
 
                 // get confusion matrix with LDA
                 ArrayList<String> cmValues = LDAForConfusionMatrices(false, fileName);
-
-                // create confusion matrix
                 StringBuilder cm = confusionMatrixBuilder("Overlap Analytics", cmValues, dataUsed);
 
                 // set overlap confusion matrix
-                JTextArea confusionMatrix = new JTextArea(cm.toString());
-                confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
-                confusionMatrix.setEditable(false);
-                synchronized (CONFUSION_MATRIX)
-                {
-                    CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 2, confusionMatrix);
-                }
-
-                // add to separate analytics window
-                if (DV.displayRemoteAnalytics)
-                {
-                    // set data without overlap confusion matrix
-                    JTextArea confusionMatrix2 = new JTextArea(cm.toString());
-                    confusionMatrix2.setToolTipText(classNames);
-                    confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
-                    confusionMatrix2.setEditable(false);
-                    synchronized (REMOTE_CONFUSION_MATRIX)
-                    {
-                        REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 2, confusionMatrix2);
-                    }
-                }
+                addConfusionMatrix(cm.toString(), DV.prevAllDataCM.size() + 2);
             }
 
             return true;
@@ -532,131 +369,40 @@ public class Analytics
             // check if data without overlap linear discriminant function was created
             if (LDAFunction != null && !LDAFunction.isEmpty())
             {
-                // get double[][] arrays for data
-                double[][] tmpUpper = new double[upper.size()][];
-                double[][] tmpLower = new double[lower.size()][];
-
-                for (int i = 0; i < upper.size(); i++)
-                    tmpUpper[i] = upper.get(i);
-
-                for (int i = 0; i < lower.size(); i++)
-                    tmpLower[i] = lower.get(i);
-
-                // create DataObjects of overlapping points
-                DataObject upperOverlap = new DataObject("upper", tmpUpper);
-                DataObject lowerOverlap = new DataObject("lower", tmpLower);
-
-                // get data without overlap threshold
-                double worstCaseThreshold = LDAFunction.get(LDAFunction.size() - 1);
-
-                // get data without overlap angles
-                double[] worstCaseAngles = new double[LDAFunction.size()];
-
-                for (int i = 0; i < LDAFunction.size(); i++)
-                    worstCaseAngles[i] = LDAFunction.get(i);
-
-                // update points with worst case angles
-                upperOverlap.updateCoordinatesGLC(worstCaseAngles);
-                lowerOverlap.updateCoordinatesGLC(worstCaseAngles);
-
                 // total datapoints within subset of utilized data
                 int totalPointsUsed = lower.size() + upper.size();
-                int correctPoints = 0;
-                int totalPoints = 0;
-                for (DataObject data : DV.trainData)
-                    totalPoints += data.data.length;
+
+                // get data without overlap threshold and angles
+                double worstCaseThreshold = LDAFunction.get(LDAFunction.size() - 1);
+                double[] worstCaseAngles = new double[LDAFunction.size() - 1];
+                for (int i = 0; i < LDAFunction.size() - 1; i++)
+                    worstCaseAngles[i] = LDAFunction.get(i);
+
+                // create DataObjects of overlapping points
+                ArrayList<DataObject> noOverlap = new ArrayList<>(List.of(
+                        new DataObject("upper", convertArrayListToDoubleArray(upper)),
+                        new DataObject("lower", convertArrayListToDoubleArray(lower))
+                ));
+
+                // update points with worst case angles
+                for (DataObject dataObject : noOverlap)
+                    dataObject.updateCoordinatesGLC(worstCaseAngles);
 
                 // get point distribution
-                int[][] pntDist = new int[2][2];
-
-                // get distribution for upper graph
-                for (int i = 0; i < upper.size(); i++)
-                {
-                    if (DV.upperIsLower)
-                    {
-                        if (upperOverlap.coordinates[i][upperOverlap.coordinates[i].length - 1][0] < worstCaseThreshold)
-                        {
-                            pntDist[0][0]++;
-                            correctPoints++;
-                        }
-                        else
-                            pntDist[0][1]++;
-                    }
-                    else
-                    {
-                        if (upperOverlap.coordinates[i][upperOverlap.coordinates[i].length - 1][0] > worstCaseThreshold)
-                        {
-                            pntDist[1][1]++;
-                            correctPoints++;
-                        }
-                        else
-                            pntDist[1][0]++;
-                    }
-                }
-
-                // get point distribution for lower graph
-                for (int i = 0; i < lower.size(); i++)
-                {
-                    if (DV.upperIsLower)
-                    {
-                        if (lowerOverlap.coordinates[i][lowerOverlap.coordinates[i].length - 1][0] > worstCaseThreshold)
-                        {
-                            pntDist[1][1]++;
-                            correctPoints++;
-                        }
-                        else
-                            pntDist[1][0]++;
-                    }
-                    else
-                    {
-                        if (lowerOverlap.coordinates[i][lowerOverlap.coordinates[i].length - 1][0] < worstCaseThreshold)
-                        {
-                            pntDist[0][0]++;
-                            correctPoints++;
-                        }
-                        else
-                            pntDist[0][1]++;
-                    }
-                }
+                int[][] pntDist = getPointDistribution(noOverlap, worstCaseThreshold);
 
                 // create confusion matrix
                 cm = confusionMatrixBuilder(
                         "Worst Case Data Analytics",
                         pntDist,
-                        100.0 * correctPoints / totalPointsUsed,
+                        100.0 * (pntDist[0][0] + pntDist[1][1]) / totalPointsUsed,
                         100.0 * totalPointsUsed / totalPoints);
             }
             else
-            {
-                // create empty confusion matrix
                 cm = emptyConfusionMatrixBuilder("Worst Case Data Analytics");
-            }
 
             // set worst case confusion matrix
-            JTextArea confusionMatrix = new JTextArea(cm.toString());
-            confusionMatrix.setToolTipText(classNames);
-            confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
-            confusionMatrix.setEditable(false);
-
-            synchronized (CONFUSION_MATRIX)
-            {
-                CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix);
-            }
-
-            // add to separate analytics window
-            if (DV.displayRemoteAnalytics)
-            {
-                // set data without overlap confusion matrix
-                JTextArea confusionMatrix2 = new JTextArea(cm.toString());
-                confusionMatrix2.setToolTipText(classNames);
-                confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
-                confusionMatrix2.setEditable(false);
-
-                synchronized (REMOTE_CONFUSION_MATRIX)
-                {
-                    REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 3, confusionMatrix2);
-                }
-            }
+            addConfusionMatrix(cm.toString(), DV.prevAllDataCM.size() + 3);
 
             return true;
         }
@@ -671,27 +417,18 @@ public class Analytics
         @Override
         protected Boolean doInBackground()
         {
-            // get data without overlap threshold
-            double worstCaseThreshold = LDAFunction.get(LDAFunction.size() - 1);
-
-            // get data without overlap angles
-            double[] worstCaseAngles = new double[DV.fieldLength];
-
-            for (int i = 0; i < DV.fieldLength; i++)
-                worstCaseAngles[i] = LDAFunction.get(i);
-
-            // update points with worst case angles
-            for (int i = 0; i < DV.validationData.size(); i++)
-                DV.validationData.get(i).updateCoordinatesGLC(worstCaseAngles);
+            // update points with angles
+            for (int i = 0; i < DV.testData.size(); i++)
+                DV.testData.get(i).updateCoordinatesGLC(DV.angles);
 
             // get point distribution
-            int[][] pntDist = getPointDistribution(DV.validationData, worstCaseThreshold);
+            int[][] pntDist = getPointDistribution(DV.testData, DV.threshold);
             int correctPoints = pntDist[0][0] + pntDist[1][1];
             int totalPointsUsed = pntDist[0][0] + pntDist[0][1] + pntDist[1][0] + pntDist[1][1];
 
             int totalPoints = 0;
-            for (int i = 0; i < DV.trainData.size(); i++)
-                totalPoints += DV.trainData.get(i).data.length;
+            for (int i = 0; i < DV.testData.size(); i++)
+                totalPoints += DV.testData.get(i).data.length;
 
             // create confusion matrix
             StringBuilder cm = confusionMatrixBuilder(
@@ -701,31 +438,7 @@ public class Analytics
                     100.0 * totalPointsUsed / totalPoints);
 
             // set user validation confusion matrix
-            JTextArea confusionMatrix = new JTextArea( cm.toString());
-            confusionMatrix.setToolTipText(classNames);
-            confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
-            confusionMatrix.setEditable(false);
-
-            synchronized (CONFUSION_MATRIX)
-            {
-                CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 4, confusionMatrix);
-            }
-
-            // add to separate analytics window
-            if (DV.displayRemoteAnalytics)
-            {
-                // set data without overlap confusion matrix
-                JTextArea confusionMatrix2 = new JTextArea(cm.toString());
-                confusionMatrix2.setToolTipText(classNames);
-                confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
-                confusionMatrix2.setEditable(false);
-
-                synchronized (REMOTE_CONFUSION_MATRIX)
-
-                {
-                    REMOTE_CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 4, confusionMatrix2);
-                }
-            }
+            addConfusionMatrix(cm.toString(), DV.prevAllDataCM.size() + 4);
 
             return true;
         }
@@ -740,47 +453,20 @@ public class Analytics
         @Override
         protected Boolean doInBackground()
         {
-            if (DV.glc_or_dsc)
-                DV.supportVectors.updateCoordinatesGLC(DV.angles);
-            else
-                DV.supportVectors.updateCoordinatesDSC(DV.angles);
+            // update support vectors with angles
+            DV.supportVectors.updateCoordinatesGLC(DV.angles);
 
             // support vectors within overlap
             int overlapSVM = getOverlapSVM();
 
             // create confusion matrix
-            StringBuilder cm = new StringBuilder("SVM Support Vector Analytics\n");
-
             // append number of support vectors
-            cm.append("Number of Support Vectors: ").append(DV.supportVectors.data.length);
-
             // append percentage of support vectors within the overlap
-            cm.append(String.format("\nPercent of SVM in Overlap: %.2f%%", 100.0 * overlapSVM / DV.supportVectors.data.length));
+            String cm = "SVM Support Vector Analytics\n" + "Number of Support Vectors: " + DV.supportVectors.data.length +
+                    String.format("\nPercent of SVM in Overlap: %.2f%%", 100.0 * overlapSVM / DV.supportVectors.data.length);
 
             // set user validation confusion matrix
-            JTextArea svmAnalytics = new JTextArea( cm.toString());
-            svmAnalytics.setToolTipText(classNames);
-            svmAnalytics.setFont(svmAnalytics.getFont().deriveFont(Font.BOLD, 12f));
-            svmAnalytics.setEditable(false);
-
-            synchronized (CONFUSION_MATRIX)
-            {
-                CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 5, svmAnalytics);
-            }
-
-            // add to separate analytics window
-            if (DV.displayRemoteAnalytics)
-            {
-                // set user validation confusion matrix
-                JTextArea svmAnalytics2 = new JTextArea( cm.toString());
-                svmAnalytics2.setToolTipText(classNames);
-                svmAnalytics2.setFont(svmAnalytics2.getFont().deriveFont(Font.BOLD, 12f));
-                svmAnalytics2.setEditable(false);
-                synchronized (CONFUSION_MATRIX)
-                {
-                    CONFUSION_MATRIX.put(DV.prevAllDataCM.size() + 5, svmAnalytics2);
-                }
-            }
+            addConfusionMatrix(cm, DV.prevAllDataCM.size() + 5);
 
             return true;
         }
@@ -816,9 +502,8 @@ public class Analytics
             ArrayList<double[]> lower = new ArrayList<>();
             getUpperAndLower(upper, lower);
 
-            String fileName = "source\\Python\\k_fold.csv";
-
             // create file for python process
+            String fileName = "source\\Python\\k_fold.csv";
             CSV.createCSV(new ArrayList<>(List.of(upper, lower)), fileName);
 
             // create k-fold (python) process
@@ -826,11 +511,6 @@ public class Analytics
                     "source\\Python\\kFoldCrossValidation\\kFoldCrossValidation.exe",
                     fileName,
                     String.valueOf(DV.kFolds));
-
-            /*ProcessBuilder cv = new ProcessBuilder("C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
-                    "source\\Python\\code_and_pyinstaller_spec\\kFoldCrossValidation.py",
-                    fileName,
-                    String.valueOf(DV.kFolds));*/
 
             try
             {
@@ -843,12 +523,8 @@ public class Analytics
 
                 // confusion matrix classifications
                 ArrayList<String> cvTable = new ArrayList<>();
-
                 while ((output = reader.readLine()) != null)
-                {
-                    // get cross validation table
                     cvTable.add(output);
-                }
 
                 if (!cvTable.isEmpty())
                 {
@@ -892,7 +568,6 @@ public class Analytics
     {
         // get python boolean
         String pyBool;
-
         if (storeFunction)
             pyBool = "T";
         else
@@ -953,114 +628,105 @@ public class Analytics
 
 
     /**
-     * Gets all cases misclassified by the DV Linear Discriminant Function
-     */
-    private static void getMisclassifiedCases()
-    {
-        DV.misclassifiedData = new ArrayList<>();
-
-        // get point distribution
-        for (int i = 0; i < DV.trainData.size(); i++)
-        {
-            DV.misclassifiedData.add(new ArrayList<>());
-
-            if (i == DV.upperClass || DV.lowerClasses.get(i))
-            {
-                for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
-                {
-                    double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
-
-                    // check if endpoint is within the subset of used data
-                    if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
-                    {
-                        // get classification
-                        if (i == DV.upperClass && DV.upperIsLower)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint > DV.threshold)
-                                DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
-                        }
-                        else if (i == DV.upperClass)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint < DV.threshold)
-                                DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
-                        }
-                        else if(DV.lowerClasses.get(i) && DV.upperIsLower)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint < DV.threshold)
-                                DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
-                        }
-                        else
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint > DV.threshold)
-                                DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    /**
      * Gets actual and predicted value distribution from the DV Linear Discriminant Function
      * @param data data used in classification
      * @param threshold class discrimination threshold
      * @return distribution of actual and predicted values
      */
-    private static int[][] getPointDistribution(ArrayList<DataObject> data, double threshold)
+    public static int[][] getPointDistribution(ArrayList<DataObject> data, double threshold)
     {
+        // create threads for each data object
+        int numThreads = Math.min(Runtime.getRuntime().availableProcessors(), data.size());
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        List<Future<int[][]>> futures = new ArrayList<>();
+
         // get point distribution
         int[][] pntDist = new int[2][2];
-
         for (int i = 0; i < data.size(); i++)
         {
             if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
-                for (int j = 0; j < data.get(i).coordinates.length; j++)
-                {
-                    double endpoint = data.get(i).coordinates[j][data.get(i).coordinates[j].length-1][0];
+                // execute task
+                int finalI = i;
+                Callable<int[][]> task = () -> pointDistributionHelper(data.get(finalI), threshold, finalI);
+                Future<int[][]> future = executor.submit(task);
+                futures.add(future);
+            }
+        }
 
-                    // check if endpoint is within the subset of used data
-                    if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
-                    {
-                        // get classification
-                        if (i == DV.upperClass && DV.upperIsLower)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint > threshold)
-                                pntDist[0][1]++;
-                            else
-                                pntDist[0][0]++;
-                        }
-                        else if (i == DV.upperClass)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint < threshold)
-                                pntDist[0][1]++;
-                            else
-                                pntDist[0][0]++;
-                        }
-                        else if(DV.lowerClasses.get(i) && DV.upperIsLower)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint < threshold)
-                                pntDist[1][0]++;
-                            else
-                                pntDist[1][1]++;
-                        }
-                        else
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint > threshold)
-                                pntDist[1][0]++;
-                            else
-                                pntDist[1][1]++;
-                        }
-                    }
+        // get results from threads
+        for (Future<int[][]> future : futures)
+        {
+            try
+            {
+                int[][] localPntDist = future.get();
+                for (int i = 0; i < 2; i++)
+                {
+                    for (int j = 0; j < 2; j++)
+                        pntDist[i][j] += localPntDist[i][j];
+                }
+            }
+            catch (InterruptedException | ExecutionException e)
+            {
+                LOGGER.log(Level.SEVERE, e.toString(), e);
+            }
+        }
+
+        executor.shutdown();
+
+        return pntDist;
+    }
+
+
+    /**
+     * Helper function for getPointDistribution
+     * @param data data used in classification
+     * @param threshold class discrimination threshold
+     * @param i class index
+     * @return distribution of actual and predicted values
+     */
+    private static int[][] pointDistributionHelper(DataObject data, double threshold, int i)
+    {
+        // get point distribution
+        int[][] pntDist = new int[2][2];
+        for (int j = 0; j < data.coordinates.length; j++)
+        {
+            // check if endpoint is within the subset of used data
+            double endpoint = data.coordinates[j][data.coordinates[j].length-1][0];
+            if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
+            {
+                // get classification
+                if (i == DV.upperClass && DV.upperIsLower)
+                {
+                    // check if endpoint is correctly classified
+                    if (endpoint > threshold)
+                        pntDist[0][1]++;
+                    else
+                        pntDist[0][0]++;
+                }
+                else if (i == DV.upperClass)
+                {
+                    // check if endpoint is correctly classified
+                    if (endpoint < threshold)
+                        pntDist[0][1]++;
+                    else
+                        pntDist[0][0]++;
+                }
+                else if(DV.lowerClasses.get(i) && DV.upperIsLower)
+                {
+                    // check if endpoint is correctly classified
+                    if (endpoint < threshold)
+                        pntDist[1][0]++;
+                    else
+                        pntDist[1][1]++;
+                }
+                else
+                {
+                    // check if endpoint is correctly classified
+                    if (endpoint > threshold)
+                        pntDist[1][0]++;
+                    else
+                        pntDist[1][1]++;
                 }
             }
         }
@@ -1079,17 +745,19 @@ public class Analytics
         // check all classes
         for (int i = 0; i < DV.trainData.size(); i++)
         {
-            for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
-                double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
-
-                // if endpoint is outside of overlap then store point
-                if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
                 {
-                    if (i == DV.upperClass)
-                        upper.add(DV.trainData.get(i).data[j]);
-                    else
-                        lower.add(DV.trainData.get(i).data[j]);
+                    // if endpoint is outside of overlap then store point
+                    double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
+                    if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                    {
+                        if (i == DV.upperClass)
+                            upper.add(DV.trainData.get(i).data[j]);
+                        else
+                            lower.add(DV.trainData.get(i).data[j]);
+                    }
                 }
             }
         }
@@ -1106,17 +774,19 @@ public class Analytics
         // check all classes
         for (int i = 0; i < DV.trainData.size(); i++)
         {
-            for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
-                double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
-
-                // if endpoint is within overlap then store point
-                if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
                 {
-                    if (i == DV.upperClass)
-                        upper.add(DV.trainData.get(i).data[j]);
-                    else
-                        lower.add(DV.trainData.get(i).data[j]);
+                    // if endpoint is within overlap then store point
+                    double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
+                    if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
+                    {
+                        if (i == DV.upperClass)
+                            upper.add(DV.trainData.get(i).data[j]);
+                        else
+                            lower.add(DV.trainData.get(i).data[j]);
+                    }
                 }
             }
         }
@@ -1133,17 +803,19 @@ public class Analytics
         // check all classes
         for (int i = 0; i < DV.trainData.size(); i++)
         {
-            for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
             {
-                double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
-
-                // if endpoint is within domain
-                if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
+                for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
                 {
-                    if (i == DV.upperClass)
-                        upper.add(DV.trainData.get(i).data[j]);
-                    else
-                        lower.add(DV.trainData.get(i).data[j]);
+                    // if endpoint is within domain
+                    double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
+                    if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
+                    {
+                        if (i == DV.upperClass)
+                            upper.add(DV.trainData.get(i).data[j]);
+                        else
+                            lower.add(DV.trainData.get(i).data[j]);
+                    }
                 }
             }
         }
@@ -1268,14 +940,14 @@ public class Analytics
      */
     private static void getCurClasses()
     {
-        curClasses = new ArrayList<>();
+        totalPoints = DV.trainData.get(DV.upperClass).data.length;
 
         // add upper class
+        curClasses = new ArrayList<>();
         curClasses.add(String.format("%d", DV.upperClass));
 
-        StringBuilder lowerClasses = new StringBuilder();
-
         // add lower classes
+        StringBuilder lowerClasses = new StringBuilder();
         for (int i = 0; i < DV.classNumber; i++)
         {
             if (DV.lowerClasses.get(i))
@@ -1284,9 +956,77 @@ public class Analytics
                     lowerClasses.append(",");
 
                 lowerClasses.append(i);
+                totalPoints += DV.trainData.get(i).data.length;
             }
         }
 
         curClasses.add(lowerClasses.toString());
+    }
+
+
+    /**
+     * Adds confusion matrix to analytics window
+     * @param cm confusion matrix
+     * @param index index of confusion matrix
+     */
+    private static void addConfusionMatrix(String cm, int index)
+    {
+        // set all data confusion matrix
+        JTextArea confusionMatrix = new JTextArea(cm);
+        confusionMatrix.setToolTipText(classNames);
+        confusionMatrix.setFont(confusionMatrix.getFont().deriveFont(Font.BOLD, 12f));
+        confusionMatrix.setEditable(false);
+        synchronized (CONFUSION_MATRIX)
+        {
+            CONFUSION_MATRIX.put(index, confusionMatrix);
+        }
+
+        // add to separate analytics window
+        if (DV.displayRemoteAnalytics)
+        {
+            // set data without overlap confusion matrix
+            JTextArea confusionMatrix2 = new JTextArea(cm);
+            confusionMatrix2.setToolTipText(classNames);
+            confusionMatrix2.setFont(confusionMatrix2.getFont().deriveFont(Font.BOLD, 12f));
+            confusionMatrix2.setEditable(false);
+            synchronized (REMOTE_CONFUSION_MATRIX)
+            {
+                REMOTE_CONFUSION_MATRIX.put(index, confusionMatrix2);
+            }
+        }
+    }
+
+
+    /**
+     * Appends overall accuracy to confusion matrix
+     * @param cm confusion matrix
+     */
+    private static void appendOverallAccuracy(StringBuilder cm)
+    {
+        int correct = DV.allDataClassifications[0];
+        int used = DV.allDataClassifications[1];
+
+        for (int i = 0; i < DV.prevAllDataClassifications.size(); i++)
+        {
+            correct += DV.prevAllDataClassifications.get(i)[0];
+            used += DV.prevAllDataClassifications.get(i)[1];
+        }
+
+        cm.append(String.format("\nOverall Accuracy: %.2f%%", 100.0 * correct  / used));
+    }
+
+
+    /**
+     * Converts an arraylist of double[] to a double[][]
+     * @param arrayList list to convert
+     * @return double[][]
+     */
+    public static double[][] convertArrayListToDoubleArray(ArrayList<double[]> arrayList)
+    {
+        double[][] array = new double[arrayList.size()][];
+        for (int i = 0; i < arrayList.size(); i++)
+            array[i] = arrayList.get(i);
+
+        return array;
     }
 }

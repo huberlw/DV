@@ -39,6 +39,7 @@ public class DataVisualization
     // graphs
     static Graph upperGraph;
     static Graph lowerGraph;
+    static RegGraph regGraph;
 
 
     /**
@@ -50,12 +51,7 @@ public class DataVisualization
         {
             // check if class is visualized
             if (i == DV.upperClass || DV.lowerClasses.get(i))
-            {
-                if (DV.glc_or_dsc)
-                    DV.trainData.get(i).updateCoordinatesGLC(DV.angles);
-                else
-                    DV.trainData.get(i).updateCoordinatesDSC(DV.angles);
-            }
+                DV.trainData.get(i).updateCoordinatesGLC(DV.angles);
         }
     }
 
@@ -66,20 +62,13 @@ public class DataVisualization
     private static void getThreshold()
     {
         // find the best threshold when upperIsLower true
-        if (DV.glc_or_dsc)
-            findLocalBestThreshold(0);
-        else
-            findGlobalBestThreshold(0);
+        findLocalBestThreshold(0);
 
         // if accuracy is less than half, the upper class is lower
         if (DV.accuracy < 50)
         {
             DV.upperIsLower = true;
-
-            if (DV.glc_or_dsc)
-                findLocalBestThreshold(0);
-            else
-                findGlobalBestThreshold(0);
+            findGlobalBestThreshold(0);
         }
     }
 
@@ -97,21 +86,10 @@ public class DataVisualization
         if (DV.classNumber > 1)
         {
             // get optimal angles and threshold
-            if (DV.glc_or_dsc)
-            {
-                LDA();
-                updatePoints();
-                getThreshold();
-                optimizeAngles(false);
-                //VisualizationMenu.quickSortDescending(DV.angles, 0, DV.angles.length - 1);
-            }
-            else
-            {
-                // set angles to 0
-                Arrays.fill(DV.angles, 0);
-                updatePoints();
-                getThreshold();
-            }
+            LDA();
+            updatePoints();
+            getThreshold();
+            optimizeAngles(false);
         }
         else
         {
@@ -127,17 +105,34 @@ public class DataVisualization
         DV.angleSliderPanel.removeAll();
 
         // setup angle sliders
-        if (DV.glc_or_dsc)
-        {
-            for (int i = 0; i < DV.fieldLength; i++)
-                AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
-        }
-        else
-        {
-            // setup angle sliders
-            for (int i = 0; i < DV.trainData.get(0).coordinates[0].length; i++)
-                AngleSliders.createSliderPanel_DSC("feature " + i, 0, i);
-        }
+        for (int i = 0; i < DV.fieldLength; i++)
+            AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+
+        DV.angleSliderPanel.repaint();
+        DV.angleSliderPanel.revalidate();
+    }
+
+
+    /**
+     * Gets optimal angles and threshold
+     * then gets overlap and domain
+     * areas
+     */
+    public static void optimizeRegSetup()
+    {
+        // set domain are to max length
+        DV.domainArea = new double[] { -DV.fieldLength, DV.fieldLength };
+
+        // get optimal angles and threshold
+        LR();
+        updatePoints();
+
+        // setup angle slider panel
+        DV.angleSliderPanel.removeAll();
+
+        // setup angle sliders
+        for (int i = 0; i < DV.fieldLength; i++)
+            AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
 
         DV.angleSliderPanel.repaint();
         DV.angleSliderPanel.revalidate();
@@ -200,7 +195,99 @@ public class DataVisualization
         catch (IOException e)
         {
             JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Linear Discriminant Analysis", "Error", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    /**
+     * Linear Regression (LR)
+     * Gets optimal angles and values
+     */
+    private static void LR()
+    {
+        // create LDA (python) process
+        ProcessBuilder lda = new ProcessBuilder("cmd", "/c",
+                "python",
+                "source\\Python\\code_and_pyinstaller_spec\\LinearRegression.py",
+                "source\\Python\\DV_data.csv");
+
+        try
+        {
+            // create file for python process
+            CSV.createRegCSVDataObject(DV.trainData, "source\\Python\\DV_data.csv");
+
+            // run python (LDA) process
+            Process process = lda.start();
+
+            // read python outputs
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String output;
+
+            // if process is running continue
+            DV.angleSliderPanel.removeAll();
+
+            int cnt = 0;
+            int set = 0;
+
+            while ((output = reader.readLine()) != null)
+            {
+                // get angles then threshold
+                if (cnt > DV.fieldLength + 3)
+                {
+                    DV.reg_predictions.add(Double.parseDouble(output));
+                    DV.reg_true_values.set(set, DV.reg_true_values.get(set) / DV.reg_largest_coef - DV.threshold);
+                    set++;
+                }
+                else if (cnt < DV.fieldLength)
+                {
+                    // update angles
+                    DV.angles[cnt] = Double.parseDouble(output);
+                    cnt++;
+                }
+                else if (cnt == DV.fieldLength)
+                {
+                    // get threshold
+                    DV.threshold = Double.parseDouble(output);
+                    cnt++;
+                }
+                else if (cnt == DV.fieldLength + 1)
+                {
+                    // get threshold
+                    DV.reg_largest_coef = Double.parseDouble(output);
+                    cnt++;
+                }
+                else if (cnt == DV.fieldLength + 2)
+                {
+                    // get threshold
+                    DV.reg_RMSE = Double.parseDouble(output);
+                    cnt++;
+                }
+                else if (cnt == DV.fieldLength + 3)
+                {
+                    // get threshold
+                    DV.reg_avg_val = Double.parseDouble(output);
+                    cnt++;
+                }
+            }
+
+            // delete created file
+            File fileToDelete = new File("source\\Python\\DV_data.csv");
+            Files.deleteIfExists(fileToDelete.toPath());
+
+            // repaint and revalidate angle sliders
+            DV.angleSliderPanel.repaint();
+            DV.angleSliderPanel.revalidate();
+        }
+        catch (IOException e)
+        {
+            JOptionPane.showMessageDialog(DV.mainFrame, "Error: could not run Linear Discriminant Analysis", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        catch (Exception e)
+        {
             throw new RuntimeException(e);
         }
     }
@@ -355,12 +442,7 @@ public class DataVisualization
              // get count and foundBetter
              int cnt = 0;
              boolean foundBetter = false;
-             int[] angleRange;
-
-             if (DV.glc_or_dsc)
-                 angleRange = new int[]{ 0, 180 };
-             else
-                 angleRange = new int[]{ -90, 90 };
+             int[] angleRange = new int[]{ 0, 180 };
 
              // try optimizing 200 times
              while (cnt < 200)
@@ -406,70 +488,75 @@ public class DataVisualization
              DV.angleSliderPanel.removeAll();
 
              // inform user if optimization was successful or now
-             if (foundBetter)
-             {
-                 // update threshold
-                 DV.threshold = currentBestThreshold;
-                 DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
-
-                 // update angles
-                 for (int i = 0; i < DV.angles.length; i++)
-                 {
-                     DV.angles[i] = currentBestAngles[i];
-
-                     if (DV.glc_or_dsc)
-                         AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
-                     else
-                         AngleSliders.createSliderPanel_DSC("feature " + i, (int) (DV.angles[i] * 100), i);
-                 }
-
-                 // inform user
-                 if (informUser)
-                 {
-                     // redraw graphs
-                     drawGraphs();
-                     DV.angleSliderPanel.repaint();
-                     DV.angleSliderPanel.revalidate();
-
-                     DV.informationPopup("Optimization Complete",
-                             "Visualization has been optimized!");
-                 }
-             }
-             else
-             {
-                 // update threshold
-                 DV.threshold = DV.prevThreshold;
-                 DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
-
-                 // update angles
-                 for (int i = 0; i < DV.angles.length; i++)
-                 {
-                     DV.angles[i] = DV.prevAngles[i];
-
-                     if (DV.glc_or_dsc)
-                         AngleSliders.createSliderPanel_GLC("tmp " + 1, (int) (DV.angles[i] * 100), i);//DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
-                     else
-                         AngleSliders.createSliderPanel_DSC("feature " + i, (int) (DV.angles[i] * 100), i);
-                 }
-
-                 // inform user
-                 if (informUser)
-                 {
-                     // redraw graphs
-                     drawGraphs();
-                     DV.angleSliderPanel.repaint();
-                     DV.angleSliderPanel.revalidate();
-
-                     DV.informationPopup("Unable to Optimize",
-                             "Was unable to optimize visualization.\nVisualization is already optimal or near optimal.");
-                 }
-             }
+             optimizeAnglesHelper(foundBetter, informUser, currentBestThreshold, currentBestAngles);
          }
         else
         {
             // inform user
             DV.warningPopup("Unable to Optimize",
                     "The current data has no classes: unable to optimize.");
+        }
+    }
+
+
+    /**
+     * Helper function for optimizeAngles
+     * @param foundBetter whether optimization was successful
+     * @param informUser whether to inform user of optimization
+     * @param currentBestThreshold current best threshold
+     * @param currentBestAngles current best angles
+     */
+    private static void optimizeAnglesHelper(boolean foundBetter, boolean informUser, double currentBestThreshold, double[] currentBestAngles)
+    {
+        if (foundBetter)
+        {
+            // update threshold
+            DV.threshold = currentBestThreshold;
+            DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
+
+            // update angles
+            for (int i = 0; i < DV.angles.length; i++)
+            {
+                DV.angles[i] = currentBestAngles[i];
+                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+            }
+
+            // inform user
+            if (informUser)
+            {
+                // redraw graphs
+                drawGraphs();
+                DV.angleSliderPanel.repaint();
+                DV.angleSliderPanel.revalidate();
+
+                DV.informationPopup("Optimization Complete",
+                        "Visualization has been optimized!");
+            }
+        }
+        else
+        {
+            // update threshold
+            DV.threshold = DV.prevThreshold;
+            DV.thresholdSlider.setValue((int) (DV.threshold / DV.fieldLength * 200) + 200);
+
+            // update angles
+            for (int i = 0; i < DV.angles.length; i++)
+            {
+                DV.angles[i] = DV.prevAngles[i];
+                AngleSliders.createSliderPanel("tmp " + 1, (int) (DV.angles[i] * 100), i);//DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+            }
+
+            // inform user
+            if (informUser)
+            {
+                // redraw graphs
+                drawGraphs();
+                DV.angleSliderPanel.repaint();
+                DV.angleSliderPanel.revalidate();
+
+                DV.informationPopup("Unable to Optimize",
+                        "Was unable to optimize visualization.\nVisualization is already optimal or near optimal.");
+            }
         }
     }
 
@@ -490,7 +577,7 @@ public class DataVisualization
         for (int i = 0; i < DV.fieldLength; i++)
         {
             DV.angles[i] = DV.prevAngles[i];
-            AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
+            AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
         }
 
         // redraw graphs
@@ -511,7 +598,6 @@ public class DataVisualization
             normPanel.add(new JLabel("Choose a normalization style or click \"Help\" for more information on normalization styles."));
 
             int choice = -2;
-
             while (choice == -2)
             {
                 choice = JOptionPane.showOptionDialog(
@@ -530,67 +616,10 @@ public class DataVisualization
                 }
             }
 
-            double max = -Double.MAX_VALUE;
-            double min = Double.MAX_VALUE;
-
-            if (choice == 0)
-            {
-                // mean and standard deviation per column
-                double mean = 0;
-                double sd = 0;
-
-                // get mean for each column
-                for (int i = 0; i < DV.angles.length; i++)
-                    mean += DV.angles[i];
-
-                mean /= DV.angles.length;
-
-                // get standard deviation for each column
-                for (int i = 0; i < DV.angles.length; i++)
-                {
-                    sd += Math.pow(DV.angles[i] - mean, 2);
-
-                    if (sd < 0.001)
-                    {
-                        String message = String.format("""
-                            Standard deviation in column %d is less than 0.001.
-                            Please manually enter a minimum and maximum. The standard deviation will get (max - min) / 2.
-                            Else, the standard deviation will get 0.001.""", i+1);
-
-                        // ask user for manual min max entry
-                        double[] manualMinMax = DataSetup.manualMinMaxEntry(message);
-
-                        // use manual min max or default to 0.001 if null
-                        if (manualMinMax != null)
-                            sd = (manualMinMax[1] / manualMinMax[0]) / 2;
-                        else
-                            sd = 0.001;
-                    }
-                }
-
-                sd = Math.sqrt(sd / DV.angles.length);
-
-                // get min and max values
-                for (int i = 0; i < DV.angles.length; i++)
-                {
-                    DV.angles[i] = (DV.angles[i] - mean) / sd;
-
-                    if (DV.angles[i] < min)
-                        min = DV.angles[i];
-                    if (DV.angles[i] > max)
-                        max = DV.angles[i];
-                }
-            }
-            else
-            {
-                for (int i = 0; i < DV.angles.length; i++)
-                {
-                    if (DV.angles[i] < min)
-                        min = DV.angles[i];
-                    if (DV.angles[i] > max)
-                        max = DV.angles[i];
-                }
-            }
+            // get min and max values
+            double[] minMax = normalizeAnglesHelper(choice);
+            double min = minMax[0];
+            double max = minMax[1];
 
             DV.angleSliderPanel.removeAll();
 
@@ -598,13 +627,11 @@ public class DataVisualization
             for (int i = 0; i < DV.angles.length; i++)
             {
                 DV.angles[i] = ((DV.angles[i] - min) / (max - min)) * 90;
-                System.out.println(DV.angles[i]);
-
-                if (DV.glc_or_dsc)
-                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
-                else
-                    AngleSliders.createSliderPanel_DSC("feature " + i, (int) (DV.angles[i] * 100), i);
+                AngleSliders.createSliderPanel(DV.fieldNames.get(i), (int) (DV.angles[i] * 100), i);
             }
+
+            DV.angleSliderPanel.repaint();
+            DV.angleSliderPanel.revalidate();
 
             DV.upperIsLower = true;
             getThreshold();
@@ -617,59 +644,78 @@ public class DataVisualization
 
 
     /**
+     * Normalizes angles helper
+     * @param choice normalization style
+     * @return min and max values
+     */
+    private static double[] normalizeAnglesHelper(int choice)
+    {
+        if (choice == 0)
+        {
+            // mean and standard deviation per column
+            double mean = 0;
+            double sd = 0;
+
+            // get mean for each column
+            for (int i = 0; i < DV.angles.length; i++)
+                mean += DV.angles[i];
+
+            mean /= DV.angles.length;
+
+            // get standard deviation for each column
+            for (int i = 0; i < DV.angles.length; i++)
+            {
+                sd += Math.pow(DV.angles[i] - mean, 2);
+
+                if (sd < 0.001)
+                {
+                    String message = String.format("""
+                            Standard deviation in column %d is less than 0.001.
+                            Please manually enter a minimum and maximum. The standard deviation will get (max - min) / 2.
+                            Else, the standard deviation will get 0.001.""", i+1);
+
+                    // ask user for manual min max entry
+                    double[] manualMinMax = DataSetup.manualMinMaxEntry(message);
+
+                    // use manual min max or default to 0.001 if null
+                    if (manualMinMax != null)
+                        sd = (manualMinMax[1] / manualMinMax[0]) / 2;
+                    else
+                        sd = 0.001;
+                }
+            }
+
+            sd = Math.sqrt(sd / DV.angles.length);
+
+            // get min and max values
+            for (int i = 0; i < DV.angles.length; i++)
+                DV.angles[i] = (DV.angles[i] - mean) / sd;
+        }
+
+        double min = Double.MAX_VALUE;
+        double max = -Double.MAX_VALUE;
+        for (int i = 0; i < DV.angles.length; i++)
+        {
+            if (DV.angles[i] < min)
+                min = DV.angles[i];
+            if (DV.angles[i] > max)
+                max = DV.angles[i];
+        }
+
+        return new double[]{min, max};
+    }
+
+
+    /**
      * Gets current accuracy of visualization
      */
     public static void getAccuracy()
     {
         // total correct points and total points
-        double correctPoints = 0;
-        double totalPoints = 0;
-
-        for (int i = 0; i < DV.trainData.size(); i++)
-        {
-            totalPoints += DV.trainData.get(i).data.length;
-
-            if (i == DV.upperClass || DV.lowerClasses.get(i))
-            {
-                for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
-                {
-                    double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
-
-                    // check if endpoint is within the subset of used data
-                    if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
-                    {
-                        // get classification
-                        if (i == DV.upperClass && DV.upperIsLower)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint <= DV.threshold)
-                                correctPoints++;
-                        }
-                        else if (i == DV.upperClass)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint > DV.threshold)
-                                correctPoints++;
-                        }
-                        else if(DV.lowerClasses.get(i) && DV.upperIsLower)
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint > DV.threshold)
-                                correctPoints++;
-                        }
-                        else
-                        {
-                            // check if endpoint is correctly classified
-                            if (endpoint <= DV.threshold)
-                                correctPoints++;
-                        }
-                    }
-                }
-            }
-        }
+        int[][] pntDist = Analytics.getPointDistribution(DV.trainData, DV.threshold);
 
         // get accuracy
-        DV.accuracy = (correctPoints / totalPoints) * 100;
+        DV.accuracy = (double) (pntDist[0][0] + pntDist[1][1]) / (pntDist[0][0] + pntDist[0][1] + pntDist[1][0] + pntDist[1][1]) * 100;
 
         // reverse which side each class is on relative to the threshold
         if (DV.accuracy <= 50)
@@ -691,79 +737,14 @@ public class DataVisualization
             DV.overlapArea = new double[] { DV.fieldLength, -DV.fieldLength };
             double[] prevOverlap = { DV.fieldLength, -DV.fieldLength };
             double[] totalArea = { DV.fieldLength, -DV.fieldLength };
-            // check if graph has misclassified a point
-            boolean[] misclassified = { false, false };
 
+            // check if graph has misclassified a point
             // check if previous overlap exists
+            boolean[] misclassified = { false, false };
             boolean[] isPrevious = { false, false };
 
             // find overlap for all classes
-            for (int i = 0; i < DV.trainData.size(); i++)
-            {
-                if (i == DV.upperClass || DV.lowerClasses.get(i))
-                {
-                    for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
-                    {
-                        double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
-
-                        // get classification
-                        if ((i == DV.upperClass && DV.upperIsLower) || (DV.lowerClasses.get(i) && !DV.upperIsLower))
-                        {
-                            // check if endpoint expands total area
-                            if (endpoint < totalArea[0])
-                                totalArea[0] = endpoint;
-
-                            // check if endpoint is misclassified
-                            if (endpoint > DV.threshold)
-                            {
-                                // check if endpoint expands overlap area
-                                if (endpoint > DV.overlapArea[1])
-                                {
-                                    prevOverlap[1] = DV.overlapArea[1];
-                                    DV.overlapArea[1] = endpoint;
-
-                                    if (misclassified[1])
-                                        isPrevious[1] = true;
-
-                                    misclassified[1] = true;
-                                }
-                                else if (endpoint != DV.overlapArea[1] && endpoint > prevOverlap[1]) // get largest previous overlap point
-                                {
-                                    prevOverlap[1] = endpoint;
-                                    isPrevious[1] = true;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // check if endpoint expands total area
-                            if (endpoint > totalArea[1])
-                                totalArea[1] = endpoint;
-
-                            // check if endpoint is misclassified
-                            if (endpoint <= DV.threshold)
-                            {
-                                // check if endpoint expands overlap area
-                                if (endpoint < DV.overlapArea[0])
-                                {
-                                    prevOverlap[0] = DV.overlapArea[0];
-                                    DV.overlapArea[0] = endpoint;
-
-                                    if (misclassified[0])
-                                        isPrevious[0] = true;
-
-                                    misclassified[0] = true;
-                                }
-                                else if (endpoint != DV.overlapArea[0] && endpoint < prevOverlap[0]) // get smallest previous overlap point
-                                {
-                                    prevOverlap[0] = endpoint;
-                                    isPrevious[0] = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            getOverlapHelper(prevOverlap, totalArea, misclassified, isPrevious);
 
             // if overlap area exceeds 90% or total area, set overlap point to previous overlap point or threshold
             if ((DV.overlapArea[0] + DV.overlapArea[1]) / (totalArea[0] + totalArea[1]) > 0.9)
@@ -809,22 +790,104 @@ public class DataVisualization
     }
 
 
+    /**
+     * Helper function for getOverlap
+     * @param prevOverlap previous overlap area
+     * @param totalArea total area
+     * @param misclassified whether a point is misclassified
+     * @param isPrevious whether a point is previous
+     */
+    private static void getOverlapHelper(double[] prevOverlap, double[] totalArea, boolean[] misclassified, boolean[] isPrevious)
+    {
+        for (int i = 0; i < DV.trainData.size(); i++)
+        {
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
+            {
+                for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
+                {
+                    double endpoint = DV.trainData.get(i).coordinates[j][DV.trainData.get(i).coordinates[j].length-1][0];
+
+                    // get classification
+                    if ((i == DV.upperClass && DV.upperIsLower) || (DV.lowerClasses.get(i) && !DV.upperIsLower))
+                    {
+                        // check if endpoint expands total area
+                        if (endpoint < totalArea[0])
+                            totalArea[0] = endpoint;
+
+                        // check if endpoint is misclassified
+                        if (endpoint > DV.threshold)
+                        {
+                            // check if endpoint expands overlap area
+                            if (endpoint > DV.overlapArea[1])
+                            {
+                                prevOverlap[1] = DV.overlapArea[1];
+                                DV.overlapArea[1] = endpoint;
+
+                                if (misclassified[1])
+                                    isPrevious[1] = true;
+
+                                misclassified[1] = true;
+                            }
+                            else if (endpoint != DV.overlapArea[1] && endpoint > prevOverlap[1]) // get largest previous overlap point
+                            {
+                                prevOverlap[1] = endpoint;
+                                isPrevious[1] = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // check if endpoint expands total area
+                        if (endpoint > totalArea[1])
+                            totalArea[1] = endpoint;
+
+                        // check if endpoint is misclassified
+                        if (endpoint <= DV.threshold)
+                        {
+                            // check if endpoint expands overlap area
+                            if (endpoint < DV.overlapArea[0])
+                            {
+                                prevOverlap[0] = DV.overlapArea[0];
+                                DV.overlapArea[0] = endpoint;
+
+                                if (misclassified[0])
+                                    isPrevious[0] = true;
+
+                                misclassified[0] = true;
+                            }
+                            else if (endpoint != DV.overlapArea[0] && endpoint < prevOverlap[0]) // get smallest previous overlap point
+                            {
+                                prevOverlap[0] = endpoint;
+                                isPrevious[0] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    /**
+     * Removes mouse listeners from sliders
+     */
     private static void removeMouseListeners()
     {
-        for (int i = 0; i < DV.domainSlider.getMouseListeners().length; i++)
-            DV.domainSlider.removeMouseListener(DV.domainSlider.getMouseListeners()[i]);
+        for (int i = 1; i < 3; i++)
+            DV.domainSlider.removeMouseListener(DV.domainSlider.getMouseListeners()[DV.domainSlider.getMouseListeners().length-i]);
 
-        for (int i = 0; i < DV.overlapSlider.getMouseListeners().length; i++)
-            DV.overlapSlider.removeMouseListener(DV.overlapSlider.getMouseListeners()[i]);
+        for (int i = 1; i < 3; i++)
+            DV.overlapSlider.removeMouseListener(DV.overlapSlider.getMouseListeners()[DV.overlapSlider.getMouseListeners().length-i]);
 
         // add overlap listeners
-        for (int i = 0; i < DV.thresholdSlider.getMouseListeners().length; i++)
-            DV.thresholdSlider.removeMouseListener(DV.thresholdSlider.getMouseListeners()[i]);
+        for (int i = 1; i < 3; i++)
+            DV.thresholdSlider.removeMouseListener(DV.thresholdSlider.getMouseListeners()[DV.thresholdSlider.getMouseListeners().length-i]);
     }
 
 
     /**
-     * Draws classification graphs for specified visualization*
+     * Draws classification graphs
      */
     public static void drawGraphs()
     {
@@ -883,7 +946,6 @@ public class DataVisualization
                 lowerGraph.get();
 
             generateGraphs(graphScale);
-
             analytics.get();
         }
         catch (ExecutionException | InterruptedException e)
@@ -1056,6 +1118,7 @@ public class DataVisualization
             }
         }
 
+        // show info
         datapointInfo(curClass, index, curClassName, opClassName);
     }
 
@@ -1069,7 +1132,7 @@ public class DataVisualization
      */
     private static void datapointInfo(int curClass, int index, StringBuilder curClassName, StringBuilder opClassName)
     {
-                // get mouse location
+        // get mouse location
         Point mouseLoc = MouseInfo.getPointerInfo().getLocation();
         int mouseX = (int) mouseLoc.getX();
         int mouseY = (int) mouseLoc.getY();
@@ -1152,19 +1215,14 @@ public class DataVisualization
      * @param dataObjects dataObjects to be graphed
      * @return whether the graphs need to be scaled or not
      */
-    private static double getCoordinates(ArrayList<DataObject> dataObjects)
+    public static double getCoordinates(ArrayList<DataObject> dataObjects)
     {
         double graphScale = 1;
 
         // get coordinates
         for (DataObject dataObject : dataObjects)
         {
-            double tmpScale;
-
-            if (DV.glc_or_dsc)
-                tmpScale = dataObject.updateCoordinatesGLC(DV.angles);
-            else
-                tmpScale = dataObject.updateCoordinatesDSC(DV.angles);
+            double tmpScale = dataObject.updateCoordinatesGLC(DV.angles);
 
             // check for greater scale
             if (tmpScale > graphScale)
@@ -1182,22 +1240,19 @@ public class DataVisualization
     private static double getMaxFrequency()
     {
         double max = 0;
-        if (DV.glc_or_dsc)
+        // get bar lengths
+        for (int i = 0; i < DV.trainData.size(); i++)
         {
-            // get bar lengths
-            for (int i = 0; i < DV.trainData.size(); i++)
+            int[] barRanges = new int[400];
+            // translate endpoint to slider ticks
+            // increment bar which endpoint lands
+            for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
             {
-                int[] barRanges = new int[400];
-                // translate endpoint to slider ticks
-                // increment bar which endpoint lands
-                for (int j = 0; j < DV.trainData.get(i).coordinates.length; j++)
-                {
-                    int tmpTick = (int) (Math.round((DV.trainData.get(i).coordinates[j][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200));
-                    barRanges[tmpTick]++;
+                int tmpTick = (int) (Math.round((DV.trainData.get(i).coordinates[j][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200));
+                barRanges[tmpTick]++;
 
-                    if (barRanges[tmpTick] > max)
-                        max = barRanges[tmpTick];
-                }
+                if (barRanges[tmpTick] > max)
+                    max = barRanges[tmpTick];
             }
         }
 
@@ -1205,9 +1260,11 @@ public class DataVisualization
     }
 
 
+    /**
+     * Updates graphs with new data
+     */
     public static void updateGraphs()
     {
-        long startTime = System.currentTimeMillis();
         double graphScale;
         if (DV.classNumber > 1)
         {
@@ -1228,12 +1285,12 @@ public class DataVisualization
 
         // get analytics
         getAnalytics();
-
-        long endTime = System.currentTimeMillis();
-        System.out.println("Time to update graphs: " + (endTime - startTime) + " ms");
     }
 
 
+    /**
+     * Gets analytics for visualization
+     */
     private static void getAnalytics()
     {
         // generate analytics
@@ -1429,6 +1486,9 @@ public class DataVisualization
         }
 
 
+        /**
+         * Updates graph with new data
+         */
         protected void updateGraph()
         {
             // update lines
@@ -1560,6 +1620,9 @@ public class DataVisualization
         }
 
 
+        /**
+         * Updates endpoints of graph
+         */
         protected void updateEndpoints()
         {
             chart.setNotify(false);
@@ -1649,6 +1712,9 @@ public class DataVisualization
         }
 
 
+        /**
+         * Updates Support Vector Machine data
+         */
         protected void updateSVM()
         {
             chart.setNotify(false);
@@ -1702,6 +1768,9 @@ public class DataVisualization
         }
 
 
+        /**
+         * Updates Frequency Graph
+         */
         protected void updateBars()
         {
             chart.setNotify(false);
@@ -1757,6 +1826,10 @@ public class DataVisualization
         }
 
 
+        /**
+         * Sets the scale of the graph
+         * @param graphScale scale of the graph
+         */
         protected void setGraphScale(double graphScale)
         {
             GRAPH_SCALE = graphScale;
@@ -1764,6 +1837,9 @@ public class DataVisualization
         }
 
 
+        /**
+         * Sets the line height of the graph
+         */
         protected void setLineHeight()
         {
             // get line height
@@ -1771,6 +1847,9 @@ public class DataVisualization
         }
 
 
+        /**
+         * Updates domain lines
+         */
         protected void updateDomainLines()
         {
             chart.setNotify(false);
@@ -1788,6 +1867,9 @@ public class DataVisualization
         }
 
 
+        /**
+         * Updates overlap lines
+         */
         protected void updateOverlapLines()
         {
             chart.setNotify(false);
@@ -1804,6 +1886,10 @@ public class DataVisualization
             chart.setNotify(true);
         }
 
+
+        /**
+         * Updates threshold line
+         */
         protected void updateThresholdLine()
         {
             chart.setNotify(false);
@@ -1817,6 +1903,10 @@ public class DataVisualization
             chart.setNotify(true);
         }
 
+
+        /**
+         * Sets the renderer and dataset for the graph
+         */
         protected void setDatasetsAndRenderers()
         {
             chart.setNotify(false);
@@ -1915,6 +2005,9 @@ public class DataVisualization
         }
 
 
+        /**
+         * Sets the domain and range of the graph
+         */
         protected void setDomainAndRange()
         {
             // set domain and range of graph
@@ -1939,6 +2032,10 @@ public class DataVisualization
         }
 
 
+        /**
+         * Draws the graph
+         * @return whether the graph was drawn or not
+         */
         @Override
         protected Boolean doInBackground()
         {
@@ -2144,6 +2241,678 @@ public class DataVisualization
             }
 
            if (DV.displayRemoteGraphs)
+            {
+                try
+                {
+                    // create the graph panel and add it to the main panel
+                    ChartPanel chartPanel2 = new ChartPanel((JFreeChart) chart.clone());
+                    chartPanel2.setMouseWheelEnabled(true);
+                    chartPanel2.setPreferredSize(new Dimension(Resolutions.singleChartPanel[0], Resolutions.singleChartPanel[1] * (DV.classNumber == 1 ? 2 : 1)));
+
+                    // show datapoint when clicked
+                    chartPanel2.addChartMouseListener(new ChartMouseListener()
+                    {
+                        // display point on click
+                        @Override
+                        public void chartMouseClicked(ChartMouseEvent e)
+                        {
+                            // get clicked entity
+                            ChartEntity ce = e.getEntity();
+
+                            if (ce instanceof XYItemEntity xy)
+                            {
+                                // ensure entity is endpoint
+                                if (xy.getDataset().getSeriesCount() > 1)
+                                    datapointInfoPopup(xy);
+                            }
+                        }
+
+                        @Override
+                        public void chartMouseMoved(ChartMouseEvent chartMouseEvent) {}
+                    });
+
+                    // add graph to graph panel
+                    synchronized (REMOTE_GRAPHS)
+                    {
+                        REMOTE_GRAPHS.put(UPPER_OR_LOWER, chartPanel2);
+                    }
+                }
+                catch(CloneNotSupportedException e)
+                {
+                    LOGGER.log(Level.SEVERE, e.toString(), e);
+                }
+            }
+
+            return true;
+        }
+    }
+
+
+    /**
+     * Draws regression graphs
+     */
+    public static void drawRegGraph()
+    {
+        GRAPHS.clear();
+        DV.graphPanel.removeAll();
+
+        // holds classes to be graphed
+        ArrayList<DataObject> regObject = new ArrayList<>(List.of(DV.trainData.get(0)));
+
+        // calculate coordinates
+        // scale graph according to largest value
+        double graphScale = getCoordinates(regObject);
+
+        // generate graphs
+        regGraph = new RegGraph(regObject, 0, graphScale);
+        regGraph.execute();
+
+        // wait for threads to finish
+        try
+        {
+            regGraph.get();
+            generateRegGraph(graphScale);
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            LOGGER.log(Level.SEVERE, e.toString(), e);
+        }
+    }
+
+
+    /**
+     * Generates graphs for visualization
+     * @param graphScale highest endpoint frequency on the x coordinate
+     */
+    private static void generateRegGraph(double graphScale)
+    {
+        GridBagConstraints gpc = new GridBagConstraints();
+        gpc.gridx = 0;
+        gpc.gridy = 0;
+        gpc.weightx = 1;
+        gpc.weighty = 1;
+        gpc.fill = GridBagConstraints.BOTH;
+
+        // add graph
+        JFreeChart chart = new JFreeChart("", null, GRAPHS.get(0).getPlot(), false);
+
+        // add to DV panel
+        DV.graphPanel.add(createChartPanel(chart), gpc);
+
+        // revalidate graphs and confusion matrices
+        DV.graphPanel.repaint();
+        DV.graphPanel.revalidate();
+
+        // warn user if graphs are scaled
+        if (!showPopup && graphScale > 1)
+        {
+            DV.informationPopup("Zoom Warning",
+                    """
+                    Because of the size, the graphs have been zoomed out.
+                    All functionality remains, but there will be empty space on each side of the graph.
+                    Zoom in or scale the graphs to remove the white space.
+                    """);
+            showPopup = false;
+        }
+    }
+
+
+    /**
+     * Draw graph with specified parameters
+     */
+    private static class RegGraph extends SwingWorker<Boolean, Void>
+    {
+        final ArrayList<DataObject> DATA_OBJECTS;
+        final int UPPER_OR_LOWER;
+        double GRAPH_SCALE;
+        final double buffer;
+        double lineHeight;
+
+        // accuracy info
+        double min = Double.MAX_VALUE;
+        double max = -Double.MAX_VALUE;
+
+        // create main renderer and dataset
+        final XYLineAndShapeRenderer lineRenderer;
+        final XYSeriesCollection graphLines;
+
+        final XYLineAndShapeRenderer highlightLineRenderer;
+        final XYSeriesCollection highlightLines;
+        final XYLineAndShapeRenderer highlightEndpointRenderer;
+        final XYSeriesCollection highlightEndpoints;
+
+        // create renderer for domain, overlap, and threshold lines
+        final XYLineAndShapeRenderer domainRenderer;
+        final XYSeriesCollection domain;
+        final XYSeries domainMaxLine;
+        final XYSeries domainMinLine;
+
+        // renderer for endpoint, midpoint, and timeline
+        final XYLineAndShapeRenderer endpointRenderer;
+        final XYLineAndShapeRenderer midpointRenderer;
+        final XYLineAndShapeRenderer timeLineRenderer;
+        final XYLineAndShapeRenderer errorLineRenderer;
+        final XYSeriesCollection endpoints;
+        final XYSeriesCollection midpoints;
+        final XYSeriesCollection timeLine;
+        final XYSeriesCollection errorLine;
+        final XYSeries midpointSeries;
+        final XYSeries timeLineSeries;
+        final XYSeries errorLineSeries;
+
+        // renderer for bars
+        final XYIntervalSeriesCollection bars;
+        final XYBarRenderer barRenderer;
+
+        // stroke and shapes
+        final BasicStroke graphLineStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+        final BasicStroke domainStroke = new BasicStroke(2f);
+        final BasicStroke domainActiveStroke = new BasicStroke(4f);
+        final Ellipse2D.Double endpointShape = new Ellipse2D.Double(-1, -1, 2, 2);
+        final Ellipse2D.Double midpointShape = new Ellipse2D.Double(-0.5, -0.5, 1, 1);
+
+        // get chart and plot
+        JFreeChart chart;
+        XYPlot plot;
+
+        /**
+         * Initializes parameters
+         * @param dataObjects classes to draw
+         * @param upperOrLower draw up when upper (0) and down when lower (1)
+         * @param graphScale how much to zoom out the graphs
+         */
+        RegGraph(ArrayList<DataObject> dataObjects, int upperOrLower, double graphScale)
+        {
+            this.DATA_OBJECTS = dataObjects;
+            this.UPPER_OR_LOWER = upperOrLower;
+            this.GRAPH_SCALE = graphScale;
+            this.buffer = DV.fieldLength / 10.0;
+
+            // create main renderer and dataset
+            this.lineRenderer = new XYLineAndShapeRenderer(true, false);
+            this.graphLines = new XYSeriesCollection();
+            this.graphLines.setNotify(false);
+
+            this.highlightLineRenderer = new XYLineAndShapeRenderer(true, false);
+            this.highlightLines = new XYSeriesCollection();
+            this.highlightLines.setNotify(false);
+            this.highlightEndpointRenderer = new XYLineAndShapeRenderer(false, true);
+            this.highlightEndpoints = new XYSeriesCollection();
+            this.highlightEndpoints.setNotify(false);
+
+            // create renderer for domain, overlap, and threshold lines
+            this.domainRenderer = new XYLineAndShapeRenderer(true, false);
+            this.domain = new XYSeriesCollection();
+            this.domain.setNotify(false);
+            this.domainMaxLine = new XYSeries(-1, false, true);
+            this.domainMaxLine.setNotify(false);
+            this.domainMinLine = new XYSeries(-2, false, true);
+            this.domainMinLine.setNotify(false);
+
+            // renderer for endpoint, midpoint, and timeline
+            this.endpointRenderer = new XYLineAndShapeRenderer(false, true);
+            this.midpointRenderer = new XYLineAndShapeRenderer(false, true);
+            this.timeLineRenderer = new XYLineAndShapeRenderer(false, true);
+            this.errorLineRenderer = new XYLineAndShapeRenderer(false, true);
+            this.endpoints = new XYSeriesCollection();
+            this.endpoints.setNotify(false);
+            this.midpoints = new XYSeriesCollection();
+            this.midpoints.setNotify(false);
+            this.timeLine = new XYSeriesCollection();
+            this.timeLine.setNotify(false);
+            this.errorLine = new XYSeriesCollection();
+            this.errorLine.setNotify(false);
+
+            this.midpointSeries = new XYSeries(0, false, true);
+            this.midpointSeries.setNotify(false);
+            this.timeLineSeries = new XYSeries(0, false, true);
+            this.timeLineSeries.setNotify(false);
+            this.errorLineSeries = new XYSeries(0, false, true);
+            this.errorLineSeries.setNotify(false);
+
+            // renderer for bars
+            this.barRenderer = new XYBarRenderer();
+            this.bars = new XYIntervalSeriesCollection();
+            this.bars.setNotify(false);
+
+            // get chart and plot
+            this.chart = ChartsAndPlots.createChart(graphLines, false);
+            this.plot = ChartsAndPlots.createPlot(chart, UPPER_OR_LOWER);
+        }
+
+
+        /**
+         * Updates the graph
+         */
+        protected void updateGraph()
+        {
+            // update lines
+            updateDomainLines();
+
+            chart.setNotify(false);
+
+            // clear old lines, midpoints, endpoints, and timeline points
+            graphLines.removeAllSeries();
+            highlightLines.removeAllSeries();
+            midpointSeries.clear();
+            endpoints.removeAllSeries();
+            highlightEndpoints.removeAllSeries();
+            timeLineSeries.clear();
+            errorLineSeries.clear();
+
+            // populate main series
+            int lineCnt = -1;
+            int highCnt = -1;
+
+            for (DataObject data : DATA_OBJECTS)
+            {
+                for (int i = 0; i < data.data.length; i++)
+                {
+                    double endpoint = data.coordinates[i][data.coordinates[i].length - 1][0];
+
+                    // ensure datapoint is within domain
+                    // if drawing overlap, ensure datapoint is within overlap
+                    if ((!DV.domainActive || endpoint >= DV.domainArea[0] && endpoint <= DV.domainArea[1]) &&
+                            (!DV.drawOverlap || (DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1])))
+                    {
+                        // start line at (0, 0)
+                        XYSeries line;
+                        XYSeries endpointSeries;
+
+                        if (DV.highlights[UPPER_OR_LOWER][i])
+                        {
+                            line = new XYSeries(++highCnt, false, true);
+                            endpointSeries = new XYSeries(highCnt, false, true);
+                        }
+                        else
+                        {
+                            line = new XYSeries(++lineCnt, false, true);
+                            endpointSeries = new XYSeries(lineCnt, false, true);
+                        }
+
+                        line.setNotify(false);
+                        endpointSeries.setNotify(false);
+
+                        if (DV.showFirstSeg)
+                            line.add(0, buffer);
+
+                        // add points to lines
+                        for (int j = 0; j < data.coordinates[i].length; j++)
+                        {
+                            line.add(data.coordinates[i][j][0], data.coordinates[i][j][1] + buffer);
+
+                            if (DV.showMidpoints && (j > 0 && j < data.coordinates[i].length - 1 && DV.angles[j] == DV.angles[j + 1]))
+                                midpointSeries.add(data.coordinates[i][j][0], data.coordinates[i][j][1] + buffer);
+
+                            // add endpoint and timeline
+                            if (j == data.coordinates[i].length - 1)
+                            {
+                                endpointSeries.add(data.coordinates[i][j][0], data.coordinates[i][j][1] + buffer);
+                                //timeLineSeries.add(data.coordinates[i][j][0], 0);
+                                errorLineSeries.add(data.coordinates[i][j][0], -(DV.reg_true_values.get(i) + buffer));
+
+                                if (DV.highlights[UPPER_OR_LOWER][i])
+                                {
+                                    highlightLines.addSeries(line);
+                                    highlightLineRenderer.setSeriesPaint(highCnt, DV.highlightColor);
+                                    highlightLineRenderer.setSeriesStroke(highCnt, graphLineStroke);
+
+                                    highlightEndpoints.addSeries(endpointSeries);
+                                    highlightEndpointRenderer.setSeriesPaint(highCnt, DV.highlightColor);
+                                    highlightEndpointRenderer.setSeriesShape(highCnt, endpointShape);
+                                }
+                                else
+                                {
+                                    graphLines.addSeries(line);
+                                    lineRenderer.setSeriesPaint(lineCnt, Color.BLUE);
+                                    lineRenderer.setSeriesStroke(lineCnt, graphLineStroke);
+
+                                    endpoints.addSeries(endpointSeries);
+                                    endpointRenderer.setSeriesShape(lineCnt, endpointShape);
+                                    endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            double minTrue = Double.MAX_VALUE;
+            double maxTrue = -Double.MAX_VALUE;
+
+            for (int i = 0; i < DV.reg_true_values.size(); i++)
+            {
+                // get min and max values
+                if (DV.reg_true_values.get(i) < minTrue)
+                    minTrue = DV.reg_true_values.get(i);
+                else if (DV.reg_true_values.get(i) > maxTrue)
+                    maxTrue = DV.reg_true_values.get(i);
+            }
+
+            double zed = ((DV.reg_RMSE / DV.reg_avg_val) / 2) * (maxTrue - minTrue);
+
+            XYSeries regLine = new XYSeries(++lineCnt, false, true);
+            regLine.add(minTrue, -(minTrue + buffer));
+            regLine.add(maxTrue, -(maxTrue + buffer));
+
+            graphLines.addSeries(regLine);
+            lineRenderer.setSeriesPaint(lineCnt, Color.BLUE);
+            lineRenderer.setSeriesStroke(lineCnt, graphLineStroke);
+
+            XYSeries regLine1 = new XYSeries(++lineCnt, false, true);
+            regLine1.add(minTrue, (-(minTrue + buffer)) - zed);
+            regLine1.add(maxTrue, (-(maxTrue + buffer)) - zed);
+
+            graphLines.addSeries(regLine1);
+            lineRenderer.setSeriesPaint(lineCnt, Color.MAGENTA);
+            lineRenderer.setSeriesStroke(lineCnt, graphLineStroke);
+
+            XYSeries regLine2 = new XYSeries(++lineCnt, false, true);
+            regLine2.add(minTrue, (-(minTrue + buffer)) + zed);
+            regLine2.add(maxTrue, (-(maxTrue + buffer)) + zed);
+
+            graphLines.addSeries(regLine2);
+            lineRenderer.setSeriesPaint(lineCnt, Color.MAGENTA);
+            lineRenderer.setSeriesStroke(lineCnt, graphLineStroke);
+
+            chart.setNotify(true);
+        }
+
+
+        /**
+         * Updates Frequency Graph
+         */
+        protected void updateBars()
+        {
+            chart.setNotify(false);
+
+            bars.removeAllSeries();
+
+            // get maximum frequency for frequency graph
+            double maxFrequency = getMaxFrequency();
+
+            // get bar lengths
+            int[] barRanges = new int[400];
+            for (DataObject dataObj : DATA_OBJECTS)
+            {
+                // translate endpoint to slider ticks
+                // increment bar which endpoint lands
+                for (int i = 0; i < dataObj.data.length; i++)
+                {
+                    int tmpTick = (int) (Math.round((dataObj.coordinates[i][DV.fieldLength-1][0] / DV.fieldLength * 200) + 200));
+                    barRanges[tmpTick]++;
+                }
+            }
+
+            // get interval and bounds
+            double interval = DV.fieldLength / 200.0;
+            double maxBound = -DV.fieldLength;
+            double minBound = -DV.fieldLength;
+
+            // add series to collection
+            for (int i = 0; i < 400; i++)
+            {
+                // get max bound
+                maxBound += interval;
+
+                XYIntervalSeries bar = new XYIntervalSeries(i, false, true);
+                bar.setNotify(false);
+
+                // bar width = interval
+                // bar height = (total endpoints on bar) / (total endpoints)
+                // buffer = maximum bar height
+                if (UPPER_OR_LOWER == 1)
+                    bar.add(interval, minBound, maxBound, (-barRanges[i] / maxFrequency) * buffer, -buffer, 0);
+                else
+                    bar.add(interval, minBound, maxBound, (barRanges[i] / maxFrequency) * buffer, 0, buffer);
+
+                bars.addSeries(bar);
+                barRenderer.setSeriesPaint(i, Color.BLUE);
+
+                // set min bound to old max
+                minBound = maxBound;
+            }
+
+            chart.setNotify(true);
+        }
+
+
+        /**
+         * Sets the scale of the graph
+         */
+        protected void setLineHeight()
+        {
+            // get line height
+            lineHeight = GRAPH_SCALE * DV.fieldLength + max;
+
+        }
+
+
+        /**
+         * Updates domain lines
+         */
+        protected void updateDomainLines()
+        {
+            chart.setNotify(false);
+
+            domainMinLine.clear();
+            domainMaxLine.clear();
+
+            // set overlap line
+            domainMinLine.add(DV.domainArea[0], 0 - max);
+            domainMinLine.add(DV.domainArea[0], lineHeight);
+            domainMaxLine.add(DV.domainArea[1], 0 - max);
+            domainMaxLine.add(DV.domainArea[1], lineHeight);
+
+            chart.setNotify(true);
+        }
+
+
+        /**
+         * Sets the renderer and dataset for the graph
+         */
+        protected void setDatasetsAndRenderers()
+        {
+            chart.setNotify(false);
+
+            // set highlight endpoint renderer and dataset
+            plot.setRenderer(0, highlightEndpointRenderer);
+            plot.setDataset(0, highlightEndpoints);
+
+            // set endpoint renderer and dataset
+            plot.setRenderer(1, endpointRenderer);
+            plot.setDataset(1, endpoints);
+
+            // set midpoint renderer and dataset
+            midpointRenderer.setSeriesShape(0, midpointShape);
+            midpointRenderer.setSeriesPaint(0, DV.midpoints);
+            plot.setRenderer(2, midpointRenderer);
+            plot.setDataset(2, midpoints);
+
+            if (DV.domainActive)
+            {
+                // set domain renderer and dataset
+                domainRenderer.setSeriesStroke(0, domainStroke);
+                domainRenderer.setSeriesStroke(1, domainStroke);
+                domainRenderer.setSeriesPaint(0, DV.domainLines);
+                domainRenderer.setSeriesPaint(1, DV.domainLines);
+                plot.setRenderer(3, domainRenderer);
+                plot.setDataset(3, domain);
+            }
+
+            // set highlight line renderer and dataset
+            highlightLineRenderer.setAutoPopulateSeriesStroke(false);
+            plot.setRenderer(4, highlightLineRenderer);
+            plot.setDataset(4, highlightLines);
+
+            // set line renderer and dataset
+            lineRenderer.setAutoPopulateSeriesStroke(false);
+            plot.setRenderer(5, lineRenderer);
+            plot.setDataset(5, graphLines);
+
+            // set bar or timeline renderer and dataset
+            if (DV.showBars)
+            {
+                barRenderer.setSeriesPaint(0, Color.BLUE);
+                barRenderer.setShadowVisible(false);
+                plot.setRenderer(6, barRenderer);
+                plot.setDataset(6, bars);
+            }
+            else
+            {
+                timeLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
+                timeLineRenderer.setSeriesPaint(0, Color.RED);
+                plot.setRenderer(7, timeLineRenderer);
+                plot.setDataset(7, timeLine);
+            }
+
+            errorLineRenderer.setSeriesShape(0, new Rectangle2D.Double(-0.25, 0, 0.5, 3));
+            errorLineRenderer.setSeriesPaint(0, Color.GREEN);
+            plot.setRenderer(8, errorLineRenderer);
+            plot.setDataset(8, errorLine);
+
+            chart.setNotify(true);
+        }
+
+
+        /**
+         * Sets the domain and range of the graph
+         */
+        protected void setDomainAndRange()
+        {
+            // set domain and range of graph
+            double bound = GRAPH_SCALE * DV.fieldLength;
+
+            // set domain
+            ValueAxis domainView = plot.getDomainAxis();
+            domainView.setRange(-bound, bound);
+            NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+            xAxis.setTickUnit(new NumberTickUnit(buffer));
+
+            // set range
+            ValueAxis rangeView = plot.getRangeAxis();
+            NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+            yAxis.setTickUnit(new NumberTickUnit(buffer));
+
+            // set range
+            rangeView.setRange(0 - max, bound * (DV.mainPanel.getHeight() * 0.7) / (DV.graphPanel.getWidth() * 0.8));
+        }
+
+
+        /**
+         * Gets the minimum and maximum values differences between the predicted and true values
+         */
+        protected void getMinMax()
+        {
+            for (int i = 0; i < DV.reg_predictions.size(); i++)
+            {
+                double val = Math.abs(DV.reg_predictions.get(i) - DV.reg_true_values.get(i));
+
+                if (val < min)
+                    min = val;
+                if (val > max)
+                    max = val;
+            }
+        }
+
+
+        /**
+         * Draws the graph
+         * @return whether the graph was drawn or not
+         */
+        @Override
+        protected Boolean doInBackground()
+        {
+            // establish min and max to normalize error values
+            getMinMax();
+            setLineHeight();
+
+            // add series collection
+            domain.addSeries(domainMaxLine);
+            domain.addSeries(domainMinLine);
+
+            // add data to series
+            midpoints.addSeries(midpointSeries);
+            timeLine.addSeries(timeLineSeries);
+            errorLine.addSeries(errorLineSeries);
+
+            updateGraph();
+
+            // create bar chart
+            if (DV.showBars)
+                updateBars();
+
+            // set domain and range of graph
+            setDomainAndRange();
+            setDatasetsAndRenderers();
+
+            // add domain listeners
+            DV.domainSlider.addMouseMotionListener(new MouseMotionListener()
+            {
+                @Override
+                public void mouseDragged(MouseEvent e)
+                {
+                    RangeSlider slider = (RangeSlider) e.getSource();
+                    DV.domainArea[0] = (slider.getValue() - 200) * DV.fieldLength / 200.0;
+                    DV.domainArea[1] = (slider.getUpperValue() - 200) * DV.fieldLength / 200.0;
+
+                    // update graph
+                    updateGraph();
+
+                    // generate analytics
+                    Analytics.GenerateAnalytics analytics = new Analytics.GenerateAnalytics();
+                    analytics.execute();
+
+                    // wait for generation
+                    try
+                    {
+                        analytics.get();
+                    }
+                    catch (InterruptedException | ExecutionException ex)
+                    {
+                        LOGGER.log(Level.SEVERE, ex.toString(), ex);
+                    }
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {}
+            });
+
+            DV.domainSlider.addMouseListener(new MouseListener()
+            {
+                @Override
+                public void mouseClicked(MouseEvent e) {}
+
+                @Override
+                public void mousePressed(MouseEvent e)
+                {
+                    // draw lines as active (thicker)
+                    domainRenderer.setSeriesStroke(0, domainActiveStroke);
+                    domainRenderer.setSeriesStroke(1, domainActiveStroke);
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e)
+                {
+                    // draw lines as inactive (normal)
+                    domainRenderer.setSeriesStroke(0, domainStroke);
+                    domainRenderer.setSeriesStroke(1, domainStroke);
+                }
+
+                @Override
+                public void mouseEntered(MouseEvent e) {}
+
+                @Override
+                public void mouseExited(MouseEvent e) {}
+            });
+
+            // add graph to graph panel
+            synchronized (GRAPHS)
+            {
+                GRAPHS.put(UPPER_OR_LOWER, chart);
+            }
+
+            if (DV.displayRemoteGraphs)
             {
                 try
                 {

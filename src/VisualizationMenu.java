@@ -25,121 +25,75 @@ public class VisualizationMenu extends JPanel
         visPanel.setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
 
-        // choose plot type
+        // choose class to visualize as main
         c.gridx = 0;
         c.gridy = 0;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(5, 5, 5, 5);
-        visPanel.add(getPlotButton(), c);
-
-        // choose class to visualize as main
-        c.gridx = 1;
-        c.gridy = 0;
         visPanel.add(setUpperClassButton(), c);
 
         // specify visualization
-        c.gridx = 0;
-        c.gridy = 1;
+        c.gridx = 1;
+        c.gridy = 0;
         visPanel.add(removeClassButton(), c);
 
         // reorder attributes
-        c.gridx = 1;
+        c.gridx = 0;
         c.gridy = 1;
         visPanel.add(reorderAttributesButton(), c);
 
         // remove attributes
-        c.gridx = 0;
-        c.gridy = 2;
+        c.gridx = 1;
+        c.gridy = 1;
         visPanel.add(removeAttributesButton(), c);
 
         // change visualization function for each attribute of each vector
-        c.gridx = 1;
+        c.gridx = 0;
         c.gridy = 2;
         visPanel.add(setScalarFunctionButton(), c);
 
         // change visualization function
-        c.gridx = 0;
-        c.gridy = 3;
+        c.gridx = 1;
+        c.gridy = 2;
         visPanel.add(setNDFunctionButton(), c);
 
         // open analytics in another window
-        c.gridx = 1;
+        c.gridx = 0;
         c.gridy = 3;
         visPanel.add(separateVisButton(), c);
 
         // visualize only support vectors
-        c.gridx = 0;
-        c.gridy = 4;
+        c.gridx = 1;
+        c.gridy = 3;
         visPanel.add(visOnlySVMBox(), c);
 
         // visualize support vectors
-        c.gridx = 1;
+        c.gridx = 0;
         c.gridy = 4;
         visPanel.add(visSVMBox(), c);
-        
+
         // activates / deactivates domain
-        c.gridx = 0;
-        c.gridy = 5;
+        c.gridx = 1;
+        c.gridy = 4;
         visPanel.add(domainActiveBox(), c);
 
         // draw first line of GLC-L visualization
-        c.gridx = 1;
+        c.gridx = 0;
         c.gridy = 5;
         visPanel.add(drawFirstLineBox(), c);
 
         // draw midpoints of GLC-L visualization
-        c.gridx = 0;
-        c.gridy = 6;
+        c.gridx = 1;
+        c.gridy = 5;
         visPanel.add(drawMidpointsBox(), c);
 
         // visualize overlap area
-        c.gridx = 1;
+        c.gridx = 0;
         c.gridy = 6;
         visPanel.add(visOverlapBox(), c);
 
         // show visualization menu
         JOptionPane.showOptionDialog(DV.mainFrame, visPanel, "Visualization Options", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new Object[]{}, null);
-    }
-
-
-    /**
-     * Creates button to choose plot type
-     * @return button
-     */
-    private JButton getPlotButton()
-    {
-        JButton plotBtn = new JButton("Plot Type");
-        plotBtn.setToolTipText("Choose GLC-L or DSC2 plot");
-        plotBtn.setFont(plotBtn.getFont().deriveFont(12f));
-        plotBtn.addActionListener(e->
-        {
-            // radio button group
-            ButtonGroup plotType = new ButtonGroup();
-            JRadioButton glc = new JRadioButton("GLC-L", DV.glc_or_dsc);
-            JRadioButton dsc = new JRadioButton("DSC2", !DV.glc_or_dsc);
-            plotType.add(glc);
-            plotType.add(dsc);
-
-            // default function panel
-            JPanel plotTypePanel = new JPanel();
-            plotTypePanel.add(new JLabel("Build-In: "));
-            plotTypePanel.add(glc);
-            plotTypePanel.add(dsc);
-
-            int choice = JOptionPane.showConfirmDialog(DV.mainFrame, plotTypePanel, "Plot Type", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-            DV.glc_or_dsc = glc.isSelected();
-
-            if (choice == 0 && DV.trainData != null)
-            {
-                DV.angleSliderPanel.removeAll();
-
-                DataVisualization.optimizeSetup();
-                DataVisualization.drawGraphs();
-            }
-        });
-        
-        return plotBtn;
     }
 
 
@@ -417,12 +371,7 @@ public class VisualizationMenu extends JPanel
             DV.angleSliderPanel.removeAll();
 
             for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
-            {
-                if (DV.glc_or_dsc)
-                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                else
-                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-            }
+                AngleSliders.createSliderPanel(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
 
             DataVisualization.drawGraphs();
         });
@@ -459,12 +408,7 @@ public class VisualizationMenu extends JPanel
             DV.angleSliderPanel.removeAll();
 
             for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
-            {
-                if (DV.glc_or_dsc)
-                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                else
-                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-            }
+                AngleSliders.createSliderPanel(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
 
             DataVisualization.drawGraphs();
         });
@@ -484,7 +428,7 @@ public class VisualizationMenu extends JPanel
         original.setToolTipText("Order attributes in their original order.");
         original.addActionListener(ee ->
         {
-            // bubble sort ascending
+            // sort ascending
             quickSort(DV.originalAttributeOrder, 0, DV.originalAttributeOrder.size() - 1);
 
             tm.setRowCount(0);
@@ -495,12 +439,7 @@ public class VisualizationMenu extends JPanel
 
             // update angles
             for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
-            {
-                if (DV.glc_or_dsc)
-                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                else
-                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-            }
+                AngleSliders.createSliderPanel(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
 
             DataVisualization.drawGraphs();
         });
@@ -600,12 +539,7 @@ public class VisualizationMenu extends JPanel
 
             // update angles
             for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
-            {
-                if (DV.glc_or_dsc)
-                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                else
-                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-            }
+                AngleSliders.createSliderPanel(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
 
             DataVisualization.drawGraphs();
         });
@@ -635,12 +569,7 @@ public class VisualizationMenu extends JPanel
 
             // update angles
             for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
-            {
-                if (DV.glc_or_dsc)
-                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                else
-                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-            }
+                AngleSliders.createSliderPanel(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
 
             DataVisualization.drawGraphs();
         });
@@ -670,12 +599,7 @@ public class VisualizationMenu extends JPanel
 
             // update angles
             for (int j = 0; j < DV.trainData.get(0).coordinates[0].length; j++)
-            {
-                if (DV.glc_or_dsc)
-                    AngleSliders.createSliderPanel_GLC(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
-                else
-                    AngleSliders.createSliderPanel_DSC("feature " + j, (int) (DV.angles[j] * 100), j);
-            }
+                AngleSliders.createSliderPanel(DV.fieldNames.get(j), (int) (DV.angles[j] * 100), j);
 
             DataVisualization.drawGraphs();
         });
@@ -860,14 +784,18 @@ public class VisualizationMenu extends JPanel
         DV.fieldNames.set(i, DV.fieldNames.get(j));
         DV.fieldNames.set(j, tmp2);
 
+        int tmp3 = DV.originalAttributeOrder.get(i);
+        DV.originalAttributeOrder.set(i, DV.originalAttributeOrder.get(j));
+        DV.originalAttributeOrder.set(j, tmp3);
+
         // reorder in all data
         for (int k = 0; k < DV.trainData.size(); k++)
         {
             for (int w = 0; w < DV.trainData.get(k).data.length; w++)
             {
-                double tmp3 = DV.trainData.get(k).data[w][i];
+                double tmp4 = DV.trainData.get(k).data[w][i];
                 DV.trainData.get(k).data[w][i] = DV.trainData.get(k).data[w][j];
-                DV.trainData.get(k).data[w][j] = tmp3;
+                DV.trainData.get(k).data[w][j] = tmp4;
             }
         }
     }
@@ -893,14 +821,18 @@ public class VisualizationMenu extends JPanel
         DV.fieldNames.set(i, DV.fieldNames.get(j));
         DV.fieldNames.set(j, tmp2);
 
+        int tmp3 = DV.originalAttributeOrder.get(i);
+        DV.originalAttributeOrder.set(i, DV.originalAttributeOrder.get(j));
+        DV.originalAttributeOrder.set(j, tmp3);
+
         // reorder in all data
         for (int k = 0; k < DV.trainData.size(); k++)
         {
             for (int w = 0; w < DV.trainData.get(k).data.length; w++)
             {
-                double tmp3 = DV.trainData.get(k).data[w][i];
+                double tmp4 = DV.trainData.get(k).data[w][i];
                 DV.trainData.get(k).data[w][i] = DV.trainData.get(k).data[w][j];
-                DV.trainData.get(k).data[w][j] = tmp3;
+                DV.trainData.get(k).data[w][j] = tmp4;
             }
         }
     }
@@ -921,14 +853,18 @@ public class VisualizationMenu extends JPanel
         DV.fieldNames.set(i, DV.fieldNames.get(j));
         DV.fieldNames.set(j, tmp2);
 
+        int tmp3 = DV.originalAttributeOrder.get(i);
+        DV.originalAttributeOrder.set(i, DV.originalAttributeOrder.get(j));
+        DV.originalAttributeOrder.set(j, tmp3);
+
         // reorder in all data
         for (int k = 0; k < DV.trainData.size(); k++)
         {
             for (int w = 0; w < DV.trainData.get(k).data.length; w++)
             {
-                double tmp3 = DV.trainData.get(k).data[w][i];
+                double tmp4 = DV.trainData.get(k).data[w][i];
                 DV.trainData.get(k).data[w][i] = DV.trainData.get(k).data[w][j];
-                DV.trainData.get(k).data[w][j] = tmp3;
+                DV.trainData.get(k).data[w][j] = tmp4;
             }
         }
     }
@@ -952,24 +888,16 @@ public class VisualizationMenu extends JPanel
                 removal.add(new JLabel("Checked attributes will be displayed."));
 
                 JCheckBox[] attributes = new JCheckBox[DV.standardFieldNames.size()];
-
                 for (String field : DV.standardFieldNames)
                 {
                     final int index = DV.standardFieldNames.indexOf(field);
-
                     attributes[index] = new JCheckBox(field, DV.activeAttributes.get(index));
                     attributes[index].addActionListener(ee ->
                     {
                         DV.activeAttributes.set(index, attributes[index].isSelected());
 
                         // ensure there is at least 1 active attribute
-                        int active = 0;
-                        for (int i = 0; i < DV.activeAttributes.size(); i++)
-                        {
-                            if (DV.activeAttributes.get(i))
-                                active++;
-                        }
-
+                        int active = getActiveAttributes();
                         if (active > 0)
                             DV.fieldLength = active;
                         else
@@ -979,41 +907,7 @@ public class VisualizationMenu extends JPanel
                             return;
                         }
 
-                        for (int i = 0; i < DV.normalizedData.size(); i++)
-                        {
-                            for (int j = 0; j < DV.normalizedData.get(i).data.length; j++)
-                            {
-                                double[] tmp = new double[DV.fieldLength];
-                                for (int k = 0, cnt = 0; k < DV.normalizedData.get(i).data[j].length; k++)
-                                {
-                                    if (DV.activeAttributes.get(k))
-                                    {
-                                        tmp[cnt] = DV.normalizedData.get(i).data[j][k];
-                                        cnt++;
-                                    }
-                                }
-
-                                DV.trainData.get(i).data[j] = tmp;
-                            }
-                        }
-
-                        double[] new_angles = new double[DV.fieldLength];
-                        ArrayList<String> new_names = new ArrayList<>();
-                        for (int k = 0, cnt = 0; k < DV.standardAngles.length; k++)
-                        {
-                            if (DV.activeAttributes.get(k))
-                            {
-                                new_angles[cnt] = DV.standardAngles[k];
-                                new_names.add(DV.standardFieldNames.get(k));
-                                cnt++;
-                            }
-                        }
-
-                        DV.angles = new_angles;
-                        DV.fieldNames = new_names;
-
-                        DataVisualization.optimizeSetup();
-                        DataVisualization.drawGraphs();
+                        DataVisualization.updateGraphs();
                     });
 
                     removal.add(attributes[index]);
@@ -1274,22 +1168,9 @@ public class VisualizationMenu extends JPanel
 
                         // get function and remove spaces
                         String func = funcField.getText();
-
                         if (func.equals("N/A"))
                         {
-                            DV.fieldLength = DV.standardFieldLength;
-
-                            DV.fieldNames = new ArrayList<>();
-                            DV.fieldNames.addAll(DV.standardFieldNames);
-
-                            DV.activeAttributes.clear();
-                            for (int i = 0; i < DV.fieldLength; i++)
-                                DV.activeAttributes.add(true);
-
-                            DV.trainData = new ArrayList<>();
-                            DV.trainData.addAll(DV.normalizedData);
-
-                            DV.crossValidationNotGenerated = true;
+                            DataSetup.setupWithData(DV.dataFiles.get(0));
 
                             DataVisualization.optimizeSetup();
                             DataVisualization.drawGraphs();
@@ -1586,17 +1467,17 @@ public class VisualizationMenu extends JPanel
      */
     private JCheckBox drawMidpointsBox()
     {
-        JCheckBox darwMidpointsBox = new JCheckBox("Midpoints", DV.showFirstSeg);
-        darwMidpointsBox.setToolTipText("Whether to draw midpoints when two angles are equal in a graph or not.");
-        darwMidpointsBox.setFont(darwMidpointsBox.getFont().deriveFont(12f));
-        darwMidpointsBox.addActionListener(fle ->
+        JCheckBox drawMidpointsBox = new JCheckBox("Midpoints", DV.showFirstSeg);
+        drawMidpointsBox.setToolTipText("Whether to draw midpoints when two angles are equal in a graph or not.");
+        drawMidpointsBox.setFont(drawMidpointsBox.getFont().deriveFont(12f));
+        drawMidpointsBox.addActionListener(fle ->
         {
-            DV.showMidpoints = darwMidpointsBox.isSelected();
+            DV.showMidpoints = drawMidpointsBox.isSelected();
             if (DV.trainData != null)
                 DataVisualization.drawGraphs();
         });
 
-        return darwMidpointsBox;
+        return drawMidpointsBox;
     }
 
 
@@ -1637,5 +1518,21 @@ public class VisualizationMenu extends JPanel
         });
 
         return separateVisBtn;
+    }
+
+
+    /**
+     * Gets the number of active attributes
+     */
+    private int getActiveAttributes()
+    {
+        int active = 0;
+        for (int i = 0; i < DV.activeAttributes.size(); i++)
+        {
+            if (DV.activeAttributes.get(i))
+                active++;
+        }
+
+        return active;
     }
 }

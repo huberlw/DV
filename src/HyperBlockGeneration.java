@@ -1,227 +1,409 @@
-/*
+import org.jfree.chart.*;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.axis.ValueAxis;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.chart.renderer.xy.XYAreaRenderer;
+import org.jfree.chart.renderer.xy.XYBlockRenderer;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.xy.DefaultXYZDataset;
 import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicIntegerArray;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import jcuda.*;
+import jcuda.driver.*;
+
+import static jcuda.driver.JCudaDriver.*;
 
 
 public class HyperBlockGeneration
 {
-    */
-/************************************************************
+    /************************************************************
+     * Logging
+     ************************************************************/
+    private final static Logger LOGGER = Logger.getLogger(Analytics.class.getName());
+
+    /************************************************************
      * Data
-     ************************************************************//*
-
+     ************************************************************/
     ArrayList<DataObject> data;
-    ArrayList<ArrayList<DataObject>> prevData = new ArrayList<>();
 
-    */
-/************************************************************
+    /************************************************************
      * Hyperblocks
-     ************************************************************//*
+     ************************************************************/
+    JSpinner hb_lvl;
 
+    // hyperblocks
     ArrayList<HyperBlock> hyper_blocks = new ArrayList<>();
-    ArrayList<HyperBlock> prevHBs;
-    ArrayList<HyperBlock> test_hyper_blocks = new ArrayList<>();
+    ArrayList<ArrayList<HyperBlock>> hyper_blocks_levels = new ArrayList<>();
 
-    int hb_lvl = 0;
+    // metrics
+    ArrayList<ArrayList<double[]>> average_case = new ArrayList<>();
+    ArrayList<Double> accuracy = new ArrayList<>();
+    ArrayList<Integer> misclassified = new ArrayList<>();
 
-    */
-/************************************************************
+    /************************************************************
      * General Line Coordinates Hyperblock Rules Linear (GLC-HBRL)
-     ************************************************************//*
-
+     ************************************************************/
     double acc_threshold = 100;
-    boolean explain_ldf = true;
+    boolean explain_ldf = false;
+    int best_attribute = 0;
 
-    */
-/************************************************************
+    /************************************************************
      * General User Interface
-     ************************************************************//*
+     ************************************************************/
+    // panels 
+    JPanel graphPanel;
+    JPanel navPanel;
+
+    // visualization options
+    JRadioButton visualizeWithin;
+    JRadioButton visualizeAll;
+    JRadioButton visualizeOutline;
+    JLabel graphLabel;
+    JButton right;
+    JButton left;
+    int visualized_block = 0;
+
+    // plot choice
+    int plot_id = 0;
+    
+    // plot options
+    JRadioButton PC;
+    JRadioButton SPC;
+    JRadioButton GLCL;
+    JRadioButton PC_cross;
+    JRadioButton SPC_less;
+    JRadioButton GLCL_turn;
+    JRadioButton GLCL_turn_dot;
+    JRadioButton GLCL_x_proj_dot;
+
+    // HB viewing options
+    JRadioButton individualView;
+    JRadioButton completeView;
+    JRadioButton combinedClassView;
+    JRadioButton combinedView;
+
+    // colors
+    Color[] graphColors;
 
 
 
 
+    boolean remove_extra = false;
 
-    HyperBlockGeneration()
+
+    HyperBlockGeneration() {
+        // set purity threshold
+        if (explain_ldf)
+            acc_threshold = DV.accuracy;
+
+        // find best attribute to sort data on
+        findBestAttribute();
+
+        // generate hyperblocks, and print hyperblock info
+        getData();
+        generateHBs(true);
+        HB_analytics();
+
+        // visualize hyperblocks
+        if (!hyper_blocks.isEmpty())
+        {
+            HB_GUI();
+            getPlot();
+        }
+
+        // k-fold
+        /*ProcessBuilder lda = new ProcessBuilder("cmd", "/c",
+                "python",
+                "source\\Python\\code_and_pyinstaller_spec\\kFoldSplit.py",
+                "source\\Python\\train_data.csv",
+                "source\\Python\\test_data.csv");
+
+        try
+        {
+            // create file for python process
+            CSV.createCSVDataObject(DV.trainData, "source\\Python\\train_data.csv");
+            CSV.createCSVDataObject(DV.testData, "source\\Python\\test_data.csv");
+
+            // run python (LDA) process
+            Process process = lda.start();
+
+            // read python outputs
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String output;
+
+            while ((output = reader.readLine()) != null)
+            {
+                // update angles
+                System.out.println(output);
+            }
+
+            // delete created file
+            File fileToDelete = new File("source\\Python\\train_data.csv");
+            File fileToDelete2 = new File("source\\Python\\test_data.csv");
+            Files.deleteIfExists(fileToDelete.toPath());
+            Files.deleteIfExists(fileToDelete2.toPath());
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException(e);
+        }*/
+
+        test_HBs();
+
+
+        // get average case
+        /*for (int i = 0; i < average_case.size(); i++)
+        {
+            //for (int j = 0; j < average_case.get(0); j++)
+            //{
+                double[] input = new double[DV.fieldLength];
+                //for (int j = 0; j < average_case.get(i).get(0).length; j++)
+                    //input[j] = average_case.get(i).get(0)[j];// * (DataSetup.maxValues[j] - DataSetup.minValues[j]) + DataSetup.minValues[j];
+
+
+                double[] best = DV.trainData.get(0).data[0];
+                double best_dist = Double.MAX_VALUE;
+
+                for (int d = 0; d < DV.trainData.size(); d++)
+                {
+                    for (int b = 0; b < DV.trainData.get(d).data.length; b++)
+                    {
+                        double new_dist = euclidean_distance(average_case.get(i).get(0), DV.trainData.get(d).data[b]);
+                        if (new_dist < best_dist)
+                        {
+                            best = DV.trainData.get(d).data[b];
+                            best_dist = euclidean_distance(average_case.get(i).get(0), DV.trainData.get(d).data[b]);
+                        }
+                    }
+                }
+
+                input = best;
+                for (int j = 0; j < average_case.get(i).get(0).length; j++)
+                    input[j] = input[j] * (DataSetup.maxValues[j] - DataSetup.minValues[j]) + DataSetup.minValues[j];
+
+
+                // Create a BufferedImage
+                BufferedImage image = new BufferedImage(28, 28, BufferedImage.TYPE_BYTE_GRAY);
+
+                // Fill the BufferedImage with the input data
+                for (int y = 0; y < 28; y++) {
+                    for (int x = 0; x < 28; x++) {
+                        int index = y * 28 + x;
+                        int value = (int) (input[index] * 255); // Assuming input values are normalized between 0 and 1
+                        int rgb = (value << 16) | (value << 8) | value; // Convert to grayscale
+                        image.setRGB(x, y, rgb);
+                    }
+                }
+
+                // Save the BufferedImage to a file
+                try {
+                    ImageIO.write(image, "png", new File("D:\\Downloads\\image_" + DV.uniqueClasses.get(hyper_blocks.get(i).classNum) + ".png"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            //}
+        }*/
+    }
+
+
+    HyperBlockGeneration(File filePath)
     {
         // set purity threshold
         if (explain_ldf)
             acc_threshold = DV.accuracy;
 
-        // get data, generate hyperblocks, and print hyperblock info
+        // open file and read lines
         getData();
-        generateHyperblocks();
-        hb_test();
+        hyper_blocks = DataSetup.setupHyperblockData(filePath);
+        HB_analytics();
 
+        // visualize hyperblocks
+        if (!hyper_blocks.isEmpty())
+        {
+            HB_GUI();
+            getPlot();
+        }
 
+        System.out.println("DONE!!!!");
     }
 
-    private void hyperblockGUI()
+
+    /**
+     * Create hyperblocks using Interval Merger Hyper or Hyperblock Rules Linear
+     */
+    private void generateHBs(boolean remove_old)
     {
-
-    }
-
-
-    private void generateHyperblocks()
-    {
-        // create hyperblocks
-        hyper_blocks.clear();
-
-        ArrayList<ArrayList<DataATTR>> attributes = getArrayLists(data);
-
-        // Hyperblocks generated with this algorithm
-        ArrayList<HyperBlock> gen_hb = new ArrayList<>();
-
-        */
-/***
-         * DELETE THIS LATER
-         * THIS IS JUST TO CREATE A SET OF DATA THAT IS NOT IN ANY INTERVAL HYPERBLOCK
-         *//*
-
-        ArrayList<ArrayList<DataATTR>> all_intv = new ArrayList<>();
-
-        while (!attributes.get(0).isEmpty())
+        try
         {
-            // get largest hyperblock for each attribute
-            ArrayList<DataATTR> intv = interval_hyper(attributes, acc_threshold, gen_hb);
-            all_intv.add(intv);
+            // Hyperblocks generated with this algorithm
+            ArrayList<HyperBlock> gen_hb = new ArrayList<>();
 
-            // if Hyperblock is unique then add
-            if (intv.size() > 1)
+            if (remove_old)
+                hyper_blocks.clear();
+
+            // get data to create hyperblocks
+            ArrayList<ArrayList<DataATTR>> attributes = separateByAttribute(data);
+            ArrayList<ArrayList<DataATTR>> all_intv = new ArrayList<>();
+
+            // get number of threads (number of processors or number of attributes)
+            int numThreads = Math.min(Runtime.getRuntime().availableProcessors(), attributes.size());
+            ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+            long startTime = System.currentTimeMillis();
+
+            while (!attributes.get(0).isEmpty())
             {
-                // Create and add new Hyperblock
-                ArrayList<ArrayList<double[]>> hb_data = new ArrayList<>();
-                ArrayList<double[]> intv_data = new ArrayList<>();
+                // get largest hyperblock for each attribute
+                ArrayList<DataATTR> intv = interval_hyper(executorService, attributes, acc_threshold, gen_hb);
+                all_intv.add(intv);
 
-                for (int i = 0; i < intv.size(); i++)
+                // if Hyperblock is unique then add
+                if (intv.size() > 1)
                 {
-                    int cl = intv.get(i).cl;
-                    int cl_index = intv.get(i).cl_index;
+                    // Create and add new Hyperblock
+                    ArrayList<ArrayList<double[]>> hb_data = new ArrayList<>();
+                    ArrayList<double[]> intv_data = new ArrayList<>();
 
-                    intv_data.add(data.get(cl).data[cl_index]);
+                    for (DataATTR dataATTR : intv)
+                        intv_data.add(data.get(dataATTR.cl).data[dataATTR.cl_index]);
+
+                    // Add data and Hyperblock
+                    hb_data.add(intv_data);
+                    HyperBlock hb = new HyperBlock(hb_data, intv.get(0).cl);
+                    gen_hb.add(hb);
                 }
-
-                // Add data and Hyperblock
-                hb_data.add(intv_data);
-                HyperBlock tmp = new HyperBlock(hb_data);
-
-                */
-/***
-                 * CHANGE THIS LATER TO VOTING
-                 *//*
-
-                tmp.classNum = intv.get(0).cl;
-
-
-                gen_hb.add(tmp);
-
-            }
-            // break loop if a unique HB cannot be found
-            else
-            {
-                break;
-            }
-        }
-
-        */
-/***
-         * DELETE THIS LATER
-         * THIS IS JUST TO CREATE A SET OF DATA THAT IS NOT IN ANY INTERVAL HYPERBLOCK
-         *//*
-
-        // Create dataset without data from interval Hyperblocks
-        ArrayList<ArrayList<double[]>> data = new ArrayList<>();
-        ArrayList<ArrayList<double[]>> out_data = new ArrayList<>();
-        ArrayList<ArrayList<Integer>> skips = new ArrayList<>();
-
-        // all data
-        for (int i = 0; i < DV.data.size(); i++)
-        {
-            data.add(new ArrayList<>(Arrays.asList(DV.data.get(i).data)));
-            out_data.add(new ArrayList<>());
-            skips.add(new ArrayList<>());
-        }
-
-        // find which data to skip
-        for (ArrayList<DataATTR> dataATTRS : all_intv)
-        {
-            for (DataATTR dataATTR : dataATTRS)
-            {
-                int cl = dataATTR.cl;
-                int cl_index = dataATTR.cl_index;
-
-                skips.get(cl).add(cl_index);
-            }
-        }
-
-        for (ArrayList<Integer> skip : skips)
-            Collections.sort(skip);
-
-        for (int i = 0; i < DV.data.size(); i++)
-        {
-            for (int j = 0; j < DV.data.get(i).data.length; j++)
-            {
-                if (!skips.get(i).isEmpty())
-                {
-                    if (j != skips.get(i).get(0))
-                        out_data.get(i).add(DV.data.get(i).data[j]);
-                    else
-                        skips.get(i).remove(0);
-                }
+                // break loop if a unique HB cannot be found
                 else
-                    out_data.get(i).add(DV.data.get(i).data[j]);
+                    break;
             }
+
+            long endTime = System.currentTimeMillis();
+            long executionTime = endTime - startTime;
+
+            System.out.println("Parallelized Interval HB creation time: " + executionTime + " milliseconds");
+
+            // add HBs and shutdown threads
+            hyper_blocks.addAll(gen_hb);
+            executorService.shutdown();
+
+            // Create dataset without data from interval Hyperblocks
+            ArrayList<ArrayList<double[]>> datum = new ArrayList<>();
+            ArrayList<ArrayList<double[]>> seed_data = new ArrayList<>();
+            ArrayList<ArrayList<Integer>> skips = new ArrayList<>();
+
+            // all data
+            for (DataObject dataObject : data)
+            {
+                datum.add(new ArrayList<>(Arrays.asList(dataObject.data)));
+                seed_data.add(new ArrayList<>());
+                skips.add(new ArrayList<>());
+            }
+
+            // find which data to skip
+            for (ArrayList<DataATTR> dataATTRS : all_intv)
+            {
+                for (DataATTR dataATTR : dataATTRS)
+                    skips.get(dataATTR.cl).add(dataATTR.cl_index);
+            }
+
+            for (ArrayList<Integer> skip : skips)
+                Collections.sort(skip);
+
+            for (int i = 0; i < data.size(); i++)
+            {
+                for (int j = 0; j < data.get(i).data.length; j++)
+                {
+                    if (!skips.get(i).isEmpty())
+                    {
+                        if (j != skips.get(i).get(0))
+                            seed_data.get(i).add(data.get(i).data[j]);
+                        else
+                            skips.get(i).remove(0);
+                    }
+                    else
+                        seed_data.get(i).add(data.get(i).data[j]);
+                }
+            }
+
+            // sort data by most important attribute
+            for (int i = 0; i < datum.size(); i++)
+            {
+                sortByColumn(datum.get(i), best_attribute);
+                sortByColumn(seed_data.get(i), best_attribute);
+            }
+
+            // run dustin algorithm
+            // create new threads equal to the number of processors
+            //executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+            //merger_hyperblock(executorService, datum, seed_data);
+            merger_cuda(datum, seed_data);
+            //executorService.shutdown();
+
+            // order blocks from biggest to smallest by class
+            order_hbs_by_class();
+
+            // temp function removes all, but the largest HB in each class
+            //order_hbs_by_size();
         }
-
-        // run dustin algorithm
-        hyper_blocks.addAll(gen_hb);
-        merger_hyperblock(data, out_data);
-
-        // reorder blocks
-        ArrayList<ArrayList<HyperBlock>> ordered = new ArrayList<>();
-
-        for (int i = 0; i < DV.classNumber; i++)
-            ordered.add(new ArrayList<>());
-
-        for (HyperBlock hyperBlock : hyper_blocks)
-            ordered.get(hyperBlock.classNum).add(hyperBlock);
-
-        hyper_blocks.clear();
-
-        for (ArrayList<HyperBlock> hyperBlocks : ordered)
+        catch (InterruptedException | ExecutionException e)
         {
-            hyperBlocks.sort(new BlockComparator());
-            hyper_blocks.addAll(hyperBlocks);
+            LOGGER.log(Level.SEVERE, e.toString(), e);
+            DV.warningPopup("Error Generating Hyperblocks", "Could not generate hyperblocks.");
         }
+
+
+        // SAVES HBS TO FILE FOR LATER USE
+        // get the current date and time as a string
+        /*String date = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
+        String fileName = "D:\\Work\\Hyperblocks\\" + date + "_";
+
+        System.out.println("Hyperblocks generated: " + hyper_blocks.size());
+        saveHyperBlocksToCSV(fileName + "Hyperblocks.csv");
+        saveDataObjectsToCSV(hyper_blocks.get(0).hyper_block, fileName + "HB1.csv");
+        saveDataObjectsToCSV(hyper_blocks.get(1).hyper_block, fileName + "HB2.csv");*/
     }
 
 
-    */
-/***
+    /***
      * Separates data into separate lists by attribute
      * @return Data separated by attribute
-     *//*
-
-    private ArrayList<ArrayList<DataATTR>> getArrayLists(ArrayList<DataObject> data)
+     */
+    private ArrayList<ArrayList<DataATTR>> separateByAttribute(ArrayList<DataObject> data)
     {
         // data separated by attribute
         ArrayList<ArrayList<DataATTR>> attributes = new ArrayList<>();
-
-        // separate by attribute
         for (int k = 0; k < DV.fieldLength; k++)
         {
             ArrayList<DataATTR> tmpField = new ArrayList<>();
-
-            // store data
             for (int i = 0; i < data.size(); i++)
             {
                 for (int j = 0; j < data.get(i).data.length; j++)
                     tmpField.add(new DataATTR(data.get(i).data[j][k], i, j));
             }
 
+            // sort data by value then add
+            tmpField.sort(Comparator.comparingDouble(o -> o.value));
             attributes.add(tmpField);
         }
 
@@ -229,54 +411,57 @@ public class HyperBlockGeneration
     }
 
 
-    */
-/**
+    /**
      * Data Attribute. Stores one attribute of a datapoint and an identifying key shared with other attributes of the same datapoint.
      * @param value value of one attribute of a datapoint
      * @param cl class of a datapoint
      * @param cl_index index of point within class
-     *//*
-
+     */
     private record DataATTR(double value, int cl, int cl_index) {}
 
 
-    */
-/**
+    /**
      * Finds largest interval across all dimensions of a set of data.
+     * @param executorService threads to run
      * @param data_by_attr all data split by attribute
      * @param acc_threshold accuracy threshold for interval
      * @param existing_hb existing hyperblocks to check for overlap
      * @return largest interval
-     *//*
-
-    private ArrayList<DataATTR> interval_hyper(ArrayList<ArrayList<DataATTR>> data_by_attr, double acc_threshold, ArrayList<HyperBlock> existing_hb)
+     */
+    private ArrayList<DataATTR> interval_hyper(ExecutorService executorService, ArrayList<ArrayList<DataATTR>> data_by_attr, double acc_threshold, ArrayList<HyperBlock> existing_hb) throws ExecutionException, InterruptedException
     {
-        // best interval and attribute of best interval
+                // future intervals
+        List<Future<int[]>> intervals = new ArrayList<>();
         int attr = -1;
         int[] best = {-1, -1, -1};
 
         // search each attribute
         for (int i = 0; i < data_by_attr.size(); i++)
         {
-            // sort data by value
-            data_by_attr.get(i).sort(Comparator.comparingDouble(o -> o.value));
-
             // get longest interval for attribute
-            int[] interval = longest_interval(data_by_attr.get(i), acc_threshold, existing_hb, i);
+            int finalI = i;
+            Callable<int[]> task = () -> longest_interval(data_by_attr.get(finalI), acc_threshold, existing_hb, finalI);
 
+            // execute task
+            Future<int[]> future = executorService.submit(task);
+            intervals.add(future);
+        }
+
+        // wait for results then find the largest interval
+        for (Future<int[]> future : intervals)
+        {
+            int[] interval = future.get();
             if (interval[0] > 1 && interval[0] > best[0])
             {
-                attr = i;
                 best[0] = interval[0];
                 best[1] = interval[1];
                 best[2] = interval[2];
+                attr = interval[3];
             }
         }
 
         // construct ArrayList of data
         ArrayList<DataATTR> longest = new ArrayList<>();
-
-        // get data in interval
         if (best[0] != -1)
         {
             for (int i = best[1]; i <= best[2]; i++)
@@ -287,40 +472,35 @@ public class HyperBlockGeneration
     }
 
 
-    */
-/***
-     *
-     * @param data_by_attr
-     * @param acc_threshold
-     * @param existing_hb
-     * @param attr
-     * @return
-     *//*
-
+    /***
+     * Finds the longest interval in a sorted list of data by attribute.
+     * @param data_by_attr sorted data by attribute
+     * @param acc_threshold accuracy threshold for interval
+     * @param existing_hb existing hyperblocks to check for overlap
+     * @param attr attribute to find interval on
+     * @return longest interval
+     */
     private int[] longest_interval(ArrayList<DataATTR> data_by_attr, double acc_threshold, ArrayList<HyperBlock> existing_hb, int attr)
     {
-        // local and global intervals -> {size, interval start, interval end}
+        // local and global intervals -> {size, interval start, interval end, attribute}
         int[] intr = new int[] {1, 0, 0};
-        int[] max_intr = new int[] {-1, -1, -1};
+        int[] max_intr = new int[] {-1, -1, -1, -1};
 
         // data size and misclassified data size
         int n = data_by_attr.size();
         double m = 0;
 
-        for (int i = 0; i < n; i++)
+        for (int i = 1; i < n; i++)
         {
             // If current class matches with next
-            if (i < n - 1 &&
-                    data_by_attr.get(i + 1).cl == data_by_attr.get(i).cl)
-            {
+            if (data_by_attr.get(intr[1]).cl == data_by_attr.get(i).cl)
                 intr[0]++;
-            }
             // purity is above threshold
             // ensure misclassified data is not classified correctly by LDF
             // classified correctly by LDF + misclassified by HB -> quit
             // misclassified by LDF + misclassified by HB -> continue
             else if (explain_ldf &&
-                    misclassified_by_ldf(data.get(data_by_attr.get(i + 1).cl).data[data_by_attr.get(i + 1).cl_index]) &&
+                    misclassified_by_ldf(data.get(data_by_attr.get(i).cl).data[data_by_attr.get(i).cl_index]) &&
                     ((m + 1) / intr[0]) > acc_threshold)
             {
                 m++;
@@ -333,12 +513,11 @@ public class HyperBlockGeneration
             }
             else
             {
-                // Remove value from interval if identical
-                // Second check for when previous data was added as misclassified
-                if ((i < n - 1 && data_by_attr.get(i + 1).value == data_by_attr.get(i).value)
-                    || (i - 1 > 0 && data_by_attr.get(i - 1).value == data_by_attr.get(i).value))
+                // Remove value from interval if accuracy is below threshold
+                if (data_by_attr.get(i - 1).value == data_by_attr.get(i).value)
                 {
-                    intr = remove_value_from_interval(data_by_attr, intr, data_by_attr.get(i).value);
+                    // remove then skip overlapped values
+                    remove_value_from_interval(data_by_attr, intr, data_by_attr.get(i).value);
                     i = skip_value_in_interval(data_by_attr, i, data_by_attr.get(i).value);
                 }
 
@@ -349,18 +528,27 @@ public class HyperBlockGeneration
                     max_intr[0] = intr[0];
                     max_intr[1] = intr[1];
                     max_intr[2] = intr[2];
+                    max_intr[3] = attr;
                 }
 
-                // Reset current interval
+                // Reset current interval and misclassified points
                 intr[0] = 1;
-                intr[1] = i + 1;
-
-                // reset misclassified points
+                intr[1] = i;
                 m = 0;
             }
 
             // set end of interval to next datapoint
-            intr[2] = i + 1;
+            intr[2] = i;
+        }
+
+        // Update longest interval if it doesn't overlap
+        if (intr[0] > max_intr[0] &&
+                check_interval_hyperblock_overlap(data_by_attr, intr, attr, existing_hb))
+        {
+            max_intr[0] = intr[0];
+            max_intr[1] = intr[1];
+            max_intr[2] = intr[2];
+            max_intr[3] = attr;
         }
 
         // return largest interval
@@ -368,13 +556,11 @@ public class HyperBlockGeneration
     }
 
 
-    */
-/**
+    /**
      *
      * @param datapoint
      * @return
-     *//*
-
+     */
     private boolean misclassified_by_ldf(double[] datapoint)
     {
         for (int i = 0; i < DV.misclassifiedData.size(); i++)
@@ -389,18 +575,16 @@ public class HyperBlockGeneration
         return false;
     }
 
-    */
-/***
+    
+    /***
      *
      * @param low_bound
      * @param high_bound
      * @return
-     *//*
-
-    private ArrayList<ArrayList<double[]>> misclassified_by_ldf_in_range(ArrayList<Double> low_bound, ArrayList<Double> high_bound)
+     */
+    private ArrayList<ArrayList<double[]>> misclassified_by_ldf_in_range(double[] low_bound, double[] high_bound)
     {
         ArrayList<ArrayList<double[]>> in_range = new ArrayList<>();
-
         for (int i = 0; i < DV.misclassifiedData.size(); i++)
         {
             in_range.add(new ArrayList<>());
@@ -411,7 +595,7 @@ public class HyperBlockGeneration
 
                 for (int f = 0; f < DV.fieldLength; f++)
                 {
-                    if (DV.misclassifiedData.get(i).get(j)[f] > high_bound.get(f) || DV.misclassifiedData.get(i).get(j)[f] < low_bound.get(f))
+                    if (DV.misclassifiedData.get(i).get(j)[f] > high_bound[f] || DV.misclassifiedData.get(i).get(j)[f] < low_bound[f])
                     {
                         inside = false;
                         break;
@@ -427,29 +611,21 @@ public class HyperBlockGeneration
     }
 
 
-    */
-/***
+    /***
      *
      * @param data_by_attr
      * @param intr
      * @param value
      * @return
-     *//*
-
-    private int[] remove_value_from_interval(ArrayList<DataATTR> data_by_attr, int[] intr, double value)
+     */
+    private void remove_value_from_interval(ArrayList<DataATTR> data_by_attr, int[] intr, double value)
     {
         while (data_by_attr.get(intr[2]).value == value)
         {
-            if (intr[2] > 0)
+            if (intr[2] > intr[1])
             {
                 intr[0]--;
                 intr[2]--;
-            }
-            else if (intr[1] <= intr[2])
-            {
-                intr[0] = -1;
-                intr[2] = intr[1];
-                break;
             }
             else
             {
@@ -457,347 +633,38 @@ public class HyperBlockGeneration
                 break;
             }
         }
-
-        return new int[]{intr[0], intr[1], intr[2]};
     }
 
 
-    */
-/***
+    /***
      *
      * @param data_by_attr
      * @param index
      * @param value
      * @return
-     *//*
-
+     */
     private int skip_value_in_interval(ArrayList<DataATTR> data_by_attr, int index, double value)
     {
         while (data_by_attr.get(index).value == value)
         {
             if (index < data_by_attr.size() - 1)
-            {
                 index++;
-            }
             else
-            {
-                return data_by_attr.size() - 2;
-            }
+                break;
         }
 
-        return index - 1;
+        return index;
     }
 
 
-    */
-/**
-     * Finds largest interval across one dimension of a set of data while mimicking a given Linear Discriminant Function (LDF).
-     * Will ensure that datapoints classified correctly by a given LDF will also be classified correctly within the interval.
-     * @param data_by_attr all data split by attribute
-     * @param data_map map of all data
-     * @param acc_threshold accuracy threshold for interval
-     * @param existing_hb existing hyperblocks to check for overlap
-     * @param LDF_misclassified datapoints misclassified by given LDF
-     * @return largest interval
-     *//*
-
-    */
-/*private ArrayList<DataATTR> interval_hyper_rules_linear(ArrayList<ArrayList<DataATTR>> data_by_attr, HashMap<Integer, double[]> data_map, double acc_threshold, ArrayList<ArrayList<ArrayList<DataATTR>>> existing_hb,  ArrayList<double[]> LDF_misclassified)
-    {
-        // Current largest interval for each attribute
-        ArrayList<ArrayList<DataATTR>> global_largest = new ArrayList<>();
-
-        // loop through each attribute
-        for (int a = 0; a < data_by_attr.size(); a++)
-        {
-            // create empty interval and establish starting point
-            global_largest.add(new ArrayList<>());
-            int start = 0;
-            double misclassified = 0;
-
-            // create local interval to compare to global
-            ArrayList<DataATTR> local_interval = new ArrayList<>();
-
-            // loop through each datapoint
-            for (int i = 0; i < data_by_attr.get(a).size(); i++)
-            {
-                // check if case is misclassified by the LDF
-                boolean LDF_mc = false;
-
-                // check full datapoint against all datapoints misclassified by the given LDF
-                double[] full_pnt = data_map.get(data_by_attr.get(a).get(i).key);
-
-                for (double[] LDF_check : LDF_misclassified)
-                {
-                    // check if datapoint is a misclassified case
-                    if (Arrays.deepEquals(new Object[]{ LDF_check }, new Object[]{ full_pnt }))
-                    {
-                        LDF_mc = true;
-                        break;
-                    }
-                }
-
-                // add datapoint to local interval if classes are the same
-                if (data_by_attr.get(a).get(start).cl == data_by_attr.get(a).get(i).cl)
-                {
-                    local_interval.add(data_by_attr.get(a).get(i));
-
-                    // replace the global interval with the local interval if it is larger
-                    if (local_interval.size() > global_largest.get(a).size())
-                        global_largest.set(a, new ArrayList<>(local_interval));
-                }
-                else
-                {
-                    // add datapoint to local interval if accuracy is above a given threshold and the datapoint is also misclassified by the given LDF
-                    if (LDF_mc && (local_interval.size() - misclassified - 1) / (local_interval.size()) >= acc_threshold)
-                    {
-                        // increase misclassified cases within interval
-                        misclassified++;
-
-                        local_interval.add(data_by_attr.get(a).get(i));
-
-                        if (local_interval.size() > global_largest.get(a).size())
-                            global_largest.set(a, new ArrayList<>(local_interval));
-                    }
-                    else if (i >= 1)
-                    {
-                        int cnt = 0;
-                        // classes are different, but the value is still the same
-                        if (data_by_attr.get(a).get(i-1).value == data_by_attr.get(a).get(i).value)
-                        {
-                            double remove_val = data_by_attr.get(a).get(i).value;
-
-                            // increment until value changes
-                            while (remove_val == data_by_attr.get(a).get(i).value)
-                            {
-                                if (i < data_by_attr.get(a).size()-1)
-                                {
-                                    i++;
-                                    cnt++;
-                                }
-                                else
-                                    break;
-                            }
-
-                            // remove value from answer
-                            if (global_largest.get(a).size() > 0)
-                            {
-                                int offset = 0;
-                                int size = global_largest.get(a).size();
-
-                                // remove overlapped attributes
-                                for (int k = 0; k < size; k++)
-                                {
-                                    if (global_largest.get(a).get(k - offset).value == remove_val)
-                                    {
-                                        global_largest.get(a).remove(k - offset);
-                                        offset++;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                atri.set(a, -1);
-                                cls.set(a, -1);
-                            }
-                        }
-
-                        if (global_largest.get(a).size() > 0)
-                        {
-                            ArrayList<ArrayList<DataATTR>> block = new ArrayList<>();
-
-                            for (int k = 0; k < DV.fieldLength; k++)
-                                block.add(new ArrayList<>());
-
-                            for (DataATTR pnt : global_largest.get(a))
-                            {
-                                for (int k = 0; k < data_by_attr.size(); k++)
-                                {
-                                    int index = pnt.key;
-
-                                    for (int h = 0; h < data_by_attr.get(k).size(); h++)
-                                    {
-                                        if (index == data_by_attr.get(k).get(h).key)
-                                        {
-                                            // add point
-                                            block.get(k).add(new DataATTR(index, data_by_attr.get(k).get(h).value));
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            for (ArrayList<DataATTR> blk : block)
-                                blk.sort(Comparator.comparingDouble(o -> o.value));
-
-                            for (ArrayList<ArrayList<DataATTR>> tmp_pnts : hb)
-                            {
-                                // check if interval overlaps with other hyperblocks
-                                int non_unique = 0;
-
-                                for (int k = 0; k < tmp_pnts.size(); k++)
-                                {
-                                    tmp_pnts.get(k).sort(Comparator.comparingDouble(o -> o.value));
-
-                                    if (block.get(k).get(0).value >= tmp_pnts.get(k).get(0).value && block.get(k).get(0).value <= tmp_pnts.get(k).get(tmp_pnts.get(k).size() - 1).value)
-                                    {
-                                        non_unique++;
-                                    }
-                                    else if (block.get(k).get(block.get(k).size() - 1).value <= tmp_pnts.get(k).get(tmp_pnts.get(k).size() - 1).value && block.get(k).get(block.get(k).size() - 1).value >= tmp_pnts.get(k).get(0).value)
-                                    {
-                                        non_unique++;
-                                    }
-                                    else if (tmp_pnts.get(k).get(0).value >= block.get(k).get(0).value && tmp_pnts.get(k).get(0).value <= block.get(k).get(block.get(k).size() - 1).value)
-                                    {
-                                        non_unique++;
-                                    }
-                                    else if (tmp_pnts.get(k).get(tmp_pnts.get(k).size()-1).value <= block.get(k).get(block.get(k).size()-1).value && tmp_pnts.get(k).get(tmp_pnts.get(k).size()-1).value >= block.get(k).get(0).value)
-                                    {
-                                        non_unique++;
-                                    }
-                                    else
-                                        break;
-                                }
-
-                                if (non_unique == tmp_pnts.size())
-                                {
-                                    global_largest.get(a).clear();
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (data_by_attr.get(a).get(i-1-cnt).value == data_by_attr.get(a).get(i-cnt).value)
-                            start = i;
-                        else
-                        {
-                            double remove_val = data_by_attr.get(a).get(i).value;
-
-                            // increment until value changes
-                            while (remove_val == data_by_attr.get(a).get(i).value)
-                            {
-                                if (i < data_by_attr.get(a).size()-1)
-                                    i++;
-                                else
-                                    break;
-                            }
-
-                            start = i;
-                        }
-                        local_interval.clear();
-                        misclassified = 0;
-                    }
-                    else
-                    {
-                        double remove_val = data_by_attr.get(a).get(i).value;
-
-                        // increment until value changes
-                        while (remove_val == data_by_attr.get(a).get(i).value)
-                        {
-                            if (i < data_by_attr.get(a).size()-1)
-                                i++;
-                            else
-                                break;
-                        }
-
-                        start = i;
-                        local_interval.clear();
-                        misclassified = 0;
-                    }
-                }
-            }
-
-            if (global_largest.get(a).size() > 0)
-            {
-                ArrayList<ArrayList<DataATTR>> block = new ArrayList<>();
-
-                for (int k = 0; k < DV.fieldLength; k++)
-                    block.add(new ArrayList<>());
-
-                for (DataATTR pnt : global_largest.get(a))
-                {
-                    for (int k = 0; k < data_by_attr.size(); k++)
-                    {
-                        int index = pnt.key;
-
-                        for (int h = 0; h < data_by_attr.get(k).size(); h++)
-                        {
-                            if (index == data_by_attr.get(k).get(h).key)
-                            {
-                                // add point
-                                block.get(k).add(new DataATTR(index, data_by_attr.get(k).get(h).value));
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                for (ArrayList<DataATTR> blk : block)
-                    blk.sort(Comparator.comparingDouble(o -> o.value));
-
-                for (ArrayList<ArrayList<DataATTR>> tmp_pnts : hb)
-                {
-                    // check if interval overlaps with other hyperblocks
-                    int non_unique = 0;
-
-                    for (int k = 0; k < tmp_pnts.size(); k++)
-                    {
-                        tmp_pnts.get(k).sort(Comparator.comparingDouble(o -> o.value));
-
-                        // search for overlap
-                        if (block.get(k).get(0).value >= tmp_pnts.get(k).get(0).value && block.get(k).get(0).value <= tmp_pnts.get(k).get(tmp_pnts.get(k).size() - 1).value)
-                        {
-                            non_unique++;
-                        }
-                        else if (block.get(k).get(block.get(k).size() - 1).value <= tmp_pnts.get(k).get(tmp_pnts.get(k).size() - 1).value && block.get(k).get(block.get(k).size() - 1).value >= tmp_pnts.get(k).get(0).value)
-                        {
-                            non_unique++;
-                        }
-                        else if (tmp_pnts.get(k).get(0).value >= block.get(k).get(0).value && tmp_pnts.get(k).get(0).value <= block.get(k).get(block.get(k).size() - 1).value)
-                        {
-                            non_unique++;
-                        }
-                        else if (tmp_pnts.get(k).get(tmp_pnts.get(k).size()-1).value <= block.get(k).get(block.get(k).size()-1).value && tmp_pnts.get(k).get(tmp_pnts.get(k).size()-1).value >= block.get(k).get(0).value)
-                        {
-                            non_unique++;
-                        }
-                        else
-                            break;
-                    }
-
-                    if (non_unique == tmp_pnts.size())
-                    {
-                        global_largest.get(a).clear();
-                        break;
-                    }
-                }
-            }
-        }
-
-        int big = 0;
-
-        for (int i = 0; i < global_largest.size(); i++)
-        {
-            if (global_largest.get(big).size() < global_largest.get(i).size())
-                big = i;
-        }
-
-        // add attribute and class
-        global_largest.get(big).add(new DataATTR(atri.get(big), cls.get(big)));
-        return global_largest.get(big);
-    }*//*
-
-
-
-    */
-/**
+    /**
      * Checks if a given interval overlaps with any existing hyperblock.
      * @param data_by_attr data interval exists on
      * @param intv interval to check
      * @param attr attribute interval exists on
      * @param existing_hb all existing hyperblocks
      * @return whether the interval is unique or not
-     *//*
+     */
 
     private boolean check_interval_hyperblock_overlap(ArrayList<DataATTR> data_by_attr, int[] intv,  int attr, ArrayList<HyperBlock> existing_hb)
     {
@@ -825,17 +692,2339 @@ public class HyperBlockGeneration
     }
 
 
-    */
-/***
+    /***
      * Merger Hyperblock (MHyper) algorithm created by Boris Kovalerchuk and Dustin Hayes
      * Kovalerchuk B, Hayes D. Discovering Interpretable Machine Learning Models in Parallel Coordinates.
      * In 2021 25th International Conference Information Visualisation (IV) 2021 Jul 5 (pp. 181-188). IEEE, arXiv:2106.07474.
      * <a href="https://github.com/CWU-VKD-LAB/VisCanvas2.0">Code is translated from C++ from VisCanvas2.0</a>
-     * @param data
-     * @param out_data
-     *//*
+     * @param executorService threads to run
+     * @param data data to create hyperblocks from
+     * @param out_data data not classified by interval hyperblocks
+     */
+    private void merger_hyperblock(ExecutorService executorService, ArrayList<ArrayList<double[]>> data, ArrayList<ArrayList<double[]>> out_data) throws ExecutionException, InterruptedException
+    {
+        // create hollow blocks from hyperblocks
+        ArrayList<HollowBlock> merging_hbs = new ArrayList<>();
+        for (HyperBlock hyperBlock : hyper_blocks)
+        {
+            for (int j = 0; j < hyperBlock.hyper_block.size(); j++)
+                merging_hbs.add(new HollowBlock(hyperBlock.maximums.get(j), hyperBlock.minimums.get(j), hyperBlock.classNum));
+        }
 
-    private void merger_hyperblock(ArrayList<ArrayList<double[]>> data, ArrayList<ArrayList<double[]>> out_data)
+        hyper_blocks.clear();
+
+        // create seed hollow blocks
+        for (int i = 0; i < out_data.size(); i++)
+        {
+            for (int j = 0; j < out_data.get(i).size(); j++)
+                merging_hbs.add(new HollowBlock(out_data.get(i).get(j), out_data.get(i).get(j), i));
+        }
+
+        boolean actionTaken = false;
+        int cnt = merging_hbs.size();
+
+        do
+        {
+            if (actionTaken || cnt < 1)
+                cnt = merging_hbs.size();
+
+            actionTaken = false;
+
+            if (merging_hbs.isEmpty())
+                break;
+
+            int seedNum = -1;
+            for (int i = 0; i < merging_hbs.size(); i++)
+            {
+                if (merging_hbs.get(i).mergable)
+                {
+                    seedNum = i;
+                    break;
+                }
+            }
+
+            if (seedNum == -1)
+                break;
+
+            HollowBlock seed_hb = merging_hbs.get(seedNum);
+            merging_hbs.remove(seedNum);
+
+            long startTime = System.currentTimeMillis();
+
+            List<Future<Boolean>> futureActions = new ArrayList<>();
+            ConcurrentLinkedQueue<double[][]> pointsToAdd = new ConcurrentLinkedQueue<>();
+            AtomicIntegerArray toBeDeleted = new AtomicIntegerArray(merging_hbs.size());
+            for (int i = 0; i < merging_hbs.size(); i++)
+            {
+                if (seed_hb.classNum == merging_hbs.get(i).classNum)
+                {
+                    // create callable to get merge result
+                    int finalI = i;
+                    Callable<Boolean> task = () -> merger_helper1(merging_hbs.get(finalI), seed_hb, finalI, data, toBeDeleted, pointsToAdd);
+
+                    // execute task
+                    Future<Boolean> future = executorService.submit(task);
+                    futureActions.add(future);
+                }
+            }
+
+            // wait for results then check if any action was taken
+            for (Future<Boolean> future : futureActions)
+            {
+                if (future.get())
+                    actionTaken = true;
+            }
+
+            long endTime = System.currentTimeMillis();
+            long executionTime = endTime - startTime;
+
+
+
+            // delete hyperblocks in reverse
+            for (int i = toBeDeleted.length() - 1; i >= 0; i--)
+            {
+                if (toBeDeleted.get(i) == 1)
+                    merging_hbs.remove(i);
+            }
+
+            // add successfully combined hyperblocks
+            for (double[][] points : pointsToAdd)
+            {
+                HollowBlock hb = new HollowBlock(points[0], points[1], seed_hb.classNum);
+                merging_hbs.add(hb);
+            }
+
+            if (!actionTaken)
+            {
+                seed_hb.mergable = false;
+                merging_hbs.add(seed_hb);
+            }
+
+            System.out.println("Cnt: " + cnt);
+            System.out.println("HB num: " + merging_hbs.size());
+            System.out.println("Check time: " + executionTime + " milliseconds");
+
+            cnt--;
+
+        } while (actionTaken || cnt > 0);
+
+        // reset mergable hollow blocks and find impure blocks
+        cnt = merging_hbs.size();
+        for (HollowBlock hollowBlock : merging_hbs)
+        {
+            if (!hollowBlock.mergable)
+                hollowBlock.mergable = true;
+        }
+
+        do
+         {
+             if (actionTaken || cnt < 1)
+                cnt = merging_hbs.size();
+
+             actionTaken = false;
+
+             if (merging_hbs.isEmpty())
+                break;
+
+             int seedNum = -1;
+             for (int i = 0; i < merging_hbs.size(); i++)
+             {
+                 if (merging_hbs.get(i).mergable)
+                 {
+                     seedNum = i;
+                     break;
+                 }
+             }
+
+             if (seedNum == -1)
+                 break;
+
+            HollowBlock seed_hb = merging_hbs.get(seedNum);
+            merging_hbs.remove(seedNum);
+
+            long startTime = System.currentTimeMillis();
+
+            ArrayList<Double> acc = new ArrayList<>();
+            List<Future<Double>> futuresAccuracies = new ArrayList<>();
+            ArrayList<Integer> toBeDeleted = new ArrayList<>();
+            for (HollowBlock merging_hb : merging_hbs)
+            {
+                // create callable to get merge result
+                Callable<Double> task = () -> merger_helper2(merging_hb, seed_hb, data);
+
+                // execute task
+                Future<Double> future = executorService.submit(task);
+                futuresAccuracies.add(future);
+            }
+
+             // wait for results then check if any action was taken
+             for (Future<Double> future : futuresAccuracies)
+                 acc.add(future.get());
+
+            int highestAccIndex = 0;
+            for (int j = 0; j < acc.size(); j++)
+            {
+                if (acc.get(j) > acc.get(highestAccIndex))
+                    highestAccIndex = j;
+            }
+
+            // if acc meets threshold
+            if (acc.get(highestAccIndex) >= acc_threshold)
+            {
+                actionTaken = true;
+
+                double[] maxPoint = new double[DV.fieldLength];
+                double[] minPoint = new double[DV.fieldLength];
+
+                // define combined space
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    double newLocalMax = Math.max(seed_hb.maximums[j], merging_hbs.get(highestAccIndex).maximums[j]);
+                    double newLocalMin = Math.min(seed_hb.minimums[j], merging_hbs.get(highestAccIndex).minimums[j]);
+
+                    maxPoint[j] = newLocalMax;
+                    minPoint[j] = newLocalMin;
+                }
+
+                int totalPointsInSpace = 0;
+                int pointsInSeedSpace = 0;
+                for (int i = 0; i < data.size(); i++)
+                {
+                    for (double[] doubles : data.get(i))
+                    {
+                        boolean withinSpace = true;
+                        double[] tmp_pnt = new double[DV.fieldLength];
+
+                        for (int w = 0; w < DV.fieldLength; w++)
+                        {
+                            tmp_pnt[w] = doubles[w];
+                            if (!(tmp_pnt[w] <= maxPoint[w] && tmp_pnt[w] >= minPoint[w]))
+                            {
+                                withinSpace = false;
+                                break;
+                            }
+                        }
+
+                        if (withinSpace)
+                        {
+                            totalPointsInSpace++;
+                            if (seed_hb.classNum == i)
+                                pointsInSeedSpace++;
+                        }
+                    }
+                }
+
+                int cls = (double) pointsInSeedSpace / totalPointsInSpace > 0.5 ? seed_hb.classNum : merging_hbs.get(highestAccIndex).classNum;
+                HollowBlock hb = new HollowBlock(maxPoint, minPoint, cls);
+                merging_hbs.add(hb);
+
+                // store this index to delete the cube that was combined
+                toBeDeleted.add(highestAccIndex);
+            }
+
+             long endTime = System.currentTimeMillis();
+             long executionTime = endTime - startTime;
+
+            toBeDeleted.sort(Collections.reverseOrder());
+            for (int i = 0; i < toBeDeleted.size(); i++)
+                merging_hbs.remove(i);
+
+             if (!actionTaken)
+                 seed_hb.mergable = false;
+
+            merging_hbs.add(seed_hb);
+
+             System.out.println("2nd Cnt: " + cnt);
+             System.out.println("2nd HB num: " + merging_hbs.size());
+             System.out.println("2nd Check time: " + executionTime + " milliseconds");
+
+            cnt--;
+
+            } while (actionTaken || cnt > 0);
+
+            // create hyperblocks from mergine blocks
+            for (HollowBlock mergingHb : merging_hbs)
+                hyper_blocks.add(new HyperBlock(mergingHb.maximums, mergingHb.minimums, mergingHb.classNum));
+    }
+
+
+    public static double[][] findMaxDistance(ConcurrentLinkedQueue<double[][]> boundsList) {
+        double maxDistance = -1;
+        double[][] maxDistanceBounds = new double[3][];
+
+        int cnt = 0;
+        for (double[][] bounds : boundsList) {
+            double[] upperBounds = bounds[0];
+            double[] lowerBounds = bounds[1];
+            double distance = calculateSpace(lowerBounds, upperBounds);
+
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                maxDistanceBounds[0] = bounds[0];
+                maxDistanceBounds[1] = bounds[1];
+                maxDistanceBounds[2] = new double[]{cnt};
+            }
+
+            cnt++;
+        }
+
+        return maxDistanceBounds;
+    }
+
+
+    private static double calculateSpace(double[] lowerBounds, double[] upperBounds) {
+        double sum = 0;
+        for (int i = 0; i < lowerBounds.length; i++) {
+            double diff = upperBounds[i] - lowerBounds[i];
+            sum += diff;
+        }
+        return sum;
+    }
+
+
+    private int[] get_interval_start(ArrayList<ArrayList<double[]>> data, double min)
+    {
+        int[] start = new int[data.size()];
+        for (int i = 0; i < data.size(); i++)
+        {
+            for (int j = 0; j < data.get(i).size(); j++)
+            {
+                if (data.get(i).get(j)[best_attribute] >= min)
+                {
+                    start[i] = j;
+                    break;
+                }
+            }
+        }
+
+        return start;
+    }
+
+
+    private int[] get_interval_end(ArrayList<ArrayList<double[]>> data, double max)
+    {
+        int[] end = new int[data.size()];
+        for (int i = 0; i < data.size(); i++)
+        {
+            for (int j = data.get(i).size() - 1; j >= 0; j--)
+            {
+                if (data.get(i).get(j)[best_attribute] <= max)
+                {
+                    end[i] = j;
+                    break;
+                }
+            }
+        }
+
+        return end;
+    }
+
+
+    private boolean merger_helper1(HollowBlock merging_hb, HollowBlock seed_hb, int i, ArrayList<ArrayList<double[]>> data, AtomicIntegerArray toBeDeleted, ConcurrentLinkedQueue<double[][]> pointsToAdd)
+    {
+        double[] maxPoint = new double[DV.fieldLength];
+        double[] minPoint = new double[DV.fieldLength];
+
+        // define combined space
+        for (int j = 0; j < DV.fieldLength; j++)
+        {
+            double newLocalMax = Math.max(seed_hb.maximums[j], merging_hb.maximums[j]);
+            double newLocalMin = Math.min(seed_hb.minimums[j], merging_hb.minimums[j]);
+
+            maxPoint[j] = newLocalMax;
+            minPoint[j] = newLocalMin;
+        }
+
+        // get start and end of interval
+        int[] start = get_interval_start(data, minPoint[best_attribute]);//new int[]{0, 0};
+        int[] end = get_interval_end(data, maxPoint[best_attribute]);//new int[]{data.get(0).size()-1, data.get(1).size()-1};
+
+        //System.out.println("Start: " + Arrays.toString(start));
+        //System.out.println("End: " + Arrays.toString(end));
+
+        ArrayList<Integer> classInSpace = new ArrayList<>();
+        for (int j = 0; j < data.size(); j++)
+        {
+            for (int k = start[j]; k < end[j]; k++)
+            {
+                boolean withinSpace = true;
+                double[] tmp_pnt = new double[DV.fieldLength];
+                for (int w = 0; w < DV.fieldLength; w++)
+                {
+                    tmp_pnt[w] = data.get(j).get(k)[w];
+                    if (!(tmp_pnt[w] <= maxPoint[w] && tmp_pnt[w] >= minPoint[w]))
+                    {
+                        withinSpace = false;
+                        break;
+                    }
+                }
+
+                if (withinSpace)
+                    classInSpace.add(j);
+            }
+        }
+
+        // check if new space is pure
+        HashSet<Integer> classCnt = new HashSet<>(classInSpace);
+        if (classCnt.size() <= 1)
+        {
+            pointsToAdd.add(new double[][]{maxPoint, minPoint});
+            toBeDeleted.set(i, 1);
+            return true;
+        }
+        else
+            return false;
+    }
+
+
+    private double merger_helper2(HollowBlock merging_hb, HollowBlock seed_hb, ArrayList<ArrayList<double[]>> data)
+    {
+        double[] maxPoint = new double[DV.fieldLength];
+        double[] minPoint = new double[DV.fieldLength];
+
+        // define combined space
+        for (int j = 0; j < DV.fieldLength; j++)
+        {
+            double newLocalMax = Math.max(seed_hb.maximums[j], merging_hb.maximums[j]);
+            double newLocalMin = Math.min(seed_hb.minimums[j], merging_hb.minimums[j]);
+
+            maxPoint[j] = newLocalMax;
+            minPoint[j] = newLocalMin;
+        }
+
+        ArrayList<Integer> classInSpace = new ArrayList<>();
+        ArrayList<ArrayList<double[]>> pointsInSpace = new ArrayList<>();
+
+        for (int j = 0; j < data.size(); j++)
+        {
+            pointsInSpace.add(new ArrayList<>());
+            for (int k = 0; k < data.get(j).size(); k++)
+            {
+                boolean withinSpace = true;
+                double[] tmp_pnt = new double[DV.fieldLength];
+
+                for (int w = 0; w < DV.fieldLength; w++)
+                {
+                    tmp_pnt[w] = data.get(j).get(k)[w];
+
+                    if (!(tmp_pnt[w] <= maxPoint[w] && tmp_pnt[w] >= minPoint[w]))
+                    {
+                        withinSpace = false;
+                        break;
+                    }
+                }
+
+                if (withinSpace)
+                {
+                    classInSpace.add(j);
+                    pointsInSpace.get(j).add(tmp_pnt);
+                }
+            }
+        }
+
+        if (!classInSpace.isEmpty())
+        {
+            // check if new space is pure enough
+            HashMap<Integer, Integer> classCnt = new HashMap<>();
+            for (int ints : classInSpace)
+            {
+                if (classCnt.containsKey(ints))
+                    classCnt.replace(ints, classCnt.get(ints) + 1);
+                else
+                    classCnt.put(ints, 1);
+            }
+
+            int majorityClass = classInSpace.get(0);
+            for (int key : classCnt.keySet())
+            {
+                if (classCnt.get(key) > classCnt.get(majorityClass))
+                    majorityClass = key;
+            }
+
+            double curClassTotal = 0;
+            double classTotal = 0;
+
+            for (int key : classCnt.keySet())
+            {
+                if (key == majorityClass)
+                    curClassTotal = classCnt.get(key);
+
+                classTotal += classCnt.get(key);
+            }
+
+            double cur_acc = curClassTotal / classTotal;
+
+            // check if a point misclassified by the LDF lies in the new space
+            if (explain_ldf)
+            {
+                // collect misclassified data within range
+                ArrayList<ArrayList<double[]>> mis_in_range = misclassified_by_ldf_in_range(minPoint, maxPoint);
+
+                // ensure that data classified correctly by LDF is also correct in HB
+                // only check data not in majority (not classified correctly)
+                for (int i = 0; i < pointsInSpace.size(); i++)
+                {
+                    if (i != majorityClass)
+                    {
+                        for (int j = 0; j < pointsInSpace.get(i).size(); j++)
+                        {
+                            boolean misclassified_by_both = false;
+
+                            for (int k = 0; k < mis_in_range.get(i).size(); k++)
+                            {
+                                if (Arrays.equals(pointsInSpace.get(i).get(j), mis_in_range.get(i).get(k)))
+                                {
+                                    misclassified_by_both = true;
+                                    break;
+                                }
+                            }
+
+                            if (!misclassified_by_both)
+                            {
+                                cur_acc = -1;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (cur_acc == -1)
+                        break;
+                }
+            }
+
+            return cur_acc;
+        }
+        else
+            return -1;
+    }
+
+
+    static class HBComparator implements Comparator<HyperBlock>
+    {
+        // Gives largest Hyperblock
+        public int compare(HyperBlock b1, HyperBlock b2)
+        {
+            int b1_size = 0;
+            int b2_size = 0;
+
+            for (int i = 0; i < b1.hyper_block.size(); i++)
+                b1_size += b1.hyper_block.get(i).size();
+
+            for (int i = 0; i < b2.hyper_block.size(); i++)
+                b2_size += b2.hyper_block.get(i).size();
+
+            return Integer.compare(b2_size, b1_size);
+        }
+    }
+
+
+    /**
+     * Generalizes Hyperblocks
+     */
+    public void increase_level()
+    {
+        data.clear();
+
+        // create dataset
+        ArrayList<ArrayList<double[]>> tmpData = new ArrayList<>();
+        for (int i = 0; i < DV.classNumber; i++)
+            tmpData.add(new ArrayList<>());
+
+        // Create a HashSet to track unique data points
+        HashSet<String> uniqueDataPoints = new HashSet<>();
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            ArrayList<double[]> envelope = find_envelope_cases(i);
+            for (double[] doubles : envelope)
+            {
+                // Convert the data point to a string to check for uniqueness
+                String dataPointStr = Arrays.toString(doubles);
+                if (!uniqueDataPoints.contains(dataPointStr))
+                {
+                    uniqueDataPoints.add(dataPointStr);
+                    tmpData.get(hyper_blocks.get(i).classNum).add(doubles);
+                }
+            }
+        }
+
+        misclassified.clear();
+        accuracy.clear();
+
+        for (int i = 0; i < tmpData.size(); i++)
+        {
+            double[][] newData = new double[tmpData.get(i).size()][DV.fieldLength];
+            tmpData.get(i).toArray(newData);
+            DataObject newObj = new DataObject(DV.trainData.get(i).className, newData);
+            newObj.updateCoordinatesGLC(DV.angles);
+            data.add(newObj);
+        }
+
+        generateHBs(true);
+        HB_analytics();
+
+        // visualize hyperblocks
+        if (!hyper_blocks.isEmpty())
+            getPlot();
+
+        System.out.println("INCREASE LEVEL COMPLETE");
+    }
+
+    private void getOverlapData()
+    {
+        data = new ArrayList<>();
+
+        // create DataObjects of overlapping points
+        ArrayList<DataObject> noOverlap = new ArrayList<>(List.of(
+                new DataObject("upper", Analytics.convertArrayListToDoubleArray(Analytics.upper)),
+                new DataObject("lower", Analytics.convertArrayListToDoubleArray(Analytics.lower))
+        ));
+
+        data.addAll(noOverlap);
+    }
+
+    private void getNonOverlapData()
+    {
+
+    }
+
+    private void getData()
+    {
+        // get classes to be graphed
+        data = new ArrayList<>();
+        data.addAll(DV.trainData);
+    }
+    
+    
+    /**
+     *                          *
+     * ------------------------ *
+     * VISUALIZATION FUNCTIONS  *
+     * ------------------------ *
+     *                          *
+     */
+
+    /**
+     * Create GUI for hyperblock visualization
+     */
+    private void HB_GUI()
+    {
+        JFrame mainFrame = new JFrame();
+        mainFrame.setLayout(new BorderLayout());
+
+        // create toolbar
+        mainFrame.add(createToolBar(), BorderLayout.PAGE_START);
+
+        // create graph panel
+        mainFrame.add(createGraphPanel(), BorderLayout.CENTER);
+
+        // create navigation panel
+        createNavPanel();
+        mainFrame.add(navPanel, BorderLayout.PAGE_END);
+
+        mainFrame.setMinimumSize(new Dimension(DV.minSize[0], DV.minSize[1]));
+
+        // show
+        mainFrame.setVisible(true);
+        mainFrame.revalidate();
+        mainFrame.pack();
+        mainFrame.repaint();
+    }
+
+
+    /**
+     * Create a toolbar for the hyperblock GUI
+     * @return toolbar
+     */
+    private JToolBar createToolBar()
+    {
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        toolBar.setRollover(true);
+
+        // GLC-L plot options
+        JLabel plots = new JLabel("Plot Options: ");
+        ButtonGroup plotBtns = new ButtonGroup();
+        plots.setFont(plots.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(plots);
+        toolBar.addSeparator();
+
+        PC = new JRadioButton("PC", true);
+        PC.addActionListener(pce ->
+        {
+            plot_id = 0;
+            updateGraphs();
+        });
+        toolBar.add(PC);
+        plotBtns.add(PC);
+        toolBar.addSeparator();
+
+        GLCL = new JRadioButton("GLC-L", false);
+        GLCL.addActionListener(pce ->
+        {
+            plot_id = 1;
+            updateGraphs();
+        });
+        toolBar.add(GLCL);
+        plotBtns.add(GLCL);
+        toolBar.addSeparator();
+
+        SPC = new JRadioButton("SPC-1B", false);
+        SPC.addActionListener(pce ->
+        {
+            plot_id = 2;
+            updateGraphs();
+        });
+        toolBar.add(SPC);
+        plotBtns.add(SPC);
+        toolBar.addSeparator();
+
+        PC_cross = new JRadioButton("PC-2n", false);
+        PC_cross.addActionListener(pcce ->
+        {
+            plot_id = 3;
+            updateGraphs();
+        });
+        toolBar.add(PC_cross);
+        plotBtns.add(PC_cross);
+        toolBar.addSeparator();
+
+        SPC_less = new JRadioButton("SPC-2B", false);
+        SPC_less.addActionListener(spcle ->
+        {
+            plot_id = 4;
+            updateGraphs();
+        });
+        toolBar.add(SPC_less);
+        plotBtns.add(SPC_less);
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+
+        JLabel views = new JLabel("View Options: ");
+        ButtonGroup viewBtns = new ButtonGroup();
+        views.setFont(views.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(views);
+        toolBar.addSeparator();
+
+        individualView = new JRadioButton("Individual Hyperblocks", true);
+        individualView.setToolTipText("View all hyperblocks separately.");
+        individualView.addActionListener(e ->
+        {
+            // set left and right buttons
+            navPanel.removeAll();
+            navPanel.add(left);
+            navPanel.add(right);
+
+            if (visualized_block > hyper_blocks.size() - 1)
+                visualized_block = 0;
+
+            getPlot();
+        });
+        toolBar.add(individualView);
+        viewBtns.add(individualView);
+        toolBar.addSeparator();
+
+        completeView = new JRadioButton("All Blocks");
+        completeView.setToolTipText("View all hyperblocks.");
+        completeView.addActionListener(e ->
+        {
+            // remove left and right buttons
+            navPanel.removeAll();
+            getPlot();
+        });
+        toolBar.add(completeView);
+        viewBtns.add(completeView);
+        toolBar.addSeparator();
+
+        combinedClassView = new JRadioButton("Class Combined Blocks");
+        combinedClassView.setToolTipText("View all hyperblocks with hyperblocks of the same class combined.");
+        combinedClassView.addActionListener(e ->
+        {
+            navPanel.removeAll();
+            getPlot();
+        });
+        toolBar.add(combinedClassView);
+        viewBtns.add(combinedClassView);
+        toolBar.addSeparator();
+
+        combinedView = new JRadioButton("Combined Blocks");
+        combinedView.setToolTipText("View all hyperblocks combined.");
+        combinedView.addActionListener(e ->
+        {
+            navPanel.removeAll();
+            getPlot();
+        });
+        toolBar.add(combinedView);
+        viewBtns.add(combinedView);
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+
+        JLabel blockType = new JLabel("Hyperblock Options: ");
+        ButtonGroup dataBtns = new ButtonGroup();
+        blockType.setFont(blockType.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(blockType);
+        toolBar.addSeparator();
+
+        // default blocks
+        JRadioButton defaultBlocksBtn = new JRadioButton("Default Blocks", true);
+        defaultBlocksBtn.setToolTipText("Rebuild blocks using all data.");
+        defaultBlocksBtn.addActionListener(e ->
+        {
+            getData();
+            updateGraphs();
+        });
+        toolBar.add(defaultBlocksBtn);
+        dataBtns.add(defaultBlocksBtn);
+        toolBar.addSeparator();
+
+        // overlap blocks
+        JRadioButton overlapBlocksBtn = new JRadioButton("Overlap Blocks");
+        overlapBlocksBtn.setToolTipText("Rebuild blocks using only data in the overlap area.");
+        overlapBlocksBtn.addActionListener(e ->
+        {
+            getOverlapData();
+            updateGraphs();
+        });
+        toolBar.add(overlapBlocksBtn);
+        dataBtns.add(overlapBlocksBtn);
+        toolBar.addSeparator();
+
+        // non-overlap blocks
+        JRadioButton nonOverlapBlocksBtn = new JRadioButton("Non-Overlap Blocks");
+        nonOverlapBlocksBtn.setToolTipText("Rebuild blocks using only data not in the overlap area.");
+        nonOverlapBlocksBtn.addActionListener(e ->
+        {
+            getNonOverlapData();
+            updateGraphs();
+        });
+        toolBar.add(nonOverlapBlocksBtn);
+        dataBtns.add(nonOverlapBlocksBtn);
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+
+        JLabel dataView = new JLabel("Data View Options: ");
+        ButtonGroup dataVisBtns = new ButtonGroup();
+        dataView.setFont(dataView.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(dataView);
+        toolBar.addSeparator();
+
+        visualizeWithin = new JRadioButton("Within Block", true);
+        visualizeWithin.setToolTipText("Only Visualize Datapoints Within Block");
+        visualizeWithin.addActionListener(al -> updateGraphs());
+        toolBar.add(visualizeWithin);
+        dataVisBtns.add(visualizeWithin);
+        toolBar.addSeparator();
+
+        visualizeAll = new JRadioButton("All Data", false);
+        visualizeAll.setToolTipText("Visualize All Datapoints");
+        visualizeAll.addActionListener(al -> updateGraphs());
+        toolBar.add(visualizeAll);
+        dataVisBtns.add(visualizeAll);
+        toolBar.addSeparator();
+
+        visualizeOutline = new JRadioButton("Outline Block", false);
+        visualizeOutline.setToolTipText("Only Visualize Outline of Block");
+        visualizeOutline.addActionListener(al -> updateGraphs());
+        toolBar.add(visualizeOutline);
+        dataVisBtns.add(visualizeOutline);
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+        toolBar.addSeparator();
+
+        // HB level
+        JLabel lvlView = new JLabel("HB Level: ");
+        lvlView.setFont(lvlView.getFont().deriveFont(Font.BOLD, 12f));
+        toolBar.add(lvlView);
+
+        hb_lvl = new JSpinner(new SpinnerNumberModel(1, 1, 3, 1));
+        hb_lvl.setEditor(new JSpinner.NumberEditor(hb_lvl, "0"));
+        hb_lvl.addChangeListener(hbe ->
+        {
+            if ((Integer) hb_lvl.getValue() == 2 || (Integer) hb_lvl.getValue() == 3)
+            {
+                increase_level();
+                updateGraphs();
+            }
+        });
+        toolBar.add(hb_lvl);
+        toolBar.addSeparator();
+
+        // test HBs
+        JButton HB_test = new JButton("Test HBs");
+        HB_test.addActionListener(e -> test_HBs());
+        //toolBar.add(HB_test);
+
+        JButton HB_extra = new JButton("Remove Extra");
+        HB_extra.addActionListener(e ->
+        {
+            remove_extra = !remove_extra;
+            updateGraphs();
+        });
+        //toolBar.add(HB_extra);
+
+        return toolBar;
+    }
+
+
+    /**
+     * Create a navigation panel for the hyperblock GUI
+     */
+    private void createNavPanel()
+    {
+        // set initial description
+        graphLabel.setText(HB_desc(visualized_block));
+
+        // left and right hyperblock navigation buttons
+        left = new JButton("Previous Block");
+        left.addActionListener(e ->
+        {
+            visualized_block--;
+            if (visualized_block < 0)
+                visualized_block = hyper_blocks.size() - 1;
+
+            graphLabel.setText(HB_desc(visualized_block));
+            updateGraphs();
+        });
+
+        right = new JButton("Next Block");
+        right.addActionListener(e ->
+        {
+            visualized_block++;
+            if (visualized_block > hyper_blocks.size() - 1)
+                visualized_block = 0;
+
+            graphLabel.setText(HB_desc(visualized_block));
+            updateGraphs();
+        });
+
+        navPanel = new JPanel();
+        navPanel.setLayout(new GridLayout(1, 2));
+        navPanel.add(left);
+        navPanel.add(right);
+    }
+
+
+    /**
+     * Create a graph panel with a description for the hyperblock GUI
+     * @return graph panel and graph label panel
+     */
+    private JPanel createGraphPanel()
+    {
+        // visualization panel and label
+        graphPanel = new JPanel();
+        graphPanel.setLayout(new BoxLayout(graphPanel, BoxLayout.PAGE_AXIS));
+
+        graphLabel = new JLabel("");
+        graphLabel.setFont(graphLabel.getFont().deriveFont(20f));
+
+        // create panel with graph and graph label
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridBagLayout());
+
+        GridBagConstraints c = new GridBagConstraints();
+        c.weightx = 1;
+        c.weighty = 1;
+        c.fill = GridBagConstraints.BOTH;
+        c.ipady = 10;
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridwidth = 2;
+        panel.add(graphPanel, c);
+
+        c.gridy = 1;
+        c.weighty = 0;
+        panel.add(graphLabel, c);
+
+        // get colors
+        getGraphColors();
+
+        return panel;
+    }
+
+
+    /**
+     * Get colors for the hyperblock visualization
+     */
+    private void getGraphColors()
+    {
+        graphColors = new Color[DV.classNumber];
+        for (int i = 0; i < DV.classNumber; i++)
+        {
+            if (i == 0)
+                graphColors[i] = Color.GREEN;
+            else if (i == 1)
+                graphColors[i] = Color.RED;
+            else if (i == 2)
+                graphColors[i] = Color.BLUE;
+            else if (i == 3)
+                graphColors[i] = Color.MAGENTA;
+            else if (i == 4)
+                graphColors[i] = Color.BLACK;
+            else if (i == 5)
+                graphColors[i] = Color.GRAY;
+            else if (i == 6)
+                graphColors[i] = Color.CYAN;
+            else if (i == 7)
+                graphColors[i] = Color.PINK;
+            else
+            {
+                float r = (float) Math.random();
+                float g = (float) Math.random();
+                float b = (float) Math.random();
+                graphColors[i] = new Color(r, g, b);
+            }
+        }
+    }
+
+
+    /**
+     * Selects plot to visualize hyperblocks
+     */
+    private void getPlot()
+    {
+        graphPanel.removeAll();
+
+        // get new visuilization
+        switch (plot_id)
+        {
+            case 0 ->
+            { // PC
+                if (individualView.isSelected())
+                {
+                    graphPanel.add(PC_HB(data, visualized_block));
+                }
+                else if (completeView.isSelected())
+                {
+                    graphPanel.add(PC_HBs(data));
+                }
+                else if (combinedClassView.isSelected())
+                {
+                }
+                else if (combinedView.isSelected())
+                {
+                }
+            }
+            case 1 ->
+            { // GLC-L
+                if (individualView.isSelected())
+                {
+                    graphPanel.add(GLC_L_HB(data, visualized_block));
+                }
+                else if (completeView.isSelected())
+                {
+                }
+                else if (combinedClassView.isSelected())
+                {
+                }
+                else if (combinedView.isSelected())
+                {
+                }
+            }
+            case 2 ->
+            { // SPC
+                if (individualView.isSelected())
+                {
+                }
+                else if (completeView.isSelected())
+                {
+                }
+                else if (combinedClassView.isSelected())
+                {
+                }
+                else if (combinedView.isSelected())
+                {
+                }
+            }
+            case 3 ->
+            { // PC cross
+                if (individualView.isSelected())
+                {
+                }
+                else if (completeView.isSelected())
+                {
+                }
+                else if (combinedClassView.isSelected())
+                {
+                }
+                else if (combinedView.isSelected())
+                {
+                }
+            }
+            case 4 ->
+            { // SPC reduced
+                if (individualView.isSelected())
+                {
+                }
+                else if (completeView.isSelected())
+                {
+                }
+                else if (combinedClassView.isSelected())
+                {
+                }
+                else if (combinedView.isSelected())
+                {
+                }
+            }
+        }
+
+        // show new visualization
+        graphPanel.revalidate();
+        graphPanel.repaint();
+    }
+
+    private String HB_desc(int block)
+    {
+        StringBuilder rule = new StringBuilder("<b>Rule:</b> if ");
+        if (DV.fieldLength < 50)
+        {
+            for (int i = 0; i < DV.fieldLength; i++)
+            {
+                if (hyper_blocks.get(block).maximums.get(0)[i] > 0)
+                {
+                    rule.append(String.format("%.2f &le; X%d &le; %.2f", hyper_blocks.get(block).minimums.get(0)[i], i, hyper_blocks.get(block).maximums.get(0)[i]));
+
+                    if (i != DV.fieldLength - 1)
+                        rule.append(", ");
+                    else
+                        rule.append(", then class ").append(DV.uniqueClasses.get(hyper_blocks.get(block).classNum));
+                }
+            }
+        }
+        else
+        {
+            rule = new StringBuilder("<b>Rule:</b> N/A");
+        }
+
+        String desc = "<html><b>Block:</b> " + (block + 1) + "/" + hyper_blocks.size() + "<br/>";
+        desc += "<b>Class:</b> " + DV.uniqueClasses.get(hyper_blocks.get(block).classNum) + "<br/>";
+        desc += "<b>Datapoints:</b> " + hyper_blocks.get(block).size + " (" + misclassified.get(block) + " misclassified)" + "<br/>";
+        desc += "<b>Accuracy:</b> " + (Math.round(accuracy.get(block) * 10000) / 100.0) + "%<br/>";
+        desc += rule;
+        desc += "</html>";
+
+        return desc;
+    }
+
+    private void updateGraphs()
+    {
+        if (individualView.isSelected())
+            individualView.doClick();
+        else if (completeView.isSelected())
+            completeView.doClick();
+        else if (combinedClassView.isSelected())
+            combinedClassView.doClick();
+        else
+            combinedView.doClick();
+    }
+
+
+    /**
+     * MAYBE ABSTRACT LOOPS TO ADD DATA LATER
+     */
+
+    /**
+     * Create a PC visualization for a single hyperblock
+     * @param datum data to visualize
+     * @param visualized_block hyperblock to visualize
+     * @return panel with PC visualization
+     */
+    private ChartPanel PC_HB(ArrayList<DataObject> datum, int visualized_block)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        // average renderer and dataset
+        XYLineAndShapeRenderer avgRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection avgLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        // create different strokes for each HB within a combined HB
+        BasicStroke[] strokes = createStrokes(visualized_block);
+
+        int lineCnt = 0;
+        for (int d = 0; d < datum.size(); d++)
+        {
+            for (int i = 0; i < datum.get(d).data.length; i++)
+            {
+                // start line at (0, 0)
+                XYSeries line = new XYSeries(lineCnt, false, true);
+                boolean within = false;
+                int within_block = 0;
+
+                for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                {
+                    if (inside_HB(visualized_block, k, datum.get(d).data[i]))
+                    {
+                        within_block = k;
+                        within = true;
+                    }
+                }
+
+                // add points to lines
+                int off = 0;
+                for (int j = 0; j < DV.fieldLength; j++)
+                    if (remove_extra && hyper_blocks.get(visualized_block).minimums.get(0)[j] != 0.5 && hyper_blocks.get(visualized_block).maximums.get(0)[j] != 0.5)
+                    {
+                        line.add(off, datum.get(d).data[i][j]);
+                        off++;
+                    }
+                    else if (!remove_extra)
+                        line.add(j, datum.get(d).data[i][j]);
+
+                // add endpoint and timeline
+                if (visualizeWithin.isSelected() && within)
+                {
+                    // add series
+                    if (d == hyper_blocks.get(visualized_block).classNum)
+                    {
+                        goodGraphLines.addSeries(line);
+                        goodLineRenderer.setSeriesPaint(lineCnt, graphColors[d]);
+                        goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                    }
+                    else
+                    {
+                        badGraphLines.addSeries(line);
+                        badLineRenderer.setSeriesPaint(lineCnt, graphColors[d]);
+                        badLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                    }
+
+                    lineCnt++;
+                }
+                else if (visualizeAll.isSelected())
+                {
+                    // add series
+                    goodGraphLines.addSeries(line);
+                    goodLineRenderer.setSeriesPaint(lineCnt, graphColors[d]);
+                    goodLineRenderer.setSeriesStroke(lineCnt, strokes[within_block]);
+                    lineCnt++;
+                }
+            }
+        }
+
+        // populate average series
+        for (int k = 0; k < average_case.get(visualized_block).size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                XYSeries line = new XYSeries(k, false, true);
+                int off = 0;
+                for (int i = 0; i < average_case.get(visualized_block).get(k).length; i++)
+                    if (remove_extra && hyper_blocks.get(visualized_block).minimums.get(0)[i] != 0.5 && hyper_blocks.get(visualized_block).maximums.get(0)[i] != 0.5)
+                    {
+                        line.add(off, average_case.get(visualized_block).get(k)[i]);
+                        off++;
+                    }
+                    else if (!remove_extra)
+                        line.add(i, average_case.get(visualized_block).get(k)[i]);
+
+                avgLines.addSeries(line);
+                avgRenderer.setSeriesPaint(k, Color.BLACK);
+            }
+        }
+
+        // add hyperblocks
+        for (int k = 0, offset = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                XYSeries tmp1 = new XYSeries(k-offset, false, true);
+                XYSeries tmp2 = new XYSeries(k-offset, false, true);
+                int cnt = 0;
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    if (remove_extra && hyper_blocks.get(visualized_block).minimums.get(0)[j] != 0.5 && hyper_blocks.get(visualized_block).maximums.get(0)[j] != 0.5)
+                    {
+                        tmp1.add(cnt, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        tmp2.add(cnt, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        cnt++;
+                    }
+                    else if (!remove_extra)
+                    {
+                        tmp1.add(j, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    }
+                }
+
+                for (int j = DV.fieldLength - 1; j > -1; j--)
+                {
+                    if (remove_extra && hyper_blocks.get(visualized_block).minimums.get(0)[j] != 0.5 && hyper_blocks.get(visualized_block).maximums.get(0)[j] != 0.5)
+                    {
+                        tmp1.add(cnt, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        tmp2.add(cnt, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        cnt--;
+                    }
+                    else if (!remove_extra)
+                    {
+                        tmp1.add(j, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                    }
+                }
+
+                tmp1.add(0, hyper_blocks.get(visualized_block).minimums.get(k)[0]);
+                tmp2.add(0, hyper_blocks.get(visualized_block).minimums.get(k)[0]);
+
+                pcBlockRenderer.setSeriesPaint(k-offset, Color.ORANGE);
+                pcBlockAreaRenderer.setSeriesPaint(k-offset, new Color(255, 200, 0, 20));
+                pcBlockRenderer.setSeriesStroke(k, strokes[k]);
+
+                pcBlocks.addSeries(tmp1);
+                pcBlocksArea.addSeries(tmp2);
+            }
+            else
+                offset++;
+        }
+
+        // create chart and plot
+        JFreeChart pcChart = ChartsAndPlots.createChart(goodGraphLines, false);
+        XYPlot plot = ChartsAndPlots.createHBPlot(pcChart, graphColors[hyper_blocks.get(visualized_block).classNum]);
+        PC_DomainAndRange(plot);
+
+        // set renderers and datasets
+        plot.setRenderer(0, avgRenderer);
+        plot.setDataset(0, avgLines);
+        plot.setRenderer(1, pcBlockRenderer);
+        plot.setDataset(1, pcBlocks);
+        plot.setRenderer(2, pcBlockAreaRenderer);
+        plot.setDataset(2, pcBlocksArea);
+        plot.setRenderer(3, badLineRenderer);
+        plot.setDataset(3, badGraphLines);
+        plot.setRenderer(4, goodLineRenderer);
+        plot.setDataset(4, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+        return chartPanel;
+    }
+
+    private JScrollPane PC_HBs(ArrayList<DataObject> data)
+    {
+        // create panel with 3 columns
+        JPanel tilePanel = new JPanel();
+        tilePanel.setLayout(new GridLayout((int)Math.ceil(hyper_blocks.size() / 3.0), 3));
+        JScrollPane tileScroll = new JScrollPane(tilePanel);
+
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = screenSize.width / 3;
+        int height = screenSize.height / ((int)Math.ceil(hyper_blocks.size() / 3.0));
+
+        for (int h = 0; h < hyper_blocks.size(); h++)
+        {
+            // create image from chart
+            ChartPanel cPanel = PC_HB(data, h);
+            JFreeChart chart = cPanel.getChart();
+            BufferedImage image = chart.createBufferedImage(width, height); // width and height cannot be <= 0
+
+            // add image to panel
+            JLabel picLabel = new JLabel(new ImageIcon(image));
+            tilePanel.add(picLabel);
+        }
+
+        return tileScroll;
+    }
+
+
+
+
+    public static Color[] getRainbowColors(int n) {
+        Color[] colors = new Color[n];
+
+        // Divide the total number of colors into 7 parts
+        int segmentLength = n / 7;
+
+        // Define the start and end colors of each rainbow segment
+        Color[] rainbowColors = {
+                new Color(255, 0, 0),     // Red
+                new Color(255, 127, 0),   // Orange
+                new Color(255, 255, 0),   // Yellow
+                new Color(0, 255, 0),     // Green
+                new Color(0, 0, 255),     // Blue
+                new Color(75, 0, 130),    // Indigo
+                new Color(148, 0, 211)    // Violet
+        };
+
+        int index = 0;
+
+        // Generate colors for each segment
+        for (int i = 0; i < rainbowColors.length - 1; i++)
+        {
+            Color startColor = rainbowColors[i];
+            Color endColor = rainbowColors[i + 1];
+
+            // Calculate colors between startColor and endColor
+            for (int j = 0; j < segmentLength && index < n; j++)
+            {
+                float ratio = (float) j / segmentLength;
+
+                int red = (int) (startColor.getRed() * (1 - ratio) + endColor.getRed() * ratio);
+                int green = (int) (startColor.getGreen() * (1 - ratio) + endColor.getGreen() * ratio);
+                int blue = (int) (startColor.getBlue() * (1 - ratio) + endColor.getBlue() * ratio);
+
+                colors[index++] = new Color(red, green, blue);
+            }
+        }
+
+        // If there's any remaining colors to reach n, fill with the last color (violet)
+        while (index < n)
+            colors[index++] = rainbowColors[rainbowColors.length - 1];
+
+
+
+
+
+
+
+        return colors;
+    }
+
+
+
+
+    private ChartPanel PC_HB_RAINBOW(ArrayList<DataObject> datum, int visualized_block)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        // average renderer and dataset
+        XYLineAndShapeRenderer avgRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection avgLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        // create different strokes for each HB within a combined HB
+        BasicStroke[] strokes = createStrokes(visualized_block);
+
+
+        //  get colors
+        int clr_cnt = 0;
+        for (DataObject data : datum)
+        {
+            DataVisualization.getCoordinates(datum);
+            for (int i = 0; i < data.data.length; i++)
+            {
+                boolean within = false;
+                for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                {
+                    if (inside_HB(visualized_block, k, data.data[i]))
+                        within = true;
+                }
+
+                if (within)
+                {
+                    clr_cnt++;
+                }
+            }
+        }
+
+        Color[] lineClrs = getRainbowColors(clr_cnt);
+        double[][][] coordinates = new double[clr_cnt][DV.fieldLength][2];
+        double[][] linedata = new double[clr_cnt][DV.fieldLength];
+        clr_cnt = 0;
+        for (DataObject data : datum)
+        {
+            for (int i = 0; i < data.data.length; i++)
+            {
+                boolean within = false;
+                for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                {
+                    if (inside_HB(visualized_block, k, data.data[i]))
+                        within = true;
+                }
+
+                if (within)
+                {
+                    coordinates[clr_cnt] = data.coordinates[i];
+                    linedata[clr_cnt++] = data.data[i];
+                }
+            }
+        }
+
+        // sort coordinates
+        Arrays.sort(coordinates, (a, b) -> Double.compare(a[DV.fieldLength-1][1], b[DV.fieldLength-1][1]));
+
+        // Get sorted indices based on 3D array sorting
+        Integer[] indices = new Integer[coordinates.length];
+        for (int i = 0; i < coordinates.length; i++) {
+            indices[i] = i;
+        }
+
+        // Sort indices based on the 3D array criteria
+        Arrays.sort(indices, Comparator.comparingDouble(i -> coordinates[i][DV.fieldLength-1][1]));
+
+        // Create a new sorted 2D array based on sorted indices
+        double[][] sortedValues = new double[linedata.length][];
+        for (int i = 0; i < indices.length; i++)
+            sortedValues[i] = linedata[indices[i]];
+
+
+        int lineCnt = 0;
+        for (int i = 0; i < sortedValues.length; i++)
+        {
+            // start line at (0, 0)
+            XYSeries line = new XYSeries(lineCnt, false, true);
+
+            // add points to lines
+            int off = 0;
+            for (int j = 0; j < DV.fieldLength; j++)
+            {
+                if (remove_extra && Math.abs(average_case.get(0).get(0)[j] - average_case.get(1).get(0)[j]) > 0.25)
+                {
+                    line.add(off, sortedValues[i][j]);
+                    off++;
+                }
+                else if (!remove_extra)
+                    line.add(j, sortedValues[i][j]);
+            }
+
+            // add series
+            goodGraphLines.addSeries(line);
+            goodLineRenderer.setSeriesPaint(lineCnt, Color.GREEN);
+            goodLineRenderer.setSeriesStroke(lineCnt, strokes[0]);
+
+            lineCnt++;
+        }
+
+        // populate average series
+        for (int k = 0; k < average_case.get(visualized_block).size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                XYSeries line = new XYSeries(k, false, true);
+                int off = 0;
+                for (int i = 0; i < average_case.get(visualized_block).get(k).length; i++)
+                    if (remove_extra && Math.abs(average_case.get(0).get(0)[i] - average_case.get(1).get(0)[i]) > 0.25)
+                    {
+                        line.add(off, average_case.get(visualized_block).get(k)[i]);
+                        off++;
+                    }
+                    else if (!remove_extra)
+                        line.add(i, average_case.get(visualized_block).get(k)[i]);
+
+                avgLines.addSeries(line);
+                avgRenderer.setSeriesPaint(k, Color.BLACK);
+                avgRenderer.setSeriesStroke(k, new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+
+
+                XYSeries line2 = new XYSeries(5, false, true);
+                double[] best = DV.trainData.get(0).data[0];
+                double best_dist = Double.MAX_VALUE;
+
+                for (int d = 0; d < DV.trainData.size(); d++)
+                {
+                    for (int b = 0; b < DV.trainData.get(d).data.length; b++)
+                    {
+                        double new_dist = Distance.euclidean_distance(average_case.get(k).get(0), DV.trainData.get(d).data[b]);
+                        if (new_dist < best_dist)
+                        {
+                            best = DV.trainData.get(d).data[b];
+                            best_dist = new_dist;
+                        }
+                    }
+                }
+
+                for (int w = 0; w < DV.fieldLength; w++)
+                {
+                    off = 0;
+                    for (int i = 0; i < DV.fieldLength; i++)
+                        if (remove_extra && Math.abs(average_case.get(0).get(0)[i] - average_case.get(1).get(0)[i]) > 0.25)
+                        {
+                            line2.add(off, best[i]);
+                            off++;
+                        }
+                        else if (!remove_extra)
+                            line2.add(i, best[i]);
+                }
+
+                avgLines.addSeries(line2);
+                for (int w = 0; w < 10; w++)
+                {
+                    if (w != k)
+                    {
+                        avgRenderer.setSeriesPaint(w, Color.RED);
+                        avgRenderer.setSeriesStroke(w, new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER));
+                    }
+                }
+            }
+        }
+
+
+
+
+
+        // add hyperblocks
+        for (int k = 0, offset = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                XYSeries tmp1 = new XYSeries(k-offset, false, true);
+                XYSeries tmp2 = new XYSeries(k-offset, false, true);
+                int cnt = 0;
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    if (remove_extra && Math.abs(average_case.get(0).get(0)[j] - average_case.get(1).get(0)[j]) > 0.25)
+                    {
+                        tmp1.add(cnt, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        tmp2.add(cnt, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        cnt++;
+                    }
+                    else if (!remove_extra)
+                    {
+                        tmp1.add(j, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    }
+                }
+
+                for (int j = DV.fieldLength - 1; j > -1; j--)
+                {
+                    if (remove_extra && Math.abs(average_case.get(0).get(0)[j] - average_case.get(1).get(0)[j]) > 0.25)
+                    {
+                        tmp1.add(cnt, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        tmp2.add(cnt, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        cnt--;
+                    }
+                    else if (!remove_extra)
+                    {
+                        tmp1.add(j, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                    }
+                }
+
+                tmp1.add(0, hyper_blocks.get(visualized_block).minimums.get(k)[0]);
+                tmp2.add(0, hyper_blocks.get(visualized_block).minimums.get(k)[0]);
+
+                pcBlockRenderer.setSeriesPaint(k-offset, Color.ORANGE);
+                pcBlockAreaRenderer.setSeriesPaint(k-offset, new Color(255, 200, 0, 20));
+                pcBlockRenderer.setSeriesStroke(k, strokes[k]);
+
+                pcBlocks.addSeries(tmp1);
+                pcBlocksArea.addSeries(tmp2);
+            }
+            else
+                offset++;
+        }
+
+        // create chart and plot
+        JFreeChart pcChart = ChartsAndPlots.createChart(goodGraphLines, false);
+        XYPlot plot = ChartsAndPlots.createHBPlot(pcChart, graphColors[hyper_blocks.get(visualized_block).classNum]);
+        PC_DomainAndRange(plot);
+
+        // set renderers and datasets
+        plot.setRenderer(0, avgRenderer);
+        plot.setDataset(0, avgLines);
+        plot.setRenderer(1, pcBlockRenderer);
+        plot.setDataset(1, pcBlocks);
+        plot.setRenderer(2, pcBlockAreaRenderer);
+        plot.setDataset(2, pcBlocksArea);
+        plot.setRenderer(3, badLineRenderer);
+        plot.setDataset(3, badGraphLines);
+        plot.setRenderer(4, goodLineRenderer);
+        plot.setDataset(4, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+        return chartPanel;
+    }
+
+
+
+
+
+    private ChartPanel GLC_L_HB(ArrayList<DataObject> datum, int visualized_block)
+    {
+        // create main renderer and dataset
+        XYLineAndShapeRenderer goodLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection goodGraphLines = new XYSeriesCollection();
+        XYLineAndShapeRenderer badLineRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection badGraphLines = new XYSeriesCollection();
+
+        XYLineAndShapeRenderer endpointRenderer = new XYLineAndShapeRenderer(false, true);
+        XYSeriesCollection endpoints = new XYSeriesCollection();;
+
+        // average renderer and dataset
+        XYLineAndShapeRenderer avgRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection avgLines = new XYSeriesCollection();
+
+        // hyperblock renderer and dataset
+        XYLineAndShapeRenderer pcBlockRenderer = new XYLineAndShapeRenderer(true, false);
+        XYSeriesCollection pcBlocks = new XYSeriesCollection();
+        XYAreaRenderer pcBlockAreaRenderer = new XYAreaRenderer(XYAreaRenderer.AREA);
+        XYSeriesCollection pcBlocksArea = new XYSeriesCollection();
+
+        // create different strokes for each HB within a combined HB
+        BasicStroke[] strokes = createStrokes(visualized_block);
+        Ellipse2D.Double endpointShape = new Ellipse2D.Double(-1, -1, 2, 2);
+
+
+        //  get colors
+        int clr_cnt = 0;
+        for (DataObject data : datum)
+        {
+            DataVisualization.getCoordinates(datum);
+            for (int i = 0; i < data.data.length; i++)
+            {
+                boolean within = false;
+                for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                {
+                    if (inside_HB(visualized_block, k, data.data[i]))
+                        within = true;
+                }
+
+                if (within)
+                {
+                    clr_cnt++;
+                }
+            }
+        }
+
+        //Color[] lineClrs = getRainbowColors(clr_cnt);
+        double[][][] coordinates = new double[clr_cnt][DV.fieldLength][2];
+        clr_cnt = 0;
+        for (DataObject data : datum)
+        {
+            for (int i = 0; i < data.data.length; i++)
+            {
+                boolean within = false;
+                for (int k = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+                {
+                    if (inside_HB(visualized_block, k, data.data[i]))
+                        within = true;
+                }
+
+                if (within)
+                    coordinates[clr_cnt++] = data.coordinates[i];
+            }
+        }
+
+        // sort coordinates
+        //Arrays.sort(coordinates, (a, b) -> Double.compare(a[DV.fieldLength-1][1], b[DV.fieldLength-1][1]));
+
+
+        int lineCnt = -1;
+        double buffer = DV.fieldLength / 10.0;
+        for (double[][] data : coordinates)
+        {
+            int upOrDown = 1;
+
+            // start line at (0, 0)
+            XYSeries line;
+            XYSeries endpointSeries;
+
+            line = new XYSeries(++lineCnt, false, true);
+            endpointSeries = new XYSeries(lineCnt, false, true);
+
+            line.setNotify(false);
+            endpointSeries.setNotify(false);
+
+            if (DV.showFirstSeg)
+                line.add(0, upOrDown * buffer);
+
+            // add points to lines
+            for (int j = 0; j < data.length; j++)
+            {
+                line.add(data[j][0], upOrDown * (data[j][1] + buffer));
+
+                // add endpoint and timeline
+                if (j == data.length - 1)
+                {
+                    endpointSeries.add(data[j][0], upOrDown * (data[j][1] + buffer));
+
+                    goodGraphLines.addSeries(line);
+                    goodLineRenderer.setSeriesPaint(lineCnt, graphColors[hyper_blocks.get(visualized_block).classNum]);//lineClrs[lineCnt]);
+                    goodLineRenderer.setSeriesStroke(lineCnt, strokes[0]);
+
+                    endpoints.addSeries(endpointSeries);
+                    endpointRenderer.setSeriesShape(lineCnt, endpointShape);
+                    endpointRenderer.setSeriesPaint(lineCnt, DV.endpoints);
+                }
+            }
+        }
+
+        // populate average series
+        for (int k = 0; k < average_case.get(visualized_block).size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                XYSeries line = new XYSeries(k, false, true);
+                for (int i = 0; i < average_case.get(visualized_block).get(k).length; i++)
+                    if (remove_extra && hyper_blocks.get(visualized_block).minimums.get(0)[i] != hyper_blocks.get(visualized_block).maximums.get(0)[i])
+                        line.add(i, average_case.get(visualized_block).get(k)[i]);
+
+                avgLines.addSeries(line);
+                avgRenderer.setSeriesPaint(k, Color.BLACK);
+            }
+        }
+
+        // add hyperblocks
+        for (int k = 0, offset = 0; k < hyper_blocks.get(visualized_block).hyper_block.size(); k++)
+        {
+            if (hyper_blocks.get(visualized_block).hyper_block.get(k).size() > 1)
+            {
+                XYSeries tmp1 = new XYSeries(k-offset, false, true);
+                XYSeries tmp2 = new XYSeries(k-offset, false, true);
+
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    if (remove_extra && hyper_blocks.get(visualized_block).minimums.get(0)[j] != hyper_blocks.get(visualized_block).maximums.get(0)[j])
+                    {
+                        tmp1.add(j, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(visualized_block).minimums.get(k)[j]);
+                    }
+                }
+
+                for (int j = DV.fieldLength - 1; j > -1; j--)
+                {
+                    if (remove_extra && hyper_blocks.get(visualized_block).minimums.get(0)[j] != hyper_blocks.get(visualized_block).maximums.get(0)[j])
+                    {
+                        tmp1.add(j, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                    }
+                }
+
+                for (int j = 0; j < DV.fieldLength; j++)
+                {
+                    if (remove_extra && hyper_blocks.get(visualized_block).minimums.get(0)[j] != hyper_blocks.get(visualized_block).maximums.get(0)[j])
+                    {
+                        tmp1.add(j, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        tmp2.add(j, hyper_blocks.get(visualized_block).maximums.get(k)[j]);
+                        break;
+                    }
+                }
+                //tmp1.add(0, hyper_blocks.get(visualized_block).minimums.get(k)[0]);
+                //tmp2.add(0, hyper_blocks.get(visualized_block).minimums.get(k)[0]);
+
+                pcBlockRenderer.setSeriesPaint(k-offset, Color.ORANGE);
+                pcBlockAreaRenderer.setSeriesPaint(k-offset, new Color(255, 200, 0, 20));
+                pcBlockRenderer.setSeriesStroke(k, strokes[k]);
+
+                pcBlocks.addSeries(tmp1);
+                pcBlocksArea.addSeries(tmp2);
+            }
+            else
+                offset++;
+        }
+
+        // create chart and plot
+        JFreeChart pcChart = ChartsAndPlots.createChart(goodGraphLines, false);
+        XYPlot plot = ChartsAndPlots.createPlot(pcChart, hyper_blocks.get(visualized_block).classNum);
+        PC_DomainAndRange(plot);
+
+        // set renderers and datasets
+        plot.setRenderer(0, avgRenderer);
+        plot.setDataset(0, avgLines);
+        plot.setRenderer(1, pcBlockRenderer);
+        plot.setDataset(1, pcBlocks);
+        plot.setRenderer(2, endpointRenderer);
+        plot.setDataset(2, endpoints);
+        plot.setRenderer(4, goodLineRenderer);
+        plot.setDataset(4, goodGraphLines);
+
+        ChartPanel chartPanel = new ChartPanel(pcChart);
+        chartPanel.setMouseWheelEnabled(true);
+        chartPanel.restoreAutoBounds();
+        return chartPanel;
+    }
+
+
+    /**
+     *                          *
+     * ------------------------ *
+     * UNSTABLE FUNCTIONS BELOW *
+     * ------------------------ *
+     *                          *
+     */
+
+
+
+    //
+    ////
+    ////// DATA GENERALIZATION TESTING
+    ////
+    //
+
+
+    private void findBestAttribute()
+    {
+        for (int i = 0; i < DV.angles.length; i++)
+        {
+            if (DV.angles[i] > DV.angles[best_attribute])
+                best_attribute = i;
+        }
+    }
+
+
+    private static void sortByColumn(ArrayList<double[]> arr, int col)
+    {
+        // Using built-in sort function Arrays.sort with lambda expressions
+        arr.sort(Comparator.comparingDouble(o -> o[col])); // increasing order
+    }
+
+    private ArrayList<double[]> find_envelope_cases(int num)
+    {
+        ArrayList<double[]> cases = new ArrayList<>();
+
+        boolean[] max = new boolean[DV.fieldLength];
+        boolean[] min = new boolean[DV.fieldLength];
+
+        for (int i = 0; i < DV.fieldLength; i++)
+        {
+            max[i] = true;
+            min[i] = true;
+        }
+
+        for (int i = 0; i < hyper_blocks.get(num).hyper_block.get(0).size(); i++)
+        {
+            boolean part = false;
+
+            for (int j = 0; j < DV.fieldLength; j++)
+            {
+                if (hyper_blocks.get(num).hyper_block.get(0).get(i)[j] == hyper_blocks.get(num).maximums.get(0)[j] && max[j])
+                {
+                    part = true;
+                    max[j] = false;
+                }
+                else if (hyper_blocks.get(num).hyper_block.get(0).get(i)[j] == hyper_blocks.get(num).minimums.get(0)[j] && min[j])
+                {
+                    part = true;
+                    min[j] = false;
+                }
+            }
+
+            if (part)
+                cases.add(hyper_blocks.get(num).hyper_block.get(0).get(i));
+        }
+
+        return cases;
+    }
+
+
+    private boolean kNN(double[] givenCase, int k, int mis_class)
+    {
+        // Create a list to store distances and corresponding hyperblocks
+        List<Map.Entry<Double, HyperBlock>> distances = new ArrayList<>();
+
+        // Calculate the distance between the given case and each hyperblock
+        for (int i = 0; i < hyper_blocks.size(); i++)
+        {
+            double[] lossless_distance = Distance.lossless_distance(givenCase, average_case.get(i).get(0));
+            double distance = 0;
+            for (double v : lossless_distance) distance += v;
+
+            distances.add(new AbstractMap.SimpleEntry<>(distance, hyper_blocks.get(i)));
+        }
+
+        // Sort the hyperblocks based on the calculated distances
+        distances.sort(Map.Entry.comparingByKey());
+
+        // Select the k-nearest hyperblocks
+        List<HyperBlock> nearestHyperBlocks = new ArrayList<>();
+        for (int i = 0; i < k && i < distances.size(); i++)
+            nearestHyperBlocks.add(distances.get(i).getValue());
+
+        // Output the nearest hyperblocks (for demonstration purposes)
+        /*for (HyperBlock hb : nearestHyperBlocks)
+            System.out.println("\tNearest HyperBlock: " + hb.classNum);*/
+
+        // Determine the majority class of the k-nearest hyperblocks
+        int[] class_cnts = new int[DV.classNumber];
+
+        for (HyperBlock hb : nearestHyperBlocks)
+            class_cnts[hb.classNum]++;
+
+        int maj = 0;
+        for (int i = 0; i < DV.classNumber; i++)
+            if (class_cnts[i] > class_cnts[maj])
+                maj = i;
+
+        if (mis_class == maj)
+        {
+            //System.out.println("Result: correct classification");
+            return true;
+        }
+        else
+        {
+            //System.out.println("Result: misclassification");
+            return false;
+        }
+    }
+
+
+    /**
+     * Orders hyperblocks by size and class
+     */
+    private void order_hbs_by_class()
+    {
+        ArrayList<ArrayList<HyperBlock>> ordered = new ArrayList<>();
+        for (int i = 0; i < DV.classNumber; i++)
+            ordered.add(new ArrayList<>());
+
+        for (HyperBlock hyperBlock : hyper_blocks)
+            ordered.get(hyperBlock.classNum).add(hyperBlock);
+
+        hyper_blocks.clear();
+        for (ArrayList<HyperBlock> hyperBlocks : ordered)
+        {
+            hyperBlocks.sort(new HBComparator());
+            hyper_blocks.addAll(hyperBlocks);
+        }
+    }
+
+
+    /**
+     * Orders hyperblocks by size
+     */
+    private void order_hbs_by_size()
+    {
+        //hyper_blocks.sort(new HBComparator());
+
+
+        ArrayList<ArrayList<HyperBlock>> ordered = new ArrayList<>();
+        for (int i = 0; i < DV.classNumber; i++)
+            ordered.add(new ArrayList<>());
+
+        for (HyperBlock hyperBlock : hyper_blocks)
+            ordered.get(hyperBlock.classNum).add(hyperBlock);
+
+        hyper_blocks.clear();
+        for (ArrayList<HyperBlock> hyperBlocks : ordered)
+        {
+            hyperBlocks.sort(new HBComparator());
+            hyper_blocks.add(hyperBlocks.get(0));
+        }
+    }
+
+
+    private void HB_analytics()
+    {
+        average_case.clear();
+
+        // count cases in HB and not in any HBs
+        int[] counter = new int[hyper_blocks.size()];
+        int not_in = 0;
+        double global_maj = 0;
+        int global_cnt = 0;
+
+        for (int h = 0; h < hyper_blocks.size(); h++)
+        {
+            for (int q = 0; q < hyper_blocks.get(h).hyper_block.size(); q++)
+                hyper_blocks.get(h).hyper_block.get(q).clear();
+
+            double maj_cnt = 0;
+            for (int i = 0; i < DV.trainData.size(); i++)
+            {
+                for (int j = 0; j < DV.trainData.get(i).data.length; j++)
+                {
+                    for (int q = 0; q < hyper_blocks.get(h).hyper_block.size(); q++)
+                    {
+                        if (inside_HB(h, q, DV.trainData.get(i).data[j]))
+                        {
+                            if (i == hyper_blocks.get(h).classNum)
+                            {
+                                maj_cnt++;
+                                global_maj++;
+                            }
+
+
+                            counter[h]++;
+                            global_cnt++;
+                            hyper_blocks.get(h).hyper_block.get(q).add(DV.trainData.get(i).data[j]);
+                        }
+                    }
+                }
+            }
+
+            System.out.println("\nBlock " + (h+1) + " Size: " + counter[h]);
+            System.out.println("Block " + (h+1) + " Accuracy: " + (maj_cnt / counter[h]));
+
+            accuracy.add(maj_cnt / counter[h]);
+            misclassified.add(counter[h] - (int) maj_cnt);
+            hyper_blocks.get(h).size = counter[h];
+
+            ArrayList<double[]> avg_cases = new ArrayList<>();
+            for (int q = 0; q < hyper_blocks.get(h).hyper_block.size(); q++)
+            {
+                double[] avg = new double[DV.fieldLength];
+                Arrays.fill(avg, 0);
+
+                for (int j = 0; j < hyper_blocks.get(h).hyper_block.get(q).size(); j++)
+                {
+                    for (int k = 0; k < hyper_blocks.get(h).hyper_block.get(q).get(j).length; k++)
+                        avg[k] += hyper_blocks.get(h).hyper_block.get(q).get(j)[k];
+                }
+
+                for (int j = 0; j < hyper_blocks.get(h).hyper_block.get(q).get(0).length; j++)
+                    avg[j] /= hyper_blocks.get(h).hyper_block.get(q).size();
+
+                avg_cases.add(avg);
+            }
+
+            average_case.add(avg_cases);
+        }
+
+        int bcnt = 0;
+        for (HyperBlock hyperBlock : hyper_blocks)
+        {
+            for (int q = 0; q < hyperBlock.hyper_block.size(); q++)
+                bcnt += hyperBlock.hyper_block.get(q).size();
+        }
+
+        System.out.println("TOTAL NUM IN BLOCKS: " + bcnt);
+
+        for (int i = 0; i < DV.trainData.size(); i++)
+        {
+            for (int j = 0; j < DV.trainData.get(i).data.length; j++)
+            {
+                boolean in = false;
+                for (int h = 0; h < hyper_blocks.size(); h++)
+                {
+                    for (int q = 0; q < hyper_blocks.get(h).hyper_block.size(); q++)
+                    {
+                        if (inside_HB(h, q, DV.trainData.get(i).data[j]))
+                        {
+                            in = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!in)
+                    not_in++;
+            }
+        }
+
+        System.out.println("NOT IN ANY BLOCKS: " + not_in + "\n");
+        System.out.println("Total Accuracy: " + (global_maj / global_cnt));
+    }
+
+
+    /**
+     * Checks if data is inside a hyperblock
+     * @param hb1 Hyperblock number
+     * @param hb2 Hyperblock sub-block number
+     * @param data Data to check
+     * @return True if data is inside hyperblock
+     */
+    private boolean inside_HB(int hb1, int hb2, double[] data)
+    {
+        boolean inside = true;
+        for (int j = 0; j < DV.fieldLength; j++)
+        {
+            if (data[j] > hyper_blocks.get(hb1).maximums.get(hb2)[j] ||
+                    data[j] < hyper_blocks.get(hb1).minimums.get(hb2)[j])
+            {
+                inside = false;
+                break;
+            }
+        }
+
+        return inside;
+    }
+
+
+    /**
+     * Creates strokes for hyperblocks
+     * @param hb Hyperblock number
+     * @return Strokes for hyperblocks
+     */
+    private BasicStroke[] createStrokes(int hb)
+    {
+        BasicStroke[] strokes = new BasicStroke[hyper_blocks.get(hb).hyper_block.size()];
+        for (int k = 0; k < hyper_blocks.get(hb).hyper_block.size(); k++)
+        {
+            if (k == 0)
+                strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER);
+            else
+            {
+                float dashLength = 5f * k; // Increase dash length progressively
+                float[] dashPattern = {dashLength, dashLength}; // Dash and space are the same length
+                strokes[k] = new BasicStroke(3f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, dashPattern, 0f);
+            }
+        }
+
+        return strokes;
+    }
+
+
+    /**
+     * Sets the domain and range for a parallel coordinate plot
+     * @param plot Plot to set domain and range
+     */
+    private void PC_DomainAndRange(XYPlot plot)
+    {
+        // set domain
+        ValueAxis domainView = plot.getDomainAxis();
+        domainView.setRange(-0.1, DV.fieldLength-1);
+
+        // create domain and range ticks
+        int tick = DV.fieldLength > 10 ? DV.fieldLength / 10 : 1;
+        NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();
+        NumberTickUnit ntu = new NumberTickUnit(tick)
+        {
+            @Override
+            public String valueToString(double value) {
+                return super.valueToString(value + 1);
+            }
+        };
+        xAxis.setTickUnit(ntu);
+
+        // set range
+        NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
+        yAxis.setTickUnit(new NumberTickUnit(0.25));
+        yAxis.setAutoRange(false);
+        yAxis.setRange(0, 1);
+    }
+
+
+    /**
+     * Tests hyperblocks with test data
+     */
+    public void test_HBs()
+    {
+        ArrayList<Double> testCaseAcc = new ArrayList<>();
+        double globalGood = 0;
+        double globalBad = 0;
+        double classifiedCases = 0;
+        double totalCases = 0;
+
+
+        ArrayList<double[]> missed_cases = new ArrayList<>();
+        ArrayList<Integer> missed_cases_classes = new ArrayList<>();
+
+        ArrayList<double[]> bad_cases = new ArrayList<>();
+        ArrayList<Integer> bad_cases_classes = new ArrayList<>();
+
+
+        ArrayList<Integer> testCaseMis = new ArrayList<>();
+        for (int i = 0; i < DV.testData.size(); i++)
+            testCaseMis.add(0);
+
+        for (int i = 0; i < DV.testData.size(); i++)
+        {
+            double good = 0;
+            double bad = 0;
+
+            for (int j = 0; j < DV.testData.get(i).data.length; j++)
+            {
+                boolean classified = false;
+                totalCases++;
+
+                for (HyperBlock hyperBlock : hyper_blocks)
+                {
+                    for (int q = 0; q < hyperBlock.hyper_block.size(); q++)
+                    {
+                        boolean inside = true;
+                        for (int k = 0; k < DV.fieldLength; k++)
+                        {
+                            if (DV.testData.get(i).data[j][k] > hyperBlock.maximums.get(q)[k] ||
+                                    DV.testData.get(i).data[j][k] < hyperBlock.minimums.get(q)[k])
+                            {
+                                inside = false;
+                                break;
+                            }
+                        }
+
+                        if (inside)
+                        {
+                            classified = true;
+
+                            if (i == hyperBlock.classNum)
+                                good++;
+                            else
+                            {
+                                bad++;
+                                bad_cases.add(DV.testData.get(i).data[j]);
+                                bad_cases_classes.add(i);
+                            }
+                        }
+                    }
+                }
+
+                if (classified)
+                    classifiedCases++;
+                else
+                {
+                    testCaseMis.set(i, testCaseMis.get(i) + 1);
+                    missed_cases.add(DV.testData.get(i).data[j]);
+                    missed_cases_classes.add(i);
+                }
+
+            }
+
+            testCaseAcc.add(good / (good + bad));
+            globalGood += good;
+            globalBad += bad;
+        }
+
+        System.out.println("\n\nRESULTS OF TEST CASES: ");
+        System.out.printf("\tGlobal Accuracy: %.4f%%%n", (globalGood / (globalGood + globalBad)) * 100);
+        System.out.println("\tTotal Cases Classified: " + (int)classifiedCases + " / " + (int)totalCases);
+        System.out.printf("\tPercentage of Cases Classified: %.4f%%%n", (classifiedCases / totalCases) * 100);
+
+        System.out.println("\nCases not classified by class:");
+        for (int i = 0; i < testCaseMis.size(); i++)
+            System.out.println("\tClass " + (i) + " Not Classified: " + testCaseMis.get(i));
+
+        System.out.println("\nTest Case Accuracy by class:");
+        for (int i = 0; i < testCaseAcc.size(); i++)
+            System.out.printf("\tClass " + (i) + " Test Case Accuracy: %.4f%%%n", testCaseAcc.get(i) * 100);
+
+
+        /*for (int i = 0; i < bad_cases.size(); i++)
+        {
+            System.out.println("\nMisclassified Case Class:" + bad_cases_classes.get(i));
+            kNN(bad_cases.get(i), 5);
+        }*/
+
+        // print each missed case
+        for (int i = 0; i < missed_cases.size(); i++)
+        {
+            //System.out.println("\nNot Classified Case Class:" + missed_cases_classes.get(i));
+            boolean res = kNN(missed_cases.get(i), 5, missed_cases_classes.get(i));
+            if (res)
+                globalGood++;
+            else
+                globalBad++;
+            classifiedCases++;
+        }
+
+        System.out.println("\n\nRESULTS OF TEST CASES AFTER VOTING: ");
+        System.out.printf("\tGlobal Accuracy: %.4f%%%n", (globalGood / (globalGood + globalBad)) * 100);
+        System.out.println("\tTotal Cases Classified: " + (int)classifiedCases + " / " + (int)totalCases);
+        System.out.printf("\tPercentage of Cases Classified: %.4f%%%n", (classifiedCases / totalCases) * 100);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private void merger_save(ExecutorService executorService, ArrayList<ArrayList<double[]>> data, ArrayList<ArrayList<double[]>> out_data)
     {
         ArrayList<HyperBlock> blocks = new ArrayList<>(hyper_blocks);
         hyper_blocks.clear();
@@ -845,10 +3034,9 @@ public class HyperBlockGeneration
             // create hyperblock from each datapoint
             for (int j = 0; j < out_data.get(i).size(); j++)
             {
-                blocks.add(new HyperBlock(new ArrayList<>()));
+                blocks.add(new HyperBlock(new ArrayList<>(), i));
                 blocks.get(cnt).hyper_block.add(new ArrayList<>(List.of(out_data.get(i).get(j))));
                 blocks.get(cnt).findBounds();
-                blocks.get(cnt).classNum = i;
                 cnt++;
             }
         }
@@ -856,6 +3044,8 @@ public class HyperBlockGeneration
         boolean actionTaken;
         ArrayList<Integer> toBeDeleted = new ArrayList<>();
         int cnt = blocks.size();
+
+        System.out.println("Size before merge: " + blocks.size());
 
         do
         {
@@ -952,6 +3142,8 @@ public class HyperBlockGeneration
 
         } while (actionTaken || cnt > 0);
 
+        System.out.println("Size after first merge: " + blocks.size());
+
         // impure
         cnt = blocks.size();
 
@@ -977,8 +3169,8 @@ public class HyperBlockGeneration
 
             for (HyperBlock block : blocks)
             {
-                ArrayList<Double> maxPoint = new ArrayList<>();
-                ArrayList<Double> minPoint = new ArrayList<>();
+                double[] maxPoint = new double[DV.fieldLength];
+                double[] minPoint = new double[DV.fieldLength];
 
                 // define combined space
                 for (int j = 0; j < DV.fieldLength; j++)
@@ -986,8 +3178,8 @@ public class HyperBlockGeneration
                     double newLocalMax = Math.max(tmp.maximums.get(0)[j], block.maximums.get(0)[j]);
                     double newLocalMin = Math.min(tmp.minimums.get(0)[j], block.minimums.get(0)[j]);
 
-                    maxPoint.add(newLocalMax);
-                    minPoint.add(newLocalMin);
+                    maxPoint[j] = newLocalMax;
+                    minPoint[j] = newLocalMin;
                 }
 
                 ArrayList<Integer> classInSpace = new ArrayList<>();
@@ -1006,7 +3198,7 @@ public class HyperBlockGeneration
                         {
                             tmp_pnt[w] = data.get(j).get(k)[w];
 
-                            if (!(tmp_pnt[w] <= maxPoint.get(w) && tmp_pnt[w] >= minPoint.get(w)))
+                            if (!(tmp_pnt[w] <= maxPoint[w] && tmp_pnt[w] >= minPoint[w]))
                             {
                                 withinSpace = false;
                                 break;
@@ -1170,2150 +3362,471 @@ public class HyperBlockGeneration
 
         } while (actionTaken || cnt > 0);
 
+        System.out.println("Size after second merge: " + blocks.size());
+
         hyper_blocks.addAll(blocks);
     }
 
 
-    */
-/*private void generateHyperblocks3()
+
+    private void merger_cuda(ArrayList<ArrayList<double[]>> data, ArrayList<ArrayList<double[]>> out_data) throws ExecutionException, InterruptedException
     {
-        // create hyperblocks
+        // Initialize JCuda
+        JCudaDriver.setExceptionsEnabled(true);
+        cuInit(0);
+
+        // Create a context
+        CUdevice device = new CUdevice();
+        cuDeviceGet(device, 0);
+        CUcontext context = new CUcontext();
+        cuCtxCreate(context, 0, device);
+
+        // Load the kernel
+        CUmodule module1 = new CUmodule();
+        cuModuleLoad(module1, "D:\\GitHub\\DV\\src\\MergerHyperKernels.ptx");
+        CUfunction mergerHelper1 = new CUfunction();
+        cuModuleGetFunction(mergerHelper1, module1, "MergerHelper1");
+
+        /*CUmodule module2 = new CUmodule();
+        cuModuleLoad(module2, "D:\\GitHub\\DV\\src\\MergerHyperKernels.ptx");
+        CUfunction mergerHelper2 = new CUfunction();
+        cuModuleGetFunction(mergerHelper2, module2, "MergerHelper2");*/
+
+
+        // create hollow blocks from hyperblocks
+        ArrayList<HollowBlock> merging_hbs = new ArrayList<>();
+        for (HyperBlock hyperBlock : hyper_blocks)
+        {
+            for (int j = 0; j < hyperBlock.hyper_block.size(); j++)
+                merging_hbs.add(new HollowBlock(hyperBlock.maximums.get(j), hyperBlock.minimums.get(j), hyperBlock.classNum));
+        }
+
         hyper_blocks.clear();
 
-        // hyperblocks and hyperblock info
-        ArrayList<ArrayList<ArrayList<HyperBlockVisualization.Pnt>>> hb = new ArrayList<>();
-        ArrayList<Integer> hb_a = new ArrayList<>();
-        ArrayList<Integer> hb_c = new ArrayList<>();
-
-        // indexes of combined hyperblocks
-        ArrayList<ArrayList<ArrayList<HyperBlockVisualization.Pnt>>> combined_hb = new ArrayList<>();
-        ArrayList<Integer> combined_hb_index = new ArrayList<>();
-
-        // get each element
-        ArrayList<ArrayList<HyperBlockVisualization.Pnt>> attributes = new ArrayList<>();
-
-        for (int k = 0; k < DV.fieldLength; k++)
+        // create seed hollow blocks
+        for (int i = 0; i < out_data.size(); i++)
         {
-            ArrayList<HyperBlockVisualization.Pnt> tmpField = new ArrayList<>();
-            int count = 0;
-
-            for (int i = 0; i < DV.data.size(); i++)
-            {
-                for (int j = 0; j < DV.data.get(i).data.length; j++)
-                {
-                    tmpField.add(new HyperBlockVisualization.Pnt(count, DV.data.get(i).data[j][k]));
-                    count++;
-                }
-            }
-
-            attributes.add(tmpField);
+            for (int j = 0; j < out_data.get(i).size(); j++)
+                merging_hbs.add(new HollowBlock(out_data.get(i).get(j), out_data.get(i).get(j), i));
         }
 
-        // order attributes by sizes
-        for (ArrayList<HyperBlockVisualization.Pnt> attribute : attributes)
+        boolean actionTaken = false;
+        int cnt = merging_hbs.size();
+
+
+        int time_cnt = 0;
+        int total_time = 0;
+
+
+        do
         {
-            attribute.sort(Comparator.comparingDouble(o -> o.value));
-        }
+            if (actionTaken || cnt < 1)
+                cnt = merging_hbs.size();
 
-        while (attributes.get(0).size() > 0)
-        {
-            // get largest hyperblock for each attribute
-            ArrayList<HyperBlockVisualization.Pnt> area = findLargestArea(attributes, DV.data.get(DV.upperClass).data.length, hb);
+            actionTaken = false;
 
-            // if hyperblock is unique then add
-            if (area.size() > 1)
-            {
-                // add hyperblock info
-                hb_a.add(area.get(area.size() - 1).index);
-                hb_c.add((int)area.get(area.size() - 1).value);
-                area.remove(area.size() - 1);
-
-                // add hyperblock
-                ArrayList<ArrayList<HyperBlockVisualization.Pnt>> block = new ArrayList<>();
-
-                for (int i = 0; i < DV.fieldLength; i++)
-                    block.add(new ArrayList<>());
-
-                for (HyperBlockVisualization.Pnt pnt : area)
-                {
-                    for (int i = 0; i < attributes.size(); i++)
-                    {
-                        int index = pnt.index;
-
-                        for (int k = 0; k < attributes.get(i).size(); k++)
-                        {
-                            if (index == attributes.get(i).get(k).index)
-                            {
-                                // add point
-                                block.get(i).add(new HyperBlockVisualization.Pnt(index, attributes.get(i).get(k).value));
-
-                                // remove point
-                                attributes.get(i).remove(k);
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // add new hyperblock
-                hb.add(block);
-            }
-            else
-            {
+            if (merging_hbs.isEmpty())
                 break;
-            }
-            else
+
+            int seedNum = -1;
+            for (int i = 0; i < merging_hbs.size(); i++)
             {
-                // get longest overlapping interval
-                // combine if same class or refuse to classify interval
-                ArrayList<Pnt> oa = findLargestOverlappedArea(attributes, DV.data.get(DV.upperClass).data.length);
-
-                if (oa.size() > 1)
+                if (merging_hbs.get(i).mergable)
                 {
-                    int atr = oa.get(oa.size() - 1).key;
-                    int cls = (int)oa.get(oa.size() - 1).value;
-                    oa.remove(oa.size() - 1);
-
-                    // create temp data
-                    ArrayList<ArrayList<Pnt>> block = new ArrayList<>();
-
-                    for (int i = 0; i < DV.fieldLength; i++)
-                        block.add(new ArrayList<>());
-
-                    for (Pnt pnt : oa)
-                    {
-                        for (int i = 0; i < attributes.size(); i++)
-                        {
-                            int key = pnt.key;
-
-                            for (int k = 0; k < attributes.get(i).size(); k++)
-                            {
-                                if (key == attributes.get(i).get(k).key)
-                                {
-                                    // add point
-                                    block.get(i).add(new Pnt(key, attributes.get(i).get(k).value));
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    for (ArrayList<Pnt> blk : block)
-                        blk.sort(Comparator.comparingDouble(o -> o.value));
-
-                    // find overlapping hyperblocks
-                    boolean[] non_unique = new boolean[hb.size()];
-
-                    for (int i = 0; i < hb.size(); i++)
-                    {
-                        // get attribute
-                        for (int j = 0; j < hb.get(i).size(); j++)
-                        {
-                            double smallest = Double.MAX_VALUE;
-                            double largest = Double.MIN_VALUE;
-
-                            for (int k = 0; k < hb.get(i).get(j).size(); k++)
-                            {
-                                if (hb.get(i).get(j).get(k).value < smallest)
-                                    smallest = hb.get(i).get(j).get(k).value;
-                                else if (hb.get(i).get(j).get(k).value > largest)
-                                    largest = hb.get(i).get(j).get(k).value;
-                            }
-
-                            // search for overlap
-                            if (block.get(j).get(0).value >= smallest && block.get(j).get(0).value <= largest)
-                            {
-                                non_unique[i] = true;
-                                break;
-                            }
-                            // interval overlaps below
-                            else if (block.get(j).get(block.get(j).size()-1).value <= largest && block.get(j).get(block.get(j).size() - 1).value >= smallest)
-                            {
-                                non_unique[i] = true;
-                                break;
-                            }
-                            else if (smallest >= block.get(j).get(0).value && smallest <= block.get(j).get(block.get(j).size()-1).value)
-                            {
-                                non_unique[i] = true;
-                                break;
-                            }
-                            else if (largest <= block.get(j).get(block.get(j).size()-1).value && largest >= block.get(j).get(0).value)
-                            {
-                                non_unique[i] = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    // get smallest combined hyperblock
-                    int sml = -1;
-
-                    for (int i = 0; i < hb.size(); i++)
-                    {
-                        if (non_unique[i] && sml == -1)
-                        {
-                            sml = i;
-                        }
-                        else if (non_unique[i])
-                        {
-                            int size1 = hb.get(sml).size();
-                            int size2 = hb.get(i).size();
-
-                            for (int j = 0; j < combined_hb_index.size(); j++)
-                            {
-                                if (combined_hb_index.get(j) == sml)
-                                {
-                                    size1 += combined_hb.get(j).size();
-                                }
-                                else if (combined_hb_index.get(j) == i)
-                                {
-                                    size2 += combined_hb.get(j).size();
-                                }
-                            }
-
-                            if (size2 < size1)
-                                sml = i;
-                        }
-                    }
-
-                    // combine blocks
-                    if (sml != -1)
-                    {
-                        for (ArrayList<Pnt> pnts : block)
-                            pnts.clear();
-
-                        for (Pnt pnt : oa)
-                        {
-                            for (int i = 0; i < attributes.size(); i++)
-                            {
-                                int key = pnt.key;
-
-                                for (int k = 0; k < attributes.get(i).size(); k++)
-                                {
-                                    if (key == attributes.get(i).get(k).key)
-                                    {
-                                        // add point
-                                        block.get(i).add(new Pnt(key, attributes.get(i).get(k).value));
-
-                                        // remove point
-                                        attributes.get(i).remove(k);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                        combined_hb.add(block);
-                        combined_hb_index.add(sml);
-                    }
-                    else {
-                        // refuse to classify
-                        refuse_area.add(new double[]{atr, block.get(atr).get(0).value, block.get(atr).get(block.get(atr).size() - 1).value});
-                    }
-                }
-                else
-                {
+                    seedNum = i;
                     break;
                 }
             }
-        }
 
-        // remove overlap
-        for (int i = 0; i < refuse_area.size(); i++)
-        {
-            int atr = (int) refuse_area.get(i)[0];
-            double low = refuse_area.get(i)[1];
-            double high = refuse_area.get(i)[2];
-
-
-            for (int j = 0; j < hb.size(); j++)
-            {
-                int offset = 0;
-
-                for (int k = 0; k < hb.get(j).get(atr).size(); k++)
-                {
-                    if (low <= hb.get(j).get(atr).get(k - offset).value && hb.get(j).get(atr).get(k - offset).value<= high)
-                    {
-                        for (int w = 0; w < hb.get(j).size(); w++)
-                        {
-                            hb.get(j).get(w).remove(k - offset);
-                        }
-
-                        offset++;
-                    }
-                }
-            }
-        }
-
-        for (int i = 0; i < hb.size(); i++)
-        {
-            // sort hb by key
-            for (int j = 0; j <  hb.get(i).size(); j++)
-            {
-                hb.get(i).get(j).sort(Comparator.comparingInt(o -> o.index));
-            }
-
-            ArrayList<double[]> temp = new ArrayList<>();
-
-            for (int j = 0; j < hb.get(i).get(0).size(); j++)
-            {
-                double[] tmp = new double[hb.get(i).size()];
-
-                for (int k = 0; k < hb.get(i).size(); k++)
-                {
-                    tmp[k] = hb.get(i).get(k).get(j).value;
-                }
-
-                temp.add(tmp);
-            }
-
-            ArrayList<ArrayList<double[]>> tmp = new ArrayList<>();
-            tmp.add(temp);
-
-            hyper_blocks.add(new HyperBlock(tmp));
-            hyper_blocks.get(i).className = DV.data.get(hb_c.get(i)).className;
-            hyper_blocks.get(i).classNum = hb_c.get(i);
-            hyper_blocks.get(i).attribute = Integer.toString(hb_a.get(i)+1);
-        }
-
-        // add combined blocks
-        for (int i = 0; i < combined_hb.size(); i++)
-        {
-            int index = combined_hb_index.get(i);
-
-            ArrayList<double[]> temp = new ArrayList<>();
-
-            for (int j = 0; j < combined_hb.get(i).get(0).size(); j++)
-            {
-                double[] tmp = new double[combined_hb.get(i).size()];
-
-                for (int k = 0; k < combined_hb.get(i).size(); k++)
-                {
-                    tmp[k] = combined_hb.get(i).get(k).get(j).value;
-                }
-
-                temp.add(tmp);
-            }
-
-            hyper_blocks.get(index).hyper_block.add(temp);
-            hyper_blocks.get(index).findBounds();
-        }
-
-        for (int i = 0; i < combined_hb_index.size(); i++)
-        {
-            System.out.println("Block " + (combined_hb_index.get(i) + 1) + " is combined with another block of size " + combined_hb.get(i).size());
-        }
-
-        // add dustin algo
-        // create dataset
-        ArrayList<ArrayList<double[]>> data = new ArrayList<>();
-
-        for (int i = 0; i < DV.data.size(); i++)
-            data.add(new ArrayList<>());
-
-        for (int i = 0; i < attributes.get(0).size(); i++)
-        {
-            if (attributes.get(0).get(i).index < DV.data.get(DV.upperClass).data.length)
-            {
-                double[] tmp_pnt = new double[DV.fieldLength];
-
-                int index = attributes.get(0).get(i).index;
-
-                for (int k = 0; k < attributes.size(); k++)
-                {
-                    for (int h = 0; h < attributes.get(k).size(); h++)
-                    {
-                        if (index == attributes.get(k).get(h).index)
-                        {
-                            // add point
-                            tmp_pnt[k] = attributes.get(k).get(h).value;
-                            break;
-                        }
-                    }
-                }
-
-                data.get(0).add(tmp_pnt);
-            }
-            else
-            {
-                double[] tmp_pnt = new double[DV.fieldLength];
-
-                int index = attributes.get(0).get(i).index;
-
-                for (int k = 0; k < attributes.size(); k++)
-                {
-                    for (int h = 0; h < attributes.get(k).size(); h++)
-                    {
-                        if (index == attributes.get(k).get(h).index)
-                        {
-                            // add point
-                            tmp_pnt[k] = attributes.get(k).get(h).value;
-                            break;
-                        }
-                    }
-                }
-
-                data.get(1).add(tmp_pnt);
-            }
-        }
-
-        ArrayList<ArrayList<double[]>> test_data = new ArrayList<>();
-
-        for (int i = 0; i < DV.data.size(); i++)
-        {
-            test_data.add(new ArrayList<>());
-
-            for (int j = 0; j < DV.data.get(i).data.length; j++)
-            {
-                test_data.get(i).add(DV.data.get(i).data[j]);
-            }
-        }
-
-        if (hb.size() > 1)
-        {
-            int maxind = 0;
-            for (int j = 0; j < hb.get(1).get(0).size(); j++)
-            {
-                if (hb.get(1).get(0).get(j).index > maxind)
-                {
-                    maxind = hb.get(1).get(0).get(j).index;
-                }
-            }
-
-            double[] tmpstuff = new double[DV.fieldLength];
-            for (int i = 0; i < DV.fieldLength; i++)
-            {
-                for (int j = 0; j < hb.get(1).get(i).size(); j++)
-                {
-                    if (hb.get(1).get(i).get(j).index == maxind)
-                    {
-                        tmpstuff[i] = hb.get(1).get(i).get(j).value;
-                    }
-                }
-            }
-        }
-
-        int cnt = 0;
-        for (int i = 0; i < DV.misclassifiedData.size(); i++)
-        {
-            for (int j = 0; j < hyper_blocks.size(); j++)
-            {
-                for (int k = 0; k < hyper_blocks.get(j).hyper_block.get(0).size(); k++)
-                {
-                    if (Arrays.deepEquals(new Object[]{DV.misclassifiedData.get(i)}, new Object[]{hyper_blocks.get(j).hyper_block.get(0).get(k)}))
-                    {
-                        cnt++;
-                    }
-                }
-            }
-        }
-
-        System.out.println("Misclassified: " + DV.misclassifiedData.size());
-        System.out.println("Interval: " + cnt);
-
-        cnt = 0;
-        for (int i = 0; i < DV.misclassifiedData.size(); i++)
-        {
-            for (int j = 0; j < data.size(); j++)
-            {
-                for (int k = 0; k < data.get(j).size(); k++)
-                {
-                    boolean  comp = true;
-                    for (int q = 0; q < DV.fieldLength; q++)
-                    {
-                        if (DV.misclassifiedData.get(i)[q] != data.get(j).get(k)[q])
-                            comp = false;
-                    }
-
-                    if (comp)
-                        cnt++;
-                    if (Arrays.deepEquals(new Object[]{DV.misclassifiedData.get(i)}, new Object[]{data.get(j).get(k)}))
-                    {
-                        cnt++;
-                    }
-                }
-            }
-        }
-
-        System.out.println("Not Interval: " + cnt);
-
-        // dustin alg
-        generateHyperblocks(test_data, data);
-
-        // reorder blocks
-        ArrayList<HyperBlock> upper = new ArrayList<>();
-        ArrayList<HyperBlock> lower = new ArrayList<>();
-
-        for (HyperBlock hyperBlock : hyper_blocks)
-        {
-            if (hyperBlock.classNum == DV.upperClass)
-                upper.add(hyperBlock);
-            else
-                lower.add(hyperBlock);
-        }
-
-        upper.sort(new HyperBlockVisualization.BlockComparator());
-        lower.sort(new HyperBlockVisualization.BlockComparator());
-
-        hyper_blocks.clear();
-        hyper_blocks.addAll(upper);
-        hyper_blocks.addAll(lower);
-
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            double[] avg = new double[DV.fieldLength];
-
-            Arrays.fill(avg, 0);
-
-            for (int j = 0; j < hyper_blocks.get(i).hyper_block.get(0).size(); j++)
-            {
-                for (int k = 0; k < hyper_blocks.get(i).hyper_block.get(0).get(j).length; k++)
-                {
-                    avg[k] += hyper_blocks.get(i).hyper_block.get(0).get(j)[k];
-                }
-            }
-
-            for (int j = 0; j < hyper_blocks.get(i).hyper_block.get(0).get(0).length; j++)
-                avg[j] /= hyper_blocks.get(i).hyper_block.get(0).size();
-
-            ArrayList<double[]> avg_tmp = new ArrayList<>();
-            avg_tmp.add(avg);
-
-            artificial.add(avg_tmp);
-        }
-        blockCheck();
-//        for (int w = 0; w < hyper_blocks.size(); w++)
-//        {
-//            try{
-//                File csv = new File("D:\\Downloads\\Hyperblocks\\HB" + (w+1) + ".csv");
-//                Files.deleteIfExists(csv.toPath());
-//
-//                // write to csv file
-//                PrintWriter out = new PrintWriter(csv);
-//
-//                out.print("Class:," + hyper_blocks.get(w).className + "\n");
-//                out.print("Size:," + hyper_blocks.get(w).size + "\n");
-//                out.print("Accuracy:," + (Math.round(acc.get(w) * 10000) / 100.0) + "\n");
-//
-//                // create header for file
-//                for (int i = 0; i < DV.fieldLength; i++)
-//                {
-//                    if (i != DV.fieldLength - 1)
-//                        out.print(DV.fieldNames.get(i) + ",");
-//                    else
-//                        out.print(DV.fieldNames.get(i) + "\n");
-//                }
-//
-//                // get all data for class
-//                for (int j = 0; j < hyper_blocks.get(w).hyper_block.get(0).size(); j++)
-//                {
-//                    double[] tmp = new double[DV.fieldLength];
-//                    for (int k = 0; k < DV.fieldLength; k++)
-//                    {
-//                        tmp[k] = hyper_blocks.get(w).hyper_block.get(0).get(j)[k];
-//                        // transform to real value
-//                        // undo min-max normalization
-//                        tmp[k] *= (DV.max[k] - DV.min[k]);
-//                        tmp[k] += DV.min[k];
-//
-//                        // undo z-score
-//                        if (DV.zScoreMinMax)
-//                        {
-//                            tmp[k] *= DV.sd[k];
-//                            tmp[k] += DV.mean[k];
-//                        }
-//
-//                        // round real value to whole number
-//                        //tmp[k] = Math.round(tmp[k]);;
-//                    }
-//
-//                    for (int k = 0; k < DV.fieldLength; k++)
-//                    {
-//                        if (k != DV.fieldLength - 1)
-//                            out.printf("%f,", tmp[k]);
-//                        else
-//                            out.printf("%f" + "\n", tmp[k]);
-//                    }
-//                }
-//
-//                // close file
-//                out.close();
-//            }
-//            catch (IOException ioe)
-//            {
-//                ioe.printStackTrace();
-//            }
-//        }
-    }*//*
-
-
-
-    */
-/*private ArrayList<DataATTR> findLargestOverlappedArea(ArrayList<ArrayList<DataATTR>> attributes, int upper)
-    {
-        ArrayList<ArrayList<HyperBlockVisualization.Pnt>> ans = new ArrayList<>();
-        ArrayList<Integer> atri = new ArrayList<>();
-        ArrayList<Integer> cls = new ArrayList<>();
-
-        for (int a = 0; a < attributes.size(); a++)
-        {
-            ans.add(new ArrayList<>());
-            atri.add(-1);
-            cls.add(-1);
-            int start = 0;
-
-            ArrayList<HyperBlockVisualization.Pnt> tmp = new ArrayList<>();
-
-            for (int i = 0; i < attributes.get(a).size(); i++)
-            {
-                if (attributes.get(a).get(start).key < upper && attributes.get(a).get(i).key < upper)
-                {
-                    tmp.add(attributes.get(a).get(i));
-
-                    if (tmp.size() > ans.get(a).size())
-                    {
-                        ans.set(a, new ArrayList<>(tmp));
-                        atri.set(a, a);
-                        cls.set(a, 0);
-                    }
-                }
-                else if (attributes.get(a).get(start).key >= upper && attributes.get(a).get(i).key >= upper)
-                {
-                    tmp.add(attributes.get(a).get(i));
-
-                    if (tmp.size() > ans.get(a).size())
-                    {
-                        ans.set(a, new ArrayList<>(tmp));
-                        atri.set(a, a);
-                        cls.set(a, 1);
-                    }
-                }
-                else
-                {
-                    // classes are different, but the value is still the same
-                    if (attributes.get(a).get(i-1).value == attributes.get(a).get(i).value)
-                    {
-                        double remove_val = attributes.get(a).get(i).value;
-
-                        // increment until value changes
-                        while (remove_val == attributes.get(a).get(i).value)
-                        {
-                            if (i < attributes.get(a).size()-1)
-                                i++;
-                            else
-                                break;
-                        }
-
-                        // remove value from answer
-                        if (ans.get(a).size() > 0)
-                        {
-                            int offset = 0;
-                            int size = ans.get(a).size();
-
-                            // remove overlapped attributes
-                            for (int k = 0; k < size; k++)
-                            {
-                                if (ans.get(a).get(k - offset).value == remove_val)
-                                {
-                                    ans.get(a).remove(k - offset);
-                                    offset++;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            atri.set(a, -1);
-                            cls.set(a, -1);
-                        }
-                    }
-
-                    start = i;
-                    tmp.clear();
-                    tmp.add(attributes.get(a).get(i));
-                }
-            }
-        }
-
-        int big = 0;
-
-        for (int i = 0; i < ans.size(); i++)
-        {
-            if (ans.get(big).size() < ans.get(i).size())
-                big = i;
-        }
-
-        // add attribute and class
-        ans.get(big).add(new HyperBlockVisualization.Pnt(atri.get(big), cls.get(big)));
-        return ans.get(big);
-    }*//*
-
-
-
-    // code taken from VisCanvas2.0 autoCluster function
-    // CREDIT LATER
-    */
-/*private void generateHyperblocks(ArrayList<ArrayList<double[]>> data, ArrayList<ArrayList<double[]>> stuff)
-    {
-        ArrayList<HyperBlock> blocks = new ArrayList<>(hyper_blocks);
-        hyper_blocks.clear();
-
-        for (int i = 0, cnt = blocks.size(); i < stuff.size(); i++)
-        {
-            // create hyperblock from each datapoint
-            for (int j = 0; j < stuff.get(i).size(); j++)
-            {
-                blocks.add(new HyperBlock(new ArrayList<>()));
-                blocks.get(cnt).hyper_block.add(new ArrayList<>(java.util.List.of(stuff.get(i).get(j))));
-                blocks.get(cnt).findBounds();
-                blocks.get(cnt).className = DV.data.get(i).className;
-                blocks.get(cnt).classNum = i;
-                cnt++;
-            }
-        }
-
-        boolean actionTaken;
-        ArrayList<Integer> toBeDeleted = new ArrayList<>();
-        int cnt = blocks.size();
-
-        do
-        {
-            if (cnt <= 0)
-            {
-                cnt = blocks.size();
-            }
-
-            toBeDeleted.clear();
-            actionTaken = false;
-
-            if (blocks.size() <= 0)
-            {
+            if (seedNum == -1)
                 break;
+
+            HollowBlock seed_hb = merging_hbs.get(seedNum);
+            merging_hbs.remove(seedNum);
+
+            long startTime = System.currentTimeMillis();
+
+
+            /***
+             * MAKE PARALLEL
+             */
+
+            // Allocate device memory
+            int numBlocks = merging_hbs.size();
+            int fieldLength_dblBytes = DV.fieldLength * Double.BYTES;
+            long hb_fieldLength_dblBytes = (long) numBlocks * fieldLength_dblBytes;
+
+            CUdeviceptr seedHBMax = new CUdeviceptr();
+            cuMemAlloc(seedHBMax, fieldLength_dblBytes);
+            CUdeviceptr seedHBMin = new CUdeviceptr();
+            cuMemAlloc(seedHBMin, fieldLength_dblBytes);
+
+            CUdeviceptr mergingHBMaxes = new CUdeviceptr();
+            cuMemAlloc(mergingHBMaxes, hb_fieldLength_dblBytes);
+            CUdeviceptr mergingHBMins = new CUdeviceptr();
+            cuMemAlloc(mergingHBMins, hb_fieldLength_dblBytes);
+
+            CUdeviceptr combinedMax = new CUdeviceptr();
+            cuMemAlloc(combinedMax, hb_fieldLength_dblBytes);
+            CUdeviceptr combinedMin = new CUdeviceptr();
+            cuMemAlloc(combinedMin, hb_fieldLength_dblBytes);
+
+            int numOpClassPnts = 0;
+            for (int i = 0; i < data.size(); i++)
+            {
+                if (seed_hb.classNum != i)
+                    numOpClassPnts += data.get(i).size();
             }
 
-            HyperBlock tmp = blocks.get(0);
-            blocks.remove(0);
+            int[] host_toBeDeleted = new int[numBlocks];
 
-            int tmpClass = tmp.classNum;
+            long numOpClassPnts_dblBytes = (long) numOpClassPnts * fieldLength_dblBytes;
+            long numBlock_intBytes = (long) numBlocks * Integer.BYTES;
 
-            for (int i = 0; i < blocks.size(); i++)
+            CUdeviceptr oppClassPnts = new CUdeviceptr();
+            cuMemAlloc(oppClassPnts, numOpClassPnts_dblBytes);
+            CUdeviceptr toBeDeleted = new CUdeviceptr();
+            cuMemAlloc(toBeDeleted, numBlock_intBytes);
+
+            // Copy matrices A and B from host to device
+            cuMemcpyHtoD(seedHBMax, Pointer.to(seed_hb.maximums), fieldLength_dblBytes);
+            cuMemcpyHtoD(seedHBMin, Pointer.to(seed_hb.minimums), fieldLength_dblBytes);
+
+            double[] host_mergingHBMaxes = new double[numBlocks * DV.fieldLength];
+            double[] host_mergingHBMins = new double[numBlocks * DV.fieldLength];
+            for (int i = 0; i < numBlocks; i++)
             {
-                int curClass = blocks.get(i).classNum;
-
-                if (tmpClass != curClass)
-                    continue;
-
-                ArrayList<Double> maxPoint = new ArrayList<>();
-                ArrayList<Double> minPoint = new ArrayList<>();
-
-                // define combined space
                 for (int j = 0; j < DV.fieldLength; j++)
                 {
-                    double newLocalMax = Math.max(tmp.maximums.get(0)[j], blocks.get(i).maximums.get(0)[j]);
-                    double newLocalMin = Math.min(tmp.minimums.get(0)[j], blocks.get(i).minimums.get(0)[j]);
-
-                    maxPoint.add(newLocalMax);
-                    minPoint.add(newLocalMin);
-                }
-
-                // check if misclassified point lies in space
-                boolean cont = true;
-
-                for (int m = 0; m < DV.misclassifiedData.size(); m++)
-                {
-                    boolean inside = true;
-
-                    for (int f = 0; f < DV.fieldLength; f++)
-                    {
-                        if (DV.misclassifiedData.get(m)[f] > maxPoint.get(f) || DV.misclassifiedData.get(m)[f] < minPoint.get(f))
-                        {
-                            inside = false;
-                            break;
-                        }
-                    }
-
-                    if (inside)
-                    {
-                        cont = false;
-                        break;
-                    }
-                }
-
-                if (cont)
-                {
-                    ArrayList<double[]> pointsInSpace = new ArrayList<>();
-                    ArrayList<Integer> classInSpace = new ArrayList<>();
-
-                    for (int j = 0; j < data.size(); j++)
-                    {
-                        for (int k = 0; k < data.get(j).size(); k++)
-                        {
-                            boolean withinSpace = true;
-                            double[] tmp_pnt = new double[DV.fieldLength];
-
-                            for (int w = 0; w < DV.fieldLength; w++)
-                            {
-                                tmp_pnt[w] = data.get(j).get(k)[w];
-
-                                if (!(tmp_pnt[w] <= maxPoint.get(w) && tmp_pnt[w] >= minPoint.get(w)))
-                                {
-                                    withinSpace = false;
-                                    break;
-                                }
-                            }
-
-                            if (withinSpace)
-                            {
-                                pointsInSpace.add(tmp_pnt);
-                                classInSpace.add(j);
-                            }
-                        }
-                    }
-
-                    // check if new space is pure
-                    HashSet<Integer> classCnt = new HashSet<>(classInSpace);
-
-                    if (classCnt.size() <= 1)
-                    {
-                        actionTaken = true;
-                        tmp.hyper_block.get(0).clear();
-                        tmp.hyper_block.get(0).addAll(pointsInSpace);
-                        tmp.findBounds();
-                        toBeDeleted.add(i);
-                    }
+                    host_mergingHBMaxes[i * DV.fieldLength + j] = merging_hbs.get(i).maximums[j];
+                    host_mergingHBMins[i * DV.fieldLength + j] = merging_hbs.get(i).minimums[j];
                 }
             }
 
-            int offset = 0;
+            cuMemcpyHtoD(mergingHBMaxes, Pointer.to(host_mergingHBMaxes), hb_fieldLength_dblBytes);
+            cuMemcpyHtoD(mergingHBMins, Pointer.to(host_mergingHBMins), hb_fieldLength_dblBytes);
 
-            for (int i : toBeDeleted)
+            double[] host_oppClassPnts = new double[numOpClassPnts * DV.fieldLength];
+            for (int i = 0, k = 0; i < data.size(); i++)
             {
-                blocks.remove(i-offset);
-                offset++;
-            }
-
-            blocks.add(tmp);
-            cnt--;
-
-        } while (actionTaken || cnt > 0);
-
-        // impure
-        cnt = blocks.size();
-
-        do
-        {
-            if (cnt <= 0)
-            {
-                cnt = blocks.size();
-            }
-
-            toBeDeleted.clear();
-            actionTaken = false;
-
-            if (blocks.size() <= 1)
-            {
-                break;
-            }
-
-            HyperBlock tmp = blocks.get(0);
-            blocks.remove(0);
-
-            int tmpClass = tmp.classNum;
-
-            ArrayList<Double> acc = new ArrayList<>();
-
-            for (HyperBlock block : blocks)
-            {
-                // get majority class
-                int majorityClass = 0;
-
-                HashMap<Integer, Integer> classCnt = new HashMap<>();
-
-                for (int j = 0; j < block.hyper_block.size(); j++)
+                if (seed_hb.classNum != i)
                 {
-                    int curClass = block.classNum;
-
-                    if (classCnt.containsKey(curClass))
-                    {
-                        classCnt.replace(curClass, classCnt.get(curClass) + 1);
-                    }
-                    else
-                    {
-                        classCnt.put(curClass, 1);
-                    }
-                }
-
-                int majorityCnt = Integer.MIN_VALUE;
-
-                for (int key : classCnt.keySet())
-                {
-                    if (classCnt.get(key) > majorityCnt)
-                    {
-                        majorityCnt = classCnt.get(key);
-                        majorityClass = key;
-                        block.className = DV.data.get(key).className;
-                    }
-                }
-
-                ArrayList<Double> maxPoint = new ArrayList<>();
-                ArrayList<Double> minPoint = new ArrayList<>();
-
-                // define combined space
-                for (int j = 0; j < DV.fieldLength; j++)
-                {
-                    double newLocalMax = Math.max(tmp.maximums.get(0)[j], block.maximums.get(0)[j]);
-                    double newLocalMin = Math.min(tmp.minimums.get(0)[j], block.minimums.get(0)[j]);
-
-                    maxPoint.add(newLocalMax);
-                    minPoint.add(newLocalMin);
-                }
-
-                // check if misclassified point lies in space
-                boolean cont = true;
-
-                for (int m = 0; m < DV.misclassifiedData.size(); m++)
-                {
-                    boolean inside = true;
-
-                    for (int f = 0; f < DV.fieldLength; f++)
-                    {
-                        if (DV.misclassifiedData.get(m)[f] > maxPoint.get(f) || DV.misclassifiedData.get(m)[f] < minPoint.get(f))
-                        {
-                            inside = false;
-                            break;
-                        }
-                    }
-
-                    if (inside)
-                    {
-                        cont = false;
-                        break;
-                    }
-                }
-
-                if (cont)
-                {
-                    ArrayList<double[]> pointsInSpace = new ArrayList<>();
-                    ArrayList<Integer> classInSpace = new ArrayList<>();
-
-                    for (int j = 0; j < data.size(); j++)
-                    {
-                        for (int k = 0; k < data.get(j).size(); k++)
-                        {
-                            boolean withinSpace = true;
-                            double[] tmp_pnt = new double[DV.fieldLength];
-
-                            for (int w = 0; w < DV.fieldLength; w++)
-                            {
-                                tmp_pnt[w] = data.get(j).get(k)[w];
-
-                                if (!(tmp_pnt[w] <= maxPoint.get(w) && tmp_pnt[w] >= minPoint.get(w)))
-                                {
-                                    withinSpace = false;
-                                    break;
-                                }
-                            }
-
-                            if (withinSpace)
-                            {
-                                pointsInSpace.add(tmp_pnt);
-                                classInSpace.add(j);
-                            }
-                        }
-                    }
-
-                    classCnt.clear();
-
-                    // check if new space is pure enough
-                    for (int ints : classInSpace)
-                    {
-                        if (classCnt.containsKey(ints))
-                        {
-                            classCnt.replace(ints, classCnt.get(ints) + 1);
-                        }
-                        else
-                        {
-                            classCnt.put(ints, 1);
-                        }
-                    }
-
-                    double curClassTotal = 0;
-                    double classTotal = 0;
-
-                    for (int key : classCnt.keySet())
-                    {
-                        if (key == majorityClass)
-                        {
-                            curClassTotal = classCnt.get(key);
-                        }
-
-                        classTotal += classCnt.get(key);
-                    }
-
-                    acc.add(curClassTotal / classTotal);
-
-                    if (curClassTotal == classTotal)
-                    {
-                        pure_blocks.add(block);
-                    }
-                }
-                else
-                {
-                    acc.add(0.0);
+                    for (int j = 0; j < data.get(i).size(); j++, k++)
+                        System.arraycopy(data.get(i).get(j), 0, host_oppClassPnts, k * DV.fieldLength, DV.fieldLength);
                 }
             }
 
-            int highestAccIndex = 0;
+            cuMemcpyHtoD(oppClassPnts, Pointer.to(host_oppClassPnts), numOpClassPnts_dblBytes);
 
-            for (int j = 0; j < acc.size(); j++)
+            // Set up kernel parameters: pointers to matrix A, matrices B, result matrices, dimensions, and numMatrices
+            Pointer kernelParameters = Pointer.to(
+                    Pointer.to(seedHBMax),
+                    Pointer.to(seedHBMin),
+                    Pointer.to(mergingHBMaxes),
+                    Pointer.to(mergingHBMins),
+                    Pointer.to(combinedMax),
+                    Pointer.to(combinedMin),
+                    Pointer.to(oppClassPnts),
+                    Pointer.to(toBeDeleted),
+                    Pointer.to(new int[]{DV.fieldLength}),
+                    Pointer.to(new int[]{numBlocks}),
+                    Pointer.to(new int[]{numOpClassPnts * DV.fieldLength})
+            );
+
+            // Configure the kernel execution parameters
+            int blockSize = 256;  // Thread block size
+            int gridSize = merging_hbs.size() / blockSize + 1;
+
+            // Launch the kernel
+            cuLaunchKernel(mergerHelper1,
+                    gridSize, 1, 1,    // Grid size (in blocks)
+                    blockSize, 1, 1,  // Block size (in threads)
+                    0, null,                    // Shared memory size and stream
+                    kernelParameters, null      // Kernel parameters
+            );
+            cuCtxSynchronize();
+
+            // Copy result matrices C from device to host
+            cuMemcpyDtoH(Pointer.to(host_toBeDeleted), toBeDeleted, numBlock_intBytes);
+
+            // wait for results then check if any action was taken
+            for (int toDo : host_toBeDeleted)
             {
-                if (acc.get(j) > acc.get(highestAccIndex))
+                if (toDo == 1)
                 {
-                    highestAccIndex = j;
+                    actionTaken = true;
+                    break;
                 }
             }
 
-            // if acc meets threshold
-            if (acc.get(highestAccIndex) >= acc_threshold)
+            // Clean up memory
+            cuMemFree(seedHBMax);
+            cuMemFree(seedHBMin);
+            cuMemFree(mergingHBMaxes);
+            cuMemFree(mergingHBMins);
+            cuMemFree(combinedMax);
+            cuMemFree(combinedMin);
+            cuMemFree(oppClassPnts);
+            cuMemFree(toBeDeleted);
+
+            /***
+             * MAKE PARALLEL
+             */
+
+
+
+            long endTime = System.currentTimeMillis();
+            long executionTime = endTime - startTime;
+
+
+
+            // delete hyperblocks in reverse
+            // and add successfully combined hyperblocks
+            ArrayList<HollowBlock> addHbs = new ArrayList<>();
+            for (int i = host_toBeDeleted.length - 1; i >= 0; i--)
             {
-                actionTaken = true;
-
-                ArrayList<Double> maxPoint = new ArrayList<>();
-                ArrayList<Double> minPoint = new ArrayList<>();
-
-                // define combined space
-                for (int j = 0; j < DV.fieldLength; j++)
+                if (host_toBeDeleted[i] == 1)
                 {
-                    double newLocalMax = Math.max(tmp.maximums.get(0)[j], blocks.get(highestAccIndex).maximums.get(0)[j]);
-                    double newLocalMin = Math.min(tmp.minimums.get(0)[j], blocks.get(highestAccIndex).minimums.get(0)[j]);
+                    double[] maxPoint = new double[DV.fieldLength];
+                    double[] minPoint = new double[DV.fieldLength];
 
-                    maxPoint.add(newLocalMax);
-                    minPoint.add(newLocalMin);
-                }
-
-                // check if misclassified point lies in space
-                boolean cont = true;
-
-                for (int m = 0; m < DV.misclassifiedData.size(); m++)
-                {
-                    boolean inside = true;
-
-                    for (int f = 0; f < DV.fieldLength; f++)
-                    {
-                        if (DV.misclassifiedData.get(m)[f] > maxPoint.get(f) || DV.misclassifiedData.get(m)[f] < minPoint.get(f))
-                        {
-                            inside = false;
-                            break;
-                        }
-                    }
-
-                    if (inside)
-                    {
-                        cont = false;
-                        break;
-                    }
-                }
-
-                if (cont)
-                {
-                    ArrayList<double[]> pointsInSpace = new ArrayList<>();
-                    ArrayList<Integer> classInSpace = new ArrayList<>();
-
-                    for (int j = 0; j < data.size(); j++)
-                    {
-                        for (int k = 0; k < data.get(j).size(); k++)
-                        {
-                            boolean withinSpace = true;
-                            double[] tmp_pnt = new double[DV.fieldLength];
-
-                            for (int w = 0; w < DV.fieldLength; w++)
-                            {
-                                tmp_pnt[w] = data.get(j).get(k)[w];
-
-                                if (!(tmp_pnt[w] <= maxPoint.get(w) && tmp_pnt[w] >= minPoint.get(w)))
-                                {
-                                    withinSpace = false;
-                                    break;
-                                }
-                            }
-
-                            if (withinSpace)
-                            {
-                                pointsInSpace.add(tmp_pnt);
-                                classInSpace.add(j);
-                            }
-                        }
-                    }
-
-                    if (tmp.hyper_block.get(0).size() < blocks.get(highestAccIndex).hyper_block.get(0).size())
-                    {
-                        tmp.classNum = blocks.get(highestAccIndex).classNum;
-                    }
-                    tmp.hyper_block.get(0).clear();
-                    tmp.hyper_block.get(0).addAll(pointsInSpace);
-                    tmp.findBounds();
-
-                    // store this key to delete the cube that was combined
-                    toBeDeleted.add(highestAccIndex);
-                }
-            }
-
-            int offset = 0;
-
-            for (int i : toBeDeleted)
-            {
-                blocks.remove(i-offset);
-                offset++;
-            }
-
-            blocks.add(tmp);
-            cnt--;
-
-        } while (actionTaken || cnt > 0);
-
-        hyper_blocks.addAll(blocks);
-
-        // count blocks that share instance of data
-        overlappingBlockCnt = 0;
-
-        for (int i = 0; i < data.size(); i++)
-        {
-            for (int j = 0; j < data.get(i).size(); j++)
-            {
-                int presentIn = 0;
-
-                for (int k = 0; k < pure_blocks.size(); k++)
-                {
-                    for (int w = 0; w < pure_blocks.get(k).hyper_block.get(0).size(); w++)
-                    {
-                        if (Arrays.equals(pure_blocks.get(k).hyper_block.get(0).get(w), data.get(i).get(j)))
-                        {
-                            presentIn++;
-                            break;
-                        }
-                    }
-                }
-
-                if (presentIn > 1)
-                {
-                    overlappingBlockCnt++;
-                }
-            }
-        }
-
-        totalBlockCnt = hyper_blocks.size();
-
-        accuracy.clear();
-
-        for (HyperBlock block : blocks)
-        {
-            // get majority class
-            int majorityClass = 0;
-
-            HashMap<Integer, Integer> classCnt = new HashMap<>();
-
-            for (int j = 0; j < block.hyper_block.size(); j++)
-            {
-                int curClass = block.classNum;
-
-                if (classCnt.containsKey(curClass))
-                {
-                    classCnt.replace(curClass, classCnt.get(curClass) + 1);
-                }
-                else
-                {
-                    classCnt.put(curClass, 1);
-                }
-            }
-
-            int majorityCnt = Integer.MIN_VALUE;
-
-            for (int key : classCnt.keySet())
-            {
-                if (classCnt.get(key) > majorityCnt)
-                {
-                    majorityCnt = classCnt.get(key);
-                    majorityClass = key;
-                    block.className = DV.data.get(key).className;
-                    block.classNum = key;
-                }
-            }
-
-            double curClassTotal = 0;
-            double classTotal = 0;
-
-            for (int key : classCnt.keySet())
-            {
-                if (key == majorityClass)
-                {
-                    curClassTotal = classCnt.get(key);
-                }
-
-                classTotal += classCnt.get(key);
-            }
-
-            accuracy.add(String.format("%.2f%%", 100 * curClassTotal / classTotal));
-
-            if (curClassTotal == classTotal)
-            {
-                pure_blocks.add(block);
-            }
-        }
-    }*//*
-
-
-
-
-    static class BlockComparator implements Comparator<HyperBlock>
-    {
-
-        // Gives largest Hyperblock
-        public int compare(HyperBlock b1, HyperBlock b2)
-        {
-            int b1_size = 0;
-            int b2_size = 0;
-
-            for (int i = 0; i < b1.hyper_block.size(); i++)
-                b1_size += b1.hyper_block.get(i).size();
-
-            for (int i = 0; i < b2.hyper_block.size(); i++)
-                b2_size += b2.hyper_block.get(i).size();
-
-            return Integer.compare(b2_size, b1_size);
-        }
-    }
-
-
-    */
-/**
-     * Generalizes Hyperblocks
-     *//*
-
-    public void increase_level()
-    {
-        // store data used to create previous hyperblocks
-        prevData.add(new ArrayList<>());
-        prevData.get(hb_lvl).addAll(data);
-
-        // store previous hyperblocks
-        prevHBs = new ArrayList<>();
-        prevHBs.addAll(hyper_blocks);
-
-        // create representative cases
-        ArrayList<ArrayList<double[]>> tmpData = new ArrayList<>();
-
-        for (int i = 0; i < DV.classNumber; i++)
-            tmpData.add(new ArrayList<>());
-
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            ArrayList<double[]> representative_cases = find_evelope_cases(i);
-
-            for (double[] reps : representative_cases)
-                tmpData.get(i).add(reps);
-        }
-
-        // store representative data
-        data.clear();
-
-        for (ArrayList<double[]> tmp : tmpData)
-        {
-            double[][] newData = new double[tmp.size()][DV.fieldLength];
-            tmp.toArray(newData);
-
-            DataObject newObj = new DataObject("upper", newData);
-            newObj.updateCoordinatesGLC(DV.angles);
-
-            data.add(newObj);
-        }
-
-        generateHyperblocks();
-        average_hb_test();
-    }
-
-    private void average_hb_test()
-    {
-        // we need to keep track of if each point is in each HB
-        // if this point is good
-        // if this point is bad
-        // or if this point is not in any hb
-        int[] good = new int[hyper_blocks.size()];
-        int[] bad = new int[hyper_blocks.size()];
-
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            good[i] = 0;
-            bad[i] = 0;
-        }
-        int not_in = 0;
-
-        // populate main series
-        for (int d = 0; d < prevData.size(); d++)
-        {
-            for (DataObject data : prevData.get(d))
-            {
-                for (int i = 0; i < data.data.length; i++)
-                {
-                    boolean in_one = false;
-
-                    for (int hb = 0; hb < hyper_blocks.size(); hb++)
-                    {
-                        // start line at (0, 0)
-                        boolean within = false;
-
-                        for (int k = 0; k < hyper_blocks.get(hb).hyper_block.size(); k++)
-                        {
-                            boolean within_cur = true;
-
-                            for (int j = 0; j < DV.fieldLength; j++)
-                            {
-                                if (data.data[i][j] < hyper_blocks.get(hb).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(hb).maximums.get(k)[j])
-                                {
-                                    within_cur = false;
-                                }
-
-                                if (j == DV.fieldLength - 1)
-                                {
-                                    if (within_cur)
-                                    {
-                                        within = true;
-                                    }
-                                }
-                            }
-                        }
-
-                        // add points to lines
-                        for (int j = 0; j < DV.fieldLength; j++)
-                        {
-                            // add endpoint and timeline
-                            if (j == DV.fieldLength - 1)
-                            {
-                                // add series
-                                if (within)
-                                {
-                                    in_one = true;
-
-                                    if (d == hyper_blocks.get(hb).classNum)
-                                    {
-                                        good[hb]++;
-                                    }
-                                    else
-                                    {
-                                        bad[hb]++;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if(!in_one) not_in++;
-                }
-            }
-        }
-
-
-        // we now know the correctly and incorrectly classified points in each HB
-        // we also know the number of points not in any HB
-
-        System.out.println("\n\n\n");
-
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            if (good[i] + bad[i] > 0)
-                System.out.println("HB-" + (i+1) + ":\n" + "\tSize: " + (good[i] + bad[i]) + "\n\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: " + (good[i] / (double)(good[i] + bad[i])));
-            else
-                System.out.println("HB-" + (i+1) + ":\n" + "\tSize: " + (good[i] + bad[i]) + "\n\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: NAN");
-        }
-        System.out.println("\nData not in any HB: " + not_in);
-        System.out.println("\n\n\n");
-    }
-
-    private void hb_test()
-    {
-        // we need to keep track of if each point is in each HB
-        // if this point is good
-        // if this point is bad
-        // or if this point is not in any hb
-        int[] good = new int[hyper_blocks.size()];
-        int[] bad = new int[hyper_blocks.size()];
-
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            good[i] = 0;
-            bad[i] = 0;
-        }
-        int not_in = 0;
-
-        // populate main series
-        for (int d = 0; d < data.size(); d++)
-        {
-            for (DataObject data : data.get(d))
-            {
-                for (int i = 0; i < data.data.length; i++)
-                {
-                    for (int hb = 0; hb < hyper_blocks.size(); hb++)
-                    {
-                        for (int k = 0; k < hyper_blocks.get(hb).hyper_block.size(); k++)
-                        {
-                            boolean within_cur = true;
-
-                            for (int j = 0; j < DV.fieldLength; j++)
-                            {
-                                if (data.data[i][j] < hyper_blocks.get(hb).minimums.get(k)[j] || data.data[i][j] > hyper_blocks.get(hb).maximums.get(k)[j])
-                                {
-                                    within_cur = false;
-                                }
-
-                                if (j == DV.fieldLength - 1)
-                                {
-                                    if (within_cur)
-                                    {
-                                        if (d == hyper_blocks.get(hb).classNum)
-                                        {
-                                            good[hb]++;
-                                        }
-                                        else
-                                        {
-                                            bad[hb]++;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-        // we now know the correctly and incorrectly classified points in each HB
-        // we also know the number of points not in any HB
-
-        System.out.println("\n\n\n");
-
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            if (good[i] + bad[i] > 0)
-                System.out.println("HB-" + (i+1) + ":\n" + "\tSize: " + (good[i] + bad[i]) + "\n\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: " + (good[i] / (double)(good[i] + bad[i])));
-            else
-                System.out.println("HB-" + (i+1) + ":\n" + "\tSize: " + (good[i] + bad[i]) + "\n\tGood: " + good[i] + "\n\tBad: " + bad[i] + "\n\tAcc: NAN");
-        }
-        System.out.println("\n\n\n");
-    }
-
-    */
-/*private void increase_level_REAL()
-    {
-        ArrayList<HyperBlock> storage = new ArrayList<>(hyper_blocks);
-        hyper_blocks.addAll(test_hyper_blocks);
-
-        JTabbedPane testTabs = new JTabbedPane();
-        JPanel testtmp = new JPanel();
-        testtmp.add(drawPCBlockTiles(objects, -1, -1));
-        JScrollPane tmpteststuff = new JScrollPane(testtmp);
-        testTabs.add("Original", tmpteststuff);
-
-        hyper_blocks = new ArrayList<>(storage);
-
-        originalObjects = new ArrayList<>();
-        originalObjects.addAll(objects);
-
-        originalHyperBlocks = new ArrayList<>();
-        originalHyperBlocks.addAll(hyper_blocks);
-
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            //drawStuff(i);
-        }
-
-        ArrayList<double[]> ntmpData = new ArrayList<>();
-        ArrayList<double[]> ntmpData2 = new ArrayList<>();
-
-        // starting
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            for (int j = 0; j < hyper_blocks.get(i).hyper_block.size(); j++)
-            {
-                double[] tmp1 = new double[DV.fieldLength * 2];
-                int cnt = 0;
-
-                for (int k = 0; k < DV.fieldLength; k++)
-                {
-                    tmp1[cnt] = hyper_blocks.get(i).minimums.get(j)[k];
-                    cnt++;
-
-                    tmp1[cnt] = hyper_blocks.get(i).maximums.get(j)[k];
-                    cnt++;
-                }
-
-                if (hyper_blocks.get(i).classNum == 0)
-                    ntmpData.add(tmp1);
-                else
-                    ntmpData2.add(tmp1);
-            }
-        }
-
-        int mult = (Integer) hb_lvl.getValue();
-        int val = DV.angles.length;
-
-        for (int i = 0; i < mult - 1; i++)
-            val *= 2;
-
-        double[] newAngles = new double[val];
-
-        int cnt = 0;
-
-        for (int i = 0; i < DV.angles.length; i++)
-        {
-            for (int j = 0; j < (val / DV.angles.length); j++)
-            {
-                newAngles[cnt] = DV.angles[i];
-                cnt++;
-            }
-        }
-
-        DV.fieldLength = DV.fieldLength * 2;
-        DV.misclassifiedData.clear();
-
-        misclassified.clear();
-        acc.clear();
-
-        DV.angles = newAngles;
-
-        for (int w = 0; w < test_hyper_blocks.size(); w++)
-        {
-            for (int q = 0; q < 2; q++)
-            {
-                ArrayList<double[]> tmpData = new ArrayList<>(ntmpData);
-                ArrayList<double[]> tmpData2 = new ArrayList<>(ntmpData2);
-
-                double[] tmp1 = new double[DV.fieldLength];
-                cnt = 0;
-
-                for (int k = 0; k < test_hyper_blocks.get(w).minimums.get(0).length; k++)
-                {
-                    tmp1[cnt] = test_hyper_blocks.get(w).minimums.get(0)[k];
-                    cnt++;
-
-                    tmp1[cnt] = test_hyper_blocks.get(w).maximums.get(0)[k];
-                    cnt++;
-                }
-
-                if (q == 0)
-                    tmpData.add(tmp1);
-                else
-                    tmpData2.add(tmp1);
-
-                test_hyper_blocks.get(w).classNum = q;
-
-                objects = new ArrayList<>();
-                upperObjects = new ArrayList<>();
-                lowerObjects = new ArrayList<>();
-
-                double[][] newData = new double[tmpData.size()][DV.fieldLength * 2];
-                tmpData.toArray(newData);
-                DataObject newObj = new DataObject("upper", newData);
-
-                double[][] newData2 = new double[tmpData2.size()][DV.fieldLength * 2];
-                tmpData2.toArray(newData2);
-                DataObject newObj2 = new DataObject("lower", newData2);
-
-                newObj.updateCoordinatesGLC(newAngles);
-                upperObjects.add(newObj);
-
-                newObj2.updateCoordinatesGLC(newAngles);
-                lowerObjects.add(newObj2);
-
-                objects.add(upperObjects);
-                objects.add(lowerObjects);
-
-                DV.data.clear();
-                DV.data.add(newObj);
-                DV.data.add(newObj2);
-
-                generateHyperblocks3();
-                blockCheck();
-
-                JPanel tmptest = new JPanel();
-                if (q == 0)
-                    tmptest.add(drawPCBlockTiles(objects, upperObjects.size() - 1, 0));
-                else
-                    tmptest.add(drawPCBlockTiles(objects, lowerObjects.size() - 1, 1));
-                testTabs.add("HB" + w + "-" + q, tmptest);
-            }
-        }
-
-        JFrame tmpframe2 = new JFrame();
-        tmpframe2.setExtendedState( tmpframe2.getExtendedState()|JFrame.MAXIMIZED_BOTH );
-        tmpframe2.add(testTabs);
-        tmpframe2.pack();
-        tmpframe2.revalidate();
-        tmpframe2.setVisible(true);
-
-        //combineAll();
-
-        //for (int i = 0; i < hyper_blocks.size(); i++)
-        //pc_lvl_2_Test2(objects, i);
-    }*//*
-
-
-    private boolean in_HB(double[] c)
-    {
-        for (int i = 0; i < hyper_blocks.size(); i++)
-        {
-            for (int j = 0; j < hyper_blocks.get(i).hyper_block.size(); j++)
-            {
-                boolean inside = true;
-
-                for (int k = 0; k < DV.fieldLength; k++)
-                {
-                    // check if outside bounds
-                    if (hyper_blocks.get(i).maximums.get(j)[k] < c[k] ||
-                            hyper_blocks.get(i).minimums.get(j)[k] > c[k])
-                    {
-                        inside = false;
-                        break;
-                    }
-                }
-
-                // new case is within bounds
-                if (inside)
-                {
-                    // add case to hyperblock
-                    hyper_blocks.get(i).hyper_block.get(j).add(c);
-
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    // create pure hb around a new case
-    private void create_kNN_HB(double[] c, double val, int k)
-    {
-        // create HB
-        HyperBlock hb_c = kNN_mahalanobis(c, val, k);
-        hyper_blocks.add(hb_c);
-    }
-
-    private double euclidean_distance(double[] x, double[] y)
-    {
-        double dist = 0;
-
-        for (int i = 0; i < x.length; i++)
-        {
-            double coef = Math.cos(Math.toRadians(DV.angles[i]));
-            dist += Math.pow((Math.pow(x[i], 2) - Math.pow(y[i], 2)) * coef, 2);
-        }
-
-        return Math.sqrt(dist);
-    }
-
-    private HyperBlock kNN(double[] x, int k)
-    {
-        ArrayList<double[]> cluster = new ArrayList<>();
-        double[] dists = new double[k];
-        int[] classes = new int[k];
-
-        for (int i = 0; i < data.size(); i++)
-        {
-            for (int j = 0; j < data.get(i).size(); j++)
-            {
-                for (int q = 0; q < data.get(i).get(j).data.length; q++)
-                {
-                    double dist = euclidean_distance(x, data.get(i).get(j).data[q]);
-
-                    if (cluster.size() < k)
-                    {
-                        dists[cluster.size()] = dist;
-                        classes[cluster.size()] = i;
-                        cluster.add(data.get(i).get(j).data[k]);
-                    }
-                    else
-                    {
-                        double num = 0;
-                        int index = 0;
-
-                        for (int w = 0; w < k; w++)
-                        {
-                            if (dist < dists[w] && (dist - dists[w]) < num)
-                            {
-                                num = dist - dists[w];
-                                index = w;
-                            }
-                        }
-
-                        if (num < 0)
-                        {
-                            cluster.set(index, data.get(i).get(j).data[k]);
-                            classes[index] = i;
-                            dists[index] = dist;
-                        }
-                    }
-                }
-            }
-        }
-
-        cluster.add(x);
-        ArrayList<ArrayList<double[]>> data_c = new ArrayList<>(java.util.List.of(cluster));
-
-        // create HB
-        HyperBlock hb_c = new HyperBlock(data_c);
-        hb_c.classNum = classify_hb(classes, hb_c);
-
-        return hb_c;
-    }
-
-    private HyperBlock kNN_mahalanobis(double[] x, double val, int k)
-    {
-        ArrayList<double[]> cluster = new ArrayList<>();
-        double[] dists = new double[k];
-        int[] classes = new int[k];
-
-        double[] train_mah = new double[]{2.066354732712421, 13.98735041009519, 1.046333559705122, 17.24407121832487, 2.186915224235358, 17.071965771796844, 1.972975465178567, 8.747465762548657, 1.5033382401784798, 2.674087134154137, 0.8704170281357733, 2.6687547802767435, 0.8742481279541546, 1.371620583840687, 3.244543361680094, 0.6306117275483252, 2.1880683431851486, 2.1093191344052484, 1.6013262293532615, 0.8704170281357733, 4.989155884090962, 1.06977227882828, 1.4324773890770508, 1.4753270477221958, 1.0862678066727285, 0.870417028135773, 15.078190428616542, 2.1685517914466885, 1.5936640297164983, 2.186915224235358, 1.7779307547736631, 1.5936640297164983, 1.371620583840687, 2.2860155184648834, 3.428344385422842, 12.803379133987075, 3.9635531263719344, 8.148567160529156, 4.1859928508293045, 1.33617318098772, 1.4335505882041621, 13.713965204066742, 1.1026310517332243, 2.390108209626137, 12.347405946097439, 1.371620583840687, 1.5546795050134716, 2.1880683431851486, 1.3832227119710072, 1.371620583840687, 1.5936640297164983, 1.4324773890770506, 2.1880683431851486, 1.554636922388419, 2.066354732712421, 1.6409167821669677, 2.578631331753054, 7.84638959731352, 2.2844943760173817, 5.719246839691202, 4.7491857090891365, 5.104777374767509, 1.5854803247758606, 2.852523481625524, 1.6215975631453132, 1.5936640297164983, 1.1603281359622302, 34.934486620895896, 3.428344385422842, 1.4324773890770508, 0.8281106778394318, 1.1973531578597063, 2.3397454889491027, 0.8742481279541545, 1.0774479359860019, 1.1943032681909391, 1.0774479359860019, 1.284909284046077, 5.719246839691202, 0.8704170281357733, 2.302625900549903, 28.845047589797502, 2.674087134154137, 1.9602150590365206, 1.975812333099429, 2.3384218356378788, 1.4324773890770508, 1.4206125115140142, 1.1603281359622302, 21.692297815590738, 1.20528922070971, 1.1603281359622302, 2.65138635804643, 1.0774479359860019, 2.1880683431851486, 1.5936640297164983, 1.4324773890770508, 1.371620583840687, 2.674087134154137, 1.975812333099429, 3.244543361680094, 1.914888309803047, 3.9018193540582615, 1.601326229353261, 2.1880683431851486, 1.1603281359622302, 1.371620583840687, 8.319977443489272, 4.275548265033009, 1.975812333099429, 0.6306117275483252, 2.1880683431851486, 2.066354732712421, 2.1880683431851486, 2.674087134154137, 2.674087134154137, 2.5379420427094415, 2.1880683431851486, 1.5936640297164983, 2.1880683431851486, 4.698839315334091, 2.19487086418763, 1.5936640297164983, 2.674087134154137, 8.982755966339218, 6.0522440466039065, 3.937324830663116, 2.4526510149234477, 1.4324773890770508, 7.7165196427694465, 2.1880683431851486, 1.8224131567970592, 6.863559293146329, 2.9777008547494446, 10.080769602170571, 1.0774479359860019, 0.6306117275483252, 1.1603281359622302, 12.178930186112348, 6.518566099539499, 2.1880683431851486, 2.066354732712421, 1.22563847950436, 0.6306117275483252, 1.5936640297164983, 2.1880683431851486, 1.1603281359622302, 1.4753270477221958, 1.1973531578597063, 1.975812333099429, 2.1880683431851486, 4.74809906739866, 11.687890562020673, 2.1880683431851486, 2.1880683431851486, 2.1880683431851486, 2.1880683431851486, 5.949720841304825, 1.4335505882041621, 1.975812333099429, 1.975812333099429, 2.0400403214824365, 6.765423859826195, 7.742587369627828, 1.1603281359622302, 2.1880683431851486, 1.4457666315216737, 1.5936640297164983, 2.558244351790042, 1.4467915814662338, 1.975812333099429, 2.1880683431851486, 2.0400403214824365, 2.1880683431851486, 1.284909284046077, 1.975812333099429, 1.975812333099429, 3.081170413448166, 3.7665531212134065, 3.4539952179200757, 1.4324773890770508, 9.733612990726316, 1.5936640297164983, 1.5584467229225405, 2.333613153530106, 3.6124475478547455, 1.4324773890770508, 0.8704170281357733, 4.989155884090962, 5.133198638252578, 2.0102105198129716, 4.989155884090962, 1.1943032681909391, 1.8657562907749943, 1.0862678066727285, 1.975812333099429, 1.5936640297164983, 2.0400403214824365, 3.395708832450196, 3.8425309979291247, 1.975812333099429, 0.9327093329614633, 1.284909284046077, 1.284909284046077, 3.6935149484385223, 1.8759454297195663, 1.0842343942956825, 2.0922907011070695, 1.7139055405675787, 0.6306117275483252, 2.382546125662317, 3.61530469822875, 0.6306117275483252, 1.1603281359622302, 1.3534282889192037, 1.4847089094840342, 4.305342659250819, 1.0774479359860019, 2.3734530066656547, 2.8220104315211145, 4.088219094583042, 1.5936640297164983, 0.9153085327352488, 1.5936640297164983, 2.4157045302860736, 1.0862678066727285, 1.5936640297164983, 2.200049992151084, 6.2668398575831725, 1.5936640297164983, 1.1472009450031182, 7.825972844027412, 1.0537980002603713, 1.9609672442834158, 3.428344385422842, 1.0774479359860019, 11.779401500595418, 1.5936640297164983, 0.8704170281357733, 5.050053231503503, 4.679273400456304, 1.7661883479067624, 2.513056934368519, 13.513988175889526, 1.3534282889192037, 4.74843121616913, 2.1128503428456833, 4.401944863324574, 3.5785594644556507, 2.3059196634378143, 9.175728546631143, 1.284909284046077, 1.975812333099429, 2.1128503428456833, 2.382546125662317, 2.422292892451853, 2.1128503428456833, 2.274404260489741, 4.848682308151187, 2.3480634861053535, 4.041386382736273, 3.4539952179200757, 4.2111996584455635, 4.768967258268675, 1.6667974300904842, 1.3534282889192037, 1.3534282889192037, 2.320521986616137, 1.06977227882828, 4.768967258268675, 3.744421867936893, 1.3534282889192037, 2.1128503428456833, 1.0774479359860019, 1.7242423710664923, 1.3534282889192037, 2.8493473673956613, 2.5051526544366034, 5.584939273377225, 2.3480634861053535, 4.12527380848572, 1.06977227882828, 1.975812333099429, 1.3098008089911166, 22.907715280104735, 1.0697722788282797, 2.382546125662317,
-                2.1888901749616596, 0.8742481279541545, 0.8742481279541545, 3.244543361680094, 0.8742481279541545, 1.1026310517332243, 1.371620583840687, 1.975812333099429, 4.463498941555049, 4.177636916733701, 2.1128503428456833, 1.284909284046077, 1.975812333099429, 1.6013262293532615, 2.1128503428456833, 1.06977227882828, 2.382546125662317, 2.0400403214824365, 1.8711913354546725, 2.5749805221278774, 1.9634200886766269, 0.6306117275483252, 1.3832227119710072, 1.3534282889192037, 1.3716205838406865, 5.390082898590918, 1.3098008089911166, 0.9153085327352488, 2.674087134154137, 0.6306117275483252, 0.8704170281357733, 4.968285852434665, 2.066354732712421, 2.200049992151084, 0.8742481279541545, 2.811859101944171, 1.4807515623443204, 1.0774479359860019, 5.1030419024448195, 0.8742481279541545, 3.6304366709223235, 1.6013262293532615, 1.6880352063659727, 1.476965988062906, 0.6306117275483252, 2.1880683431851486, 1.9362200459007395, 7.161227486822898, 1.0774479359860019, 14.231304311034648, 2.3944615208088478, 3.4539952179200757, 0.8704170281357733, 1.6013262293532615, 2.066354732712421, 2.066354732712421, 2.1880683431851486, 0.6306117275483252, 1.4206125115140142, 1.5652252731761296, 1.1893536875090311, 0.6306117275483252, 1.5936640297164983, 2.200049992151084, 1.6013262293532615, 1.5936640297164983, 1.5936640297164983, 2.1880683431851486, 1.7857804307024283, 1.0774479359860019, 10.29409112952154, 1.975812333099429, 1.7661883479067624, 2.1128503428456833, 2.3480634861053535, 1.6013262293532615, 1.194303268190939, 3.7918550049609947, 0.6306117275483252, 6.180854682098881, 0.6306117275483252, 2.0400403214824365, 0.8742481279541545, 1.695250202546872, 1.975812333099429, 2.1128503428456833, 4.0416542090535135, 1.3131854496587192, 2.9724681617989726, 0.6306117275483253, 0.8742481279541545, 1.6013262293532615, 0.6306117275483252, 6.574973289316958, 5.640639359168244, 1.975812333099429, 2.332860833253399, 4.801036621302534, 4.723502398571744, 1.284909284046077, 1.3534282889192037, 3.8344207573686675, 1.6013262293532615, 1.975812333099429, 1.0774479359860019, 6.971022259204466, 4.097689029907875, 1.3534282889192037, 3.4539952179200757, 2.6224788887082693, 0.6306117275483252, 0.6306117275483252, 9.696921415393732, 1.5825164533292089, 12.677950480840533, 11.119996982053454, 13.504661611319824, 20.546162790256993, 15.7489864660282, 6.953137271892834, 12.104061126479598, 28.06431311468222, 13.820575742854729, 12.6724486225516, 12.362110028376687, 22.096107070824047, 28.67625111559413, 28.47699023916822, 13.597759504856908, 14.700556363123333, 25.113804792711193, 2.025875487803124, 20.629402164731314, 28.435065638458, 19.763546179666953, 8.701600479014214, 30.730117674898082, 14.117360351452616, 17.408673152115476, 10.639713776408566, 15.714601608255782, 33.21798248431422, 14.274641068931906, 44.63472764234434, 27.59098127985281, 42.84292335207326, 68.0635633365362, 21.15481734173104, 12.628808316609717, 24.72079414802643, 51.8022357361955, 9.913959922563363, 8.945165628227384, 48.277891914094674, 12.730803571659074, 39.732742781491986, 6.824609263281786, 19.2518647982011, 37.610129487997796, 16.252892069013825, 33.17678286897131, 26.013991769305875, 10.49919484271381, 12.855412713285416, 25.577207277627792, 31.113729067467645, 28.14741209597795, 25.379060304976974, 21.42301765207297, 25.270413453801957, 14.645562380298289, 17.542961251551713, 22.090206470541442, 3.970790540832069, 10.956231447005173, 19.62958185300255, 16.666665207579754, 18.934986210047438, 11.433912404572029, 16.997758582318276, 7.046367330586009, 19.361472412445398, 60.69908082064885, 17.459309342248545, 11.146002933106915, 18.232909557289545, 26.030323605253813, 13.747581910831114, 8.661382891194714, 11.178490376908643, 22.312560361538946, 36.07331218620473, 25.230131044603727, 12.048926496909713, 38.388114696947056, 5.294723501123709, 27.267998041867678, 13.54782313972014, 19.238794774079015, 14.717924003692982, 12.408093503885837, 8.847988659886415, 21.720977451582222, 11.051955294751425, 17.252818207574535, 35.62042764675301, 3.7790239763303757, 6.292482457739575, 12.974232030110677, 13.870443858482474, 13.671072948293709, 21.289426751809508, 9.62855483400433, 7.2921141625737285, 13.177745890748902, 36.702129614626905, 15.826915152557028, 36.49811774417682, 13.849616283868569, 10.486758338016282, 10.531611220440865, 21.256936286174895, 22.096107070824047, 33.21798248431422, 12.440644495629224, 25.474431832830184, 21.03253593486808, 8.615328062094688, 20.22663663626464, 36.677063315297275, 28.147003371634714, 17.118834495288592, 34.46528584049656, 21.936433948821858, 17.118834495288592, 4.296489003306805, 27.698025364370903, 20.46535486122924, 15.153450103078185, 22.367290151773553, 11.05170576136085, 32.04598906105828, 20.780568073763273, 13.579507378806026, 17.360655207059406, 10.988381669153231, 22.561963791627036, 34.02327485427141, 25.15085403825553, 17.29246616946618, 30.872331519170405, 13.31946473074035, 40.93311378103352, 8.97841276465745, 8.706817304895534, 24.311342518115453, 21.692202016673445, 22.369672153484583, 47.49995060474981, 15.657310080719803, 17.248407876451157, 8.55864610167089, 10.997067174041954, 10.943936954810807, 9.173871281476305, 20.290570513748012, 24.579451955388233, 20.691311758164893, 10.20702911166505, 27.49574207227197, 2.016879969558297, 26.441298972188704, 28.75134207497063, 10.039794086253165, 28.673572934028304, 47.358727675150234, 15.14833109354556, 11.890883508235756, 18.698314875123458, 14.673796778429384, 14.039344467512562, 35.83524216032261, 18.829179206812018, 9.310049627795825, 21.965757215267647, 23.9252209612987, 17.341880497696508, 18.295793624886624, 26.953263865006086, 33.58709244869957, 34.48917477838923, 13.237198103070613, 17.02495284236582, 13.882253720568379, 11.27275187676009, 22.56300127721484, 12.736021724619768, 15.713924687604797, 4.985412931293462, 14.24427322862943, 36.53256939196098, 11.481080599807369, 24.714338061147608, 19.78595726168441, 3.463759090404905, 20.9867668131546, 15.82668303971548, 22.1014492898862, 16.3030583564118, 40.15406221533512, 23.481197622533475, 10.393619221359039, 13.496795844187492, 13.063005316322439, 18.64163574841981, 21.303844600943645, 22.594657094006767, 16.51604117602026, 28.231691249419796, 36.12891279728376, 23.0215843474471, 18.598034906645555, 14.028938042068631, 29.168021968442705, 13.751197383158448, 24.091783757321025, 40.43227286177044};
-
-        int cnt=0;
-        for (int i = 0; i < data.size(); i++)
-        {
-            for (int j = 0; j < data.get(i).size(); j++)
-            {
-                for (int q = 0; q < data.get(i).get(j).data.length; q++)
-                {
-                    double dist = Math.abs(val - train_mah[cnt]);
-                    cnt++;
-
-                    if (cluster.size() < k)
-                    {
-                        dists[cluster.size()] = dist;
-                        classes[cluster.size()] = i;
-                        cluster.add(data.get(i).get(j).data[k]);
-                    }
-                    else
-                    {
-                        double num = 0;
-                        int index = 0;
-
-                        for (int w = 0; w < k; w++)
-                        {
-                            if (dist < dists[w] && (dist - dists[w]) < num)
-                            {
-                                num = dist - dists[w];
-                                index = w;
-                            }
-                        }
-
-                        if (num < 0)
-                        {
-                            cluster.set(index, data.get(i).get(j).data[k]);
-                            classes[index] = i;
-                            dists[index] = dist;
-                        }
-                    }
-                }
-            }
-        }
-
-        cluster.add(x);
-        ArrayList<ArrayList<double[]>> data_c = new ArrayList<>(java.util.List.of(cluster));
-
-        // create HB
-        HyperBlock hb_c = new HyperBlock(data_c);
-        hb_c.classNum = classify_hb(classes, hb_c);
-
-        return hb_c;
-    }
-
-    private int classify_hb(int[] classes, HyperBlock hb)
-    {
-        int x = 0, y = 0;
-
-        for (int i = 0; i < classes.length; i++)
-        {
-            if (classes[i] == 0) x++;
-            else y++;
-        }
-
-        int[] inside = new int[]{ 0, 0};
-
-        // populate main series
-        for (int d = 0; d < data.size(); d++)
-        {
-            int lineCnt = 0;
-
-            for (DataObject data : data.get(d))
-            {
-                for (int i = 0; i < data.data.length; i++)
-                {
-                    // start line at (0, 0)
-                    XYSeries line = new XYSeries(lineCnt, false, true);
-                    boolean within = false;
-
-                    for (int k = 0; k < hb.hyper_block.size(); k++)
-                    {
-                        boolean within_cur = true;
-
-                        for (int j = 0; j < DV.fieldLength; j++)
-                        {
-                            if (data.data[i][j] < hb.minimums.get(k)[j] || data.data[i][j] > hb.maximums.get(k)[j])
-                            {
-                                within_cur = false;
-                            }
-
-                            if (j == DV.fieldLength - 1)
-                            {
-                                if (within_cur)
-                                {
-                                    within = true;
-                                }
-                            }
-                        }
-                    }
-
-                    // add points to lines
+                    // define combined space
                     for (int j = 0; j < DV.fieldLength; j++)
                     {
-                        line.add(j, data.data[i][j]);
-
-                        // add endpoint and timeline
-                        if (j == DV.fieldLength - 1)
-                        {
-                            if (within)
-                            {
-                                inside[d]++;
-                                lineCnt++;
-                            }
-                        }
+                        maxPoint[j] = Math.max(seed_hb.maximums[j], merging_hbs.get(i).maximums[j]);
+                        minPoint[j] = Math.min(seed_hb.minimums[j], merging_hbs.get(i).minimums[j]);
                     }
+
+                    HollowBlock hb = new HollowBlock(maxPoint, minPoint, seed_hb.classNum);
+
+                    // remove old and add new
+                    merging_hbs.remove(i);
+                    addHbs.add(hb);
                 }
             }
-        }
 
-        x = inside[0];
-        y = inside[1];
+            merging_hbs.addAll(addHbs);
 
-        System.out.println("HB Purity: " + (x > y ? (x / (double)(x+y)) : (y / (double)(x+y))));
-        return x > y ? 0 : 1;
+            if (!actionTaken)
+            {
+                seed_hb.mergable = false;
+                merging_hbs.add(seed_hb);
+            }
+
+            System.out.println("Cnt: " + cnt);
+            System.out.println("HB num: " + merging_hbs.size());
+            System.out.println("Seed HB Cls: " + seed_hb.classNum);
+            System.out.println("Check time: " + executionTime + " milliseconds");
+
+            time_cnt++;
+            total_time += executionTime;
+
+            cnt--;
+
+        } while (actionTaken || cnt > 0);
+
+
+
+        System.out.println("Average time: " + total_time / time_cnt + " milliseconds");
+
+
+
+        // create hyperblocks from mergine blocks
+        for (HollowBlock mergingHb : merging_hbs)
+            hyper_blocks.add(new HyperBlock(mergingHb.maximums, mergingHb.minimums, mergingHb.classNum));
+
+        cuCtxDestroy(context);
     }
 
-    private void getOverlapData()
+    private void merger_cuda_helper(int n, double[] seedHBMax, double[] seedHBMin, double[] mergingHBMaxes, double[] mergingHBMins, double[] combinedMax, double[] combinedMin, double[] opClassPnts, int[] toBeDeleted, int numDims, int numMergingHBs, int cases)
     {
-        data = new ArrayList<>();
-        upperObjects = new ArrayList<>();
-        lowerObjects = new ArrayList<>();
-
-        ArrayList<double[]> upper = new ArrayList<>();
-        ArrayList<double[]> lower = new ArrayList<>();
-
-        // check all classes
-        for (int i = 0; i < DV.data.size(); i++)
+        int offset = n * numDims;
+        for (int i = 0; i < numDims; i++)
         {
-            if (i == DV.upperClass)
-            {
-                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
-                {
-                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
-
-                    // if endpoint is within overlap then store point
-                    if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
-                    {
-                        double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
-                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
-
-                        upper.add(thisPoint);
-                    }
-                }
-            }
-            else if (DV.lowerClasses.get(i))
-            {
-                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
-                {
-                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
-
-                    // if endpoint is within overlap then store point
-                    if ((DV.overlapArea[0] <= endpoint && endpoint <= DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
-                    {
-                        double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
-                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
-
-                        lower.add(thisPoint);
-                    }
-                }
-            }
+            combinedMax[i+offset] = Math.max(seedHBMax[i], mergingHBMaxes[i+offset]);
+            combinedMin[i+offset] = Math.min(seedHBMin[i], mergingHBMins[i+offset]);
         }
 
-        double[][] upperData = new double[upper.size()][DV.fieldLength];
-        upper.toArray(upperData);
-        DataObject upperObj = new DataObject("upper", upperData);
-        upperObj.updateCoordinatesGLC(DV.angles);
-        upperObjects.add(upperObj);
-
-        double[][] lowerData = new double[lower.size()][DV.fieldLength];
-        lower.toArray(lowerData);
-        DataObject lowerObj = new DataObject("lower", lowerData);
-        lowerObj.updateCoordinatesGLC(DV.angles);
-        lowerObjects.add(lowerObj);
-
-        data.add(upperObjects);
-        data.add(lowerObjects);
-
-        DV.data.clear();
-        DV.data.add(upperObj);
-        DV.data.add(lowerObj);
-    }
-
-    private void getNonOverlapData()
-    {
-        data = new ArrayList<>();
-        upperObjects = new ArrayList<>();
-        lowerObjects = new ArrayList<>();
-
-        // store overlapping datapoints in upper and lower graphs
-        ArrayList<double[]> upper = new ArrayList<>();
-        ArrayList<double[]> lower = new ArrayList<>();
-
-        // check all classes
-        for (int i = 0; i < DV.data.size(); i++)
+        // 1 = do merge, 0 = do not merge
+        int merge = 1;
+        for (int i = 0; i < cases; i += numDims)
         {
-            if (i == DV.upperClass)
+            boolean withinSpace = true;
+            for (int j = 0; j < numDims; j++)
             {
-                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
+                if (!(opClassPnts[i+j] <= combinedMax[j+offset] && opClassPnts[i+j] >= combinedMin[j+offset]))
                 {
-                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
-
-                    // if endpoint is outside of overlap then store point
-                    if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
-                    {
-                        double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
-                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
-
-                        upper.add(thisPoint);
-                    }
+                    withinSpace = false;
+                    break;
                 }
             }
-            else if (DV.lowerClasses.get(i))
+
+            if (withinSpace)
             {
-                for (int j = 0; j < DV.data.get(i).coordinates.length; j++)
-                {
-                    double endpoint = DV.data.get(i).coordinates[j][DV.data.get(i).coordinates[j].length-1][0];
-
-                    // if endpoint is outside of overlap then store point
-                    if ((DV.overlapArea[0] > endpoint || endpoint > DV.overlapArea[1]) && ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive))
-                    {
-                        double[] thisPoint = new double[DV.data.get(i).coordinates[j].length];
-                        System.arraycopy(DV.data.get(i).data[j], 0, thisPoint, 0, DV.data.get(i).coordinates[j].length);
-
-                        lower.add(thisPoint);
-                    }
-                }
+                merge = 0;
+                break;
             }
         }
 
-        double[][] upperData = new double[upper.size()][DV.fieldLength];
-        upper.toArray(upperData);
-        DataObject upperObj = new DataObject("upper", upperData);
-        upperObj.updateCoordinatesGLC(DV.angles);
-        upperObjects.add(upperObj);
-
-        double[][] lowerData = new double[lower.size()][DV.fieldLength];
-        lower.toArray(lowerData);
-        DataObject lowerObj = new DataObject("lower", lowerData);
-        lowerObj.updateCoordinatesGLC(DV.angles);
-        lowerObjects.add(lowerObj);
-
-        data.add(upperObjects);
-        data.add(lowerObjects);
-
-        DV.data.clear();
-        DV.data.add(upperObj);
-        DV.data.add(lowerObj);
+        toBeDeleted[n] = merge;
     }
 
-    private void getData()
+
+
+
+
+    public void saveHyperBlocksToCSV(String filePath)
     {
-        // get classes to be graphed
-        data = new ArrayList<>();
-        data.addAll(DV.data);
-    }
-
-    private void add_test_data()
-    {
-        data = new ArrayList<>();
-
-        upperObjects.add(DV.testData.get(DV.upperClass));
-
-        if (DV.hasClasses)
+        try (FileWriter writer = new FileWriter(filePath))
         {
-            for (int j = 0; j < DV.classNumber; j++)
+            // Write the header
+            for (int i = 0; i < DV.fieldLength; i++)
+                writer.append("Min  ").append(DV.fieldNames.get(i)).append(",");
+            for (int i = 0; i < DV.fieldLength; i++)
+                writer.append("Max  ").append(DV.fieldNames.get(i)).append(",");
+            writer.append("Class\n");
+
+            // Iterate through each HyperBlock
+            for (HyperBlock hb : hyper_blocks)
             {
-                if (DV.lowerClasses.get(j))
-                    lowerObjects.add(DV.testData.get(j));
+                double[] min = hb.minimums.get(0);
+                double[] max = hb.maximums.get(0);
+                int classNum = hb.classNum;
+
+                // Write the min values
+                for (double value : min)
+                    writer.append(String.valueOf(value)).append(",");
+
+                // Write the max values
+                for (double value : max)
+                    writer.append(String.valueOf(value)).append(",");
+
+                // Write the class
+                writer.append(DV.uniqueClasses.get(classNum)).append("\n");
+            }
+        } catch (IOException e)
+        {
+            LOGGER.log(Level.SEVERE, e.toString(), e);
+        }
+    }
+
+
+    public void saveDataObjectsToCSV(ArrayList<ArrayList<double[]>> dataObjects, String filePath)
+    {
+        try (FileWriter writer = new FileWriter(filePath))
+        {
+            // Write the header
+            for (String fieldName : DV.fieldNames)
+                writer.append(fieldName).append(",");
+
+            writer.append("Class\n");
+
+            // Iterate through each DataObject
+            for (int i = 0; i < dataObjects.size(); i++)
+            {
+                ArrayList<double[]> data = dataObjects.get(i);
+                for (double[] row : data)
+                {
+                    for (double value : row)
+                        writer.append(String.valueOf(value)).append(",");
+
+                    writer.append(DV.uniqueClasses.get(i)).append("\n");
+                }
+            }
+        }
+        catch (IOException e)
+        {
+            LOGGER.log(Level.SEVERE, e.toString(), e);
+        }
+    }
+
+
+
+
+
+    /**
+     * Gets all cases misclassified by the DV Linear Discriminant Function
+     */
+    private static void getMisclassifiedCases()
+    {
+        // create threads for each data object
+        int numThreads = Math.min(Runtime.getRuntime().availableProcessors(), DV.trainData.size());
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        List<Future<Void>> futures = new ArrayList<>();
+
+        // get misclassified cases
+        DV.misclassifiedData = new ArrayList<>();
+        for (int i = 0; i < DV.trainData.size(); i++)
+        {
+            DV.misclassifiedData.add(new ArrayList<>());
+            if (i == DV.upperClass || DV.lowerClasses.get(i))
+            {
+                // execute task
+                int finalI = i;
+                Callable<Void> task = () -> misclassifiedCasesHelper(DV.trainData.get(finalI), finalI);
+                Future<Void> future = executor.submit(task);
+                futures.add(future);
             }
         }
 
-        data.add(upperObjects);
-        data.add(lowerObjects);
-    }
-
-
-    */
-/**
-     *                          *
-     * ------------------------ *
-     * VISUALIZATION FUNCTIONS  *
-     * ------------------------ *
-     *                          *
-     *//*
-
-    private void chooseGLC()
-    {
-        // glc-l, pc, spc, etc.
-
-    }
-
-    // change name
-    private void plotType()
-    {
-
-    }
-
-    */
-/**
-     *                          *
-     * ------------------------ *
-     * UNSTABLE FUNCTIONS BELOW *
-     * ------------------------ *
-     *                          *
-     *//*
-
-
-
-
-    //
-    ////
-    ////// DATA GENERALIZATION TESTING
-    ////
-    //
-
-    private ArrayList<double[]> find_evelope_cases(int num)
-    {
-        ArrayList<double[]> stuff = new ArrayList<>();
-
-        boolean[] max = new boolean[DV.fieldLength];
-        boolean[] min = new boolean[DV.fieldLength];
-
-        for (int i = 0; i < DV.fieldLength; i++)
+        // get results from threads
+        for (Future<Void> future : futures)
         {
-            max[i] = true;
-            min[i] = true;
-        }
-
-        for (int i = 0; i < hyper_blocks.get(num).hyper_block.get(0).size(); i++)
-        {
-            boolean part = false;
-
-            for (int j = 0; j < DV.fieldLength; j++)
+            try
             {
-                if (hyper_blocks.get(num).hyper_block.get(0).get(i)[j] == hyper_blocks.get(num).maximums.get(0)[j] && max[j])
-                {
-                    part = true;
-                    max[j] = false;
-                }
-                else if (hyper_blocks.get(num).hyper_block.get(0).get(i)[j] == hyper_blocks.get(num).minimums.get(0)[j] && min[j])
-                {
-                    part = true;
-                    min[j] = false;
-                }
+                future.get();
             }
-
-            if (part)
-                stuff.add(hyper_blocks.get(num).hyper_block.get(0).get(i));
+            catch (InterruptedException | ExecutionException e)
+            {
+                LOGGER.log(Level.SEVERE, e.toString(), e);
+            }
         }
 
-        return stuff;
+        executor.shutdown();
     }
 
 
-    //
-    ////
-    ////// HB COMBINING TESTING
-    ////
-    //
-
-    // find HBs that can be combined while maintaining the purity threshold
-    */
-/*private void increase_level_combine_check()
+    /**
+     * Helper function for getMisclassifiedCases
+     * @param data data used in classification
+     * @param i class index
+     */
+    private static Void misclassifiedCasesHelper(DataObject data, int i)
     {
-        ArrayList<ChartPanel> panels = new ArrayList<>();
-        ArrayList<String> names = new ArrayList<>();
-        ArrayList<ChartPanel> bad_panels = new ArrayList<>();
-        ArrayList<String> bad_names = new ArrayList<>();
-        int good = 0;
-        int bad = 0;
-
-        // go through every HB combination
-        for (int i = 0; i < hyper_blocks.size(); i++)
+        for (int j = 0; j < data.coordinates.length; j++)
         {
-            for (int j = 0; j < hyper_blocks.size(); j++)
+            // check if endpoint is within the subset of used data
+            double endpoint = data.coordinates[j][data.coordinates[j].length-1][0];
+            if ((DV.domainArea[0] <= endpoint && endpoint <= DV.domainArea[1]) || !DV.domainActive)
             {
-                if (j > i && hyper_blocks.get(i).classNum == hyper_blocks.get(j).classNum)
+                // get classification
+                if (i == DV.upperClass && DV.upperIsLower)
                 {
-                    double[] max = new double[DV.fieldLength];
-                    double[] min = new double[DV.fieldLength];
-
-                    for (int k = 0; k < DV.fieldLength; k++)
-                    {
-                        max[k] = Math.max(hyper_blocks.get(i).maximums.get(0)[k], hyper_blocks.get(j).maximums.get(0)[k]);
-                        min[k] = Math.min(hyper_blocks.get(i).minimums.get(0)[k], hyper_blocks.get(j).minimums.get(0)[k]);
-                    }
-
-                    HyperBlock test = new HyperBlock(max, min);
-                    System.out.println("Combined HB" + (i+1) + " + HB" + (j+1));
-                    test.classNum = hyper_blocks.get(i).classNum;
-
-                    if (test.hyper_block.size() == 2)
-                    {
-                        double purity = (double) Math.max(test.hyper_block.get(0).size(), test.hyper_block.get(1).size()) / (test.hyper_block.get(0).size() + test.hyper_block.get(1).size());
-                        System.out.println("Purity = " + purity);
-
-                        if (purity >= acc_threshold)
-                        {
-                            System.out.println("GOOD\n");
-                            good++;
-
-                            panels.add(individual_HB_vis(test, "Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = " + purity));
-                            names.add("<html><b>GOOD</b> -> Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = " + purity);
-                        }
-                        else
-                        {
-                            System.out.println("BAD\n");
-                            bad++;
-
-                            bad_panels.add(individual_HB_vis(test, "Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = " + purity));
-                            bad_names.add("<html><b>BAD</b> -> Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = " + purity);
-                        }
-                    }
-                    else if (test.hyper_block.size() == 1)
-                    {
-                        System.out.println("Purity = 1");
-                        System.out.println("GOOD\n");
-                        good++;
-
-                        panels.add(individual_HB_vis(test, "Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = 1"));
-                        names.add("<html><b>GOOD</b> -> Combined HB" + (i+1) + " + HB" + (j+1) + " -> Purity = 1");
-                    }
-                    else
-                        System.out.println("ERROR\n");
+                    // check if endpoint is correctly classified
+                    if (endpoint > DV.threshold)
+                        DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
+                }
+                else if (i == DV.upperClass)
+                {
+                    // check if endpoint is correctly classified
+                    if (endpoint < DV.threshold)
+                        DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
+                }
+                else if(DV.lowerClasses.get(i) && DV.upperIsLower)
+                {
+                    // check if endpoint is correctly classified
+                    if (endpoint < DV.threshold)
+                        DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
+                }
+                else
+                {
+                    // check if endpoint is correctly classified
+                    if (endpoint > DV.threshold)
+                        DV.misclassifiedData.get(i).add(DV.trainData.get(i).data[j]);
                 }
             }
         }
 
-        System.out.println("Combination Results:\nGood = " + good + "\nBad = " + bad);
-
-        test_hb_vis(panels, names, "Combination Results: Good = " + good);
-        test_hb_vis(bad_panels, bad_names, "Combination Results: Bad = " + bad);
-    }*//*
-
+        return null;
+    }
 }
-*/

@@ -3,8 +3,9 @@
     <output-path>$PROJECT_DIR$/out/artifacts/DV_jar</output-path>
     <root id="archive" name="DV.jar">
       <element id="module-output" name="DV" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/jcommon-1.0.23.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/jfreechart-1.0.19.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/jcuda/jcuda/12.0.0/jcuda-12.0.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/jcuda/jcuda-natives/12.0.0/jcuda-natives-12.0.0-windows-x86_64.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/jfree/jfreechart/1.5.4/jfreechart-1.5.4.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

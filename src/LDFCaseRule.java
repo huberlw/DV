@@ -214,7 +214,7 @@ public class LDFCaseRule
             {
                 // lower
                 weightSliders[i][0] = new JSlider(0, 500, (int)(scale[0][i] * 100));
-                lowerScalePanel.add(AngleSliders.createLDFSliderPanel_GLC(
+                lowerScalePanel.add(AngleSliders.createHyperblockSliderPanel(
                         this,
                         weightSliders[i][0],
                         (int)(scale[0][i] * 100),
@@ -223,7 +223,7 @@ public class LDFCaseRule
 
                 // upper
                 weightSliders[i][1] = new JSlider(0, 500, (int)(scale[1][i] * 100));
-                upperScalePanel.add(AngleSliders.createLDFSliderPanel_GLC(
+                upperScalePanel.add(AngleSliders.createHyperblockSliderPanel(
                         this,
                         weightSliders[i][1],
                         (int)(scale[1][i] * 100),
@@ -314,20 +314,20 @@ public class LDFCaseRule
         double lowerVal = (sliders[attribute].getValue() / 100.0) * DV.trainData.get(curClass).data[index][attribute];
 
         // undo min-max normalization
-        upperVal *= (DV.max[attribute] - DV.min[attribute]);
-        upperVal += DV.min[attribute];
+        upperVal *= (DataSetup.maxValues[attribute] - DataSetup.minValues[attribute]);
+        upperVal += DataSetup.minValues[attribute];
 
-        lowerVal *= (DV.max[attribute] - DV.min[attribute]);
-        lowerVal += DV.min[attribute];
+        lowerVal *= (DataSetup.maxValues[attribute] - DataSetup.minValues[attribute]);
+        lowerVal += DataSetup.minValues[attribute];
 
         // undo z-score
         if (DV.zScoreMinMax)
         {
-            upperVal *= DV.sd[attribute];
-            upperVal += DV.mean[attribute];
+            upperVal *= DataSetup.sd[attribute];
+            upperVal += DataSetup.mean[attribute];
 
-            lowerVal *= DV.sd[attribute];
-            lowerVal += DV.mean[attribute];
+            lowerVal *= DataSetup.sd[attribute];
+            lowerVal += DataSetup.mean[attribute];
         }
 
         String label;
@@ -345,19 +345,19 @@ public class LDFCaseRule
             // z-score
             if (DV.zScoreMinMax)
             {
-                upperVal -= DV.mean[attribute];
-                upperVal /= DV.sd[attribute];
+                upperVal -= DataSetup.mean[attribute];
+                upperVal /= DataSetup.sd[attribute];
 
-                lowerVal -= DV.mean[attribute];
-                lowerVal /= DV.sd[attribute];
+                lowerVal -= DataSetup.mean[attribute];
+                lowerVal /= DataSetup.sd[attribute];
             }
 
             // min-max normalization
-            upperVal -= DV.min[attribute];
-            upperVal /= (DV.max[attribute] - DV.min[attribute]);
+            upperVal -= DataSetup.minValues[attribute];
+            upperVal /= (DataSetup.maxValues[attribute] - DataSetup.minValues[attribute]);
 
-            lowerVal -= DV.min[attribute];
-            lowerVal /= (DV.max[attribute] - DV.min[attribute]);
+            lowerVal -= DataSetup.minValues[attribute];
+            lowerVal /= (DataSetup.maxValues[attribute] - DataSetup.minValues[attribute]);
 
             // change sliders to match rounded whole number
             sliders[attribute].setUpperValue((int)(upperVal / DV.trainData.get(curClass).data[index][attribute] * 100.0));
@@ -588,32 +588,32 @@ public class LDFCaseRule
                 {
                     // transform to real value
                     // undo min-max normalization
-                    lowY *= (DV.max[i] - DV.min[i]);
-                    lowY += DV.min[i];
+                    lowY *= (DataSetup.maxValues[i] - DataSetup.minValues[i]);
+                    lowY += DataSetup.minValues[i];
 
-                    upY *= (DV.max[i] - DV.min[i]);
-                    upY += DV.min[i];
+                    upY *= (DataSetup.maxValues[i] - DataSetup.minValues[i]);
+                    upY += DataSetup.minValues[i];
 
-                    lowLimitY *= (DV.max[i] - DV.min[i]);
-                    lowLimitY += DV.min[i];
+                    lowLimitY *= (DataSetup.maxValues[i] - DataSetup.minValues[i]);
+                    lowLimitY += DataSetup.minValues[i];
 
-                    upLimitY *= (DV.max[i] - DV.min[i]);
-                    upLimitY += DV.min[i];
+                    upLimitY *= (DataSetup.maxValues[i] - DataSetup.minValues[i]);
+                    upLimitY += DataSetup.minValues[i];
 
                     // undo z-score
                     if (DV.zScoreMinMax)
                     {
-                        lowY *= DV.sd[i];
-                        lowY += DV.mean[i];
+                        lowY *= DataSetup.sd[i];
+                        lowY += DataSetup.mean[i];
 
-                        upY *= DV.sd[i];
-                        upY += DV.mean[i];
+                        upY *= DataSetup.sd[i];
+                        upY += DataSetup.mean[i];
 
-                        lowLimitY *= DV.sd[i];
-                        lowLimitY += DV.mean[i];
+                        lowLimitY *= DataSetup.sd[i];
+                        lowLimitY += DataSetup.mean[i];
 
-                        upLimitY *= DV.sd[i];
-                        upLimitY += DV.mean[i];
+                        upLimitY *= DataSetup.sd[i];
+                        upLimitY += DataSetup.mean[i];
                     }
 
                     // round real value to whole number
@@ -626,31 +626,31 @@ public class LDFCaseRule
                     // z-score
                     if (DV.zScoreMinMax)
                     {
-                        lowY -= DV.mean[i];
-                        lowY /= DV.sd[i];
+                        lowY -= DataSetup.mean[i];
+                        lowY /= DataSetup.sd[i];
 
-                        upY -= DV.mean[i];
-                        upY /= DV.sd[i];
+                        upY -= DataSetup.mean[i];
+                        upY /= DataSetup.sd[i];
 
-                        lowLimitY -= DV.mean[i];
-                        lowLimitY /= DV.sd[i];
+                        lowLimitY -= DataSetup.mean[i];
+                        lowLimitY /= DataSetup.sd[i];
 
-                        upLimitY -= DV.mean[i];
-                        upLimitY /= DV.sd[i];
+                        upLimitY -= DataSetup.mean[i];
+                        upLimitY /= DataSetup.sd[i];
                     }
 
                     // min-max normalization
-                    lowY -= DV.min[i];
-                    lowY /= (DV.max[i] - DV.min[i]);
+                    lowY -= DataSetup.minValues[i];
+                    lowY /= (DataSetup.maxValues[i] - DataSetup.minValues[i]);
 
-                    upY -= DV.min[i];
-                    upY /= (DV.max[i] - DV.min[i]);
+                    upY -= DataSetup.minValues[i];
+                    upY /= (DataSetup.maxValues[i] - DataSetup.minValues[i]);
 
-                    lowLimitY -= DV.min[i];
-                    lowLimitY /= (DV.max[i] - DV.min[i]);
+                    lowLimitY -= DataSetup.minValues[i];
+                    lowLimitY /= (DataSetup.maxValues[i] - DataSetup.minValues[i]);
 
-                    upLimitY -= DV.min[i];
-                    upLimitY /= (DV.max[i] - DV.min[i]);
+                    upLimitY -= DataSetup.minValues[i];
+                    upLimitY /= (DataSetup.maxValues[i] - DataSetup.minValues[i]);
                 }
 
                 pcLine2.add(i - invalid,  lowY);
@@ -873,14 +873,14 @@ public class LDFCaseRule
                 double yVal = dataset.getYValue(series, item);
 
                 // undo min-max normalization
-                yVal *= (DV.max[xVal] - DV.min[xVal]);
-                yVal += DV.min[xVal];
+                yVal *= (DataSetup.maxValues[xVal] - DataSetup.minValues[xVal]);
+                yVal += DataSetup.minValues[xVal];
 
                 // undo z-score
                 if (DV.zScoreMinMax)
                 {
-                    yVal *= DV.sd[xVal];
-                    yVal += DV.mean[xVal];
+                    yVal *= DataSetup.sd[xVal];
+                    yVal += DataSetup.mean[xVal];
                 }
 
                 if (discrete[xVal])

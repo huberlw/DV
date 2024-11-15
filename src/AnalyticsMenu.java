@@ -21,7 +21,6 @@ public class AnalyticsMenu extends JPanel
         analyticsPanel.setLayout(new GridBagLayout());
         GridBagConstraints constraints = new GridBagConstraints();
 
-
         // set previous confusion matrices
         JCheckBox prevAllDataCheckBox = createCheckBox(
                 "Previous All Data CM",
@@ -184,7 +183,6 @@ public class AnalyticsMenu extends JPanel
             if (!DV.displayRemoteAnalytics)
             {
                 DV.displayRemoteAnalytics = true;
-
                 if (DV.trainData != null)
                 {
                     // generate analytics
@@ -241,43 +239,33 @@ public class AnalyticsMenu extends JPanel
      */
     private void setKFoldPopup()
     {
-        // popup asking for number of folds
-        JPanel foldPanel = new JPanel(new BorderLayout());
-
         // text panel
         JPanel textPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-
-        // maximum text field
         JTextField foldField = new JTextField();
         foldField.setPreferredSize(new Dimension(30, 30));
         textPanel.add(new JLabel("Number of Folds: "));
         textPanel.add(foldField);
 
-        // add text panel
+        // popup asking for number of folds
+        JPanel foldPanel = new JPanel(new BorderLayout());
         foldPanel.add(textPanel, BorderLayout.SOUTH);
 
-        int choice = -2;
         // loop until folds are valid or user quits
+        int choice = -2;
         while (choice == -2)
         {
             choice = JOptionPane.showConfirmDialog(DV.mainFrame, foldPanel, "Enter the number of folds.", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
             if (choice == 0)
             {
                 try
                 {
                     // get text field values
                     int folds = Integer.parseInt(foldField.getText());
-
                     if (folds > 0)
                     {
-                        // set folds
+                        // set folds and generate confusion matrices
                         DV.kFolds = folds;
-
-                        // reset k-fold generation
                         DV.crossValidationNotGenerated = true;
-
-                        // regenerate confusion matrices
                         generateAnalytics();
                     }
                     else
@@ -285,9 +273,7 @@ public class AnalyticsMenu extends JPanel
                         // invalid fold input
                         DV.warningPopup(
                                 "Error",
-                                "Error: input is invalid. Please enter a whole number greater than 0."
-                        );
-
+                                "Error: input is invalid. Please enter a whole number greater than 0.");
                         choice = -2;
                     }
                 }
